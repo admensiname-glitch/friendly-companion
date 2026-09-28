@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,17 +8,20 @@ export const Route = createFileRoute("/login")({
 });
 
 type LoginStatus = "normal" | "loading" | "success" | "error";
+type ResendStatus = "normal" | "loading" | "success" | "error";
 type AuthDiagnostic = {
   code: string;
   message: string;
   status: number | null;
 } | null;
 
-function getAuthErrorDetails(error: {
+type AuthErrorLike = {
   code?: string;
   message: string;
   status?: number;
-}) {
+};
+
+function getAuthErrorDetails(error: AuthErrorLike) {
   const code = error.code || "não informado";
   const message = error.message || "O Supabase não informou uma mensagem de erro.";
   const status = typeof error.status === "number" ? error.status : null;
@@ -31,8 +34,9 @@ function getAuthErrorDetails(error: {
   ) {
     return {
       userMessage:
-        "E-mail ainda não confirmado. Abra o e-mail enviado pelo Ensina-me e confirme sua conta antes de entrar.",
-      diagnostic: { code, message, status },
+        "E-mail ainda não confirmado. Confirme sua conta pelo e-mail enviado pelo Ensina-me antes de entrar.",
+      diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+      canResend: true,
     };
   }
 
@@ -42,8 +46,9 @@ function getAuthErrorDetails(error: {
   ) {
     return {
       userMessage:
-        "O Supabase recusou o e-mail ou a senha informados. Confira os dados e tente novamente.",
-      diagnostic: { code, message, status },
+        "E-mail ou senha inválidos. Confira os dados e tente novamente.",
+      diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+      canResend: false,
     };
   }
 
@@ -52,8 +57,10 @@ function getAuthErrorDetails(error: {
     normalizedMessage.includes("user not found")
   ) {
     return {
-      userMessage: "Não foi encontrada uma conta de usuário com esses dados.",
-      diagnostic: { code, message, status },
+      userMessage:
+        "Não foi encontrada uma conta de usuário com esses dados.",
+      diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+      canResend: false,
     };
   }
 
@@ -67,7 +74,8 @@ function getAuthErrorDetails(error: {
     return {
       userMessage:
         "Não foi possível conectar ao serviço de autenticação. Verifique sua conexão e tente novamente.",
-      diagnostic: { code, message, status },
+      diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+      canResend: false,
     };
   }
 
@@ -79,40 +87,59 @@ function getAuthErrorDetails(error: {
     return {
       userMessage:
         "O Supabase encontrou um conflito de sessão. Saia da conta atual e tente entrar novamente.",
-      diagnostic: { code, message, status },
+      diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+      canResend: false,
     };
   }
 
   return {
-    userMessage:
-      "O Supabase Auth recusou a autenticação por um motivo diferente dos casos conhecidos.",
-    diagnostic: { code, message, status },
+    userMessage: `O Supabase Auth recusou o acesso: ${message}`,
+    diagnostic: { code, message, status } satisfies NonNullable<AuthDiagnostic>,
+    canResend: false,
   };
-}
-
-function clearPreviousError() {
-  setMessage("");
-  setAuthDiagnostic(null);
-  setStatus("normal");
 }
 
 function Login() {
   const navigate = useNavigate();
+  const submitPending = useRef(false);
+  const resendPending = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<LoginStatus>("normal");
   const [message, setMessage] = useState("");
-  const [authDiagnostic, setAuthDiagnostic] =
-    useState<AuthDiagnostic>(null);
+  const [authDiagnostic, setAuthDiagnostic] = useState<AuthDiagnostic>(null);
+  const [canResend, setCanResend] = useState(false);
+  const [resendStatus, setResendStatus] = useState<ResendStatus>("normal");
+  const [resendMessage, setResendMessage] = useState("");
+
+  function clearAuthFeedback() {
+    setMessage("");
+    setAuthDiagnostic(null);
+    setCanResend(false);
+    setStatus("normal");
+  }
+
+  function clearResendFeedback() {
+    setResendMessage("");
+    setResendStatus("normal");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (submitPending.current) return;
+
+    const formData = new FormData(event.currentTarget);
+    const normalizedEmail = String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const currentPassword = String(formData.get("password") ?? "");
+
     setMessage("");
     setAuthDiagnostic(null);
-
-    const normalizedEmail = email.trim();
-    const currentPassword = password;
+    setCanResend(false);
+    setResendMessage("");
+    setResendStatus("normal");
 
     if (!normalizedEmail || !currentPassword) {
       setStatus("error");
@@ -126,6 +153,7 @@ function Login() {
       return;
     }
 
+    submitPending.current = true;
     setStatus("loading");
 
     try {
@@ -138,13 +166,12 @@ function Login() {
         const details = getAuthErrorDetails(error);
         setMessage(details.userMessage);
         setAuthDiagnostic(details.diagnostic);
+        setCanResend(details.canResend);
         setStatus("error");
         return;
       }
 
-      setMessage(
-        "Login realizado com sucesso. Redirecionando para sua área...",
-      );
+      setMessage("Login realizado com sucesso. Abrindo sua área...");
       setStatus("success");
       await navigate({ to: "/app/dashboard" });
     } catch (caughtError) {
@@ -154,10 +181,64 @@ function Login() {
           : "Não foi possível concluir o login. Tente novamente.",
       );
       setStatus("error");
+    } finally {
+      submitPending.current = false;
+    }
+  }
+
+  async function handleResend() {
+    if (resendPending.current) return;
+
+    const normalizedEmail = email.trim().toLowerCase();
+    setResendMessage("");
+
+    if (!normalizedEmail) {
+      setResendStatus("error");
+      setResendMessage("Informe o e-mail antes de solicitar um novo envio.");
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setResendStatus("error");
+      setResendMessage("Informe um endereço de e-mail válido.");
+      return;
+    }
+
+    resendPending.current = true;
+    setResendStatus("loading");
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+      });
+
+      if (error) {
+        setResendStatus("error");
+        setResendMessage(
+          `Não foi possível reenviar a confirmação: ${error.message}`,
+        );
+        return;
+      }
+
+      setResendStatus("success");
+      setResendMessage(
+        "E-mail de confirmação reenviado. Confira também a pasta de spam.",
+      );
+    } catch (caughtError) {
+      setResendStatus("error");
+      setResendMessage(
+        caughtError instanceof Error
+          ? `Não foi possível reenviar a confirmação: ${caughtError.message}`
+          : "Não foi possível reenviar a confirmação. Tente novamente.",
+      );
+    } finally {
+      resendPending.current = false;
     }
   }
 
   const isLoading = status === "loading";
+  const isResending = resendStatus === "loading";
   const showDiagnostic = import.meta.env.DEV && authDiagnostic !== null;
 
   return (
@@ -171,17 +252,11 @@ function Login() {
           Ensina-me
         </Link>
 
-        <section
-          className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8"
-          aria-labelledby="login-title"
-        >
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
             Área do aluno
           </p>
-          <h1
-            id="login-title"
-            className="mt-3 text-3xl font-bold tracking-[-0.04em]"
-          >
+          <h1 id="login-title" className="mt-3 text-3xl font-bold tracking-[-0.04em]">
             Entre na sua conta
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#64748B]">
@@ -212,15 +287,11 @@ function Login() {
                     </div>
                     <div>
                       <dt className="inline font-semibold">Status: </dt>
-                      <dd className="inline">
-                        {authDiagnostic.status ?? "não informado"}
-                      </dd>
+                      <dd className="inline">{authDiagnostic.status ?? "não informado"}</dd>
                     </div>
                     <div>
                       <dt className="inline font-semibold">Mensagem: </dt>
-                      <dd className="inline break-words">
-                        {authDiagnostic.message}
-                      </dd>
+                      <dd className="inline break-words">{authDiagnostic.message}</dd>
                     </div>
                   </dl>
                 </details>
@@ -228,16 +299,35 @@ function Login() {
             </div>
           )}
 
-          <form
-            className="mt-8 space-y-5"
-            aria-label="Formulário de login"
-            onSubmit={handleSubmit}
-          >
-            <div>
-              <label
-                htmlFor="email"
-                className="text-sm font-medium text-[#0F172A]"
+          {canResend && (
+            <div className="mt-4 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-sm text-[#1E3A8A]">
+              <p>Ainda não recebeu o e-mail?</p>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isLoading || isResending}
+                className="mt-2 font-semibold text-[#0242D7] underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] disabled:cursor-not-allowed disabled:opacity-60"
               >
+                {isResending ? "Enviando..." : "Reenviar e-mail de confirmação"}
+              </button>
+
+              {resendMessage && (
+                <p
+                  className={`mt-3 ${
+                    resendStatus === "success" ? "text-[#166534]" : "text-[#991B1B]"
+                  }`}
+                  role={resendStatus === "error" ? "alert" : "status"}
+                  aria-live="polite"
+                >
+                  {resendMessage}
+                </p>
+              )}
+            </div>
+          )}
+
+          <form className="mt-8 space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
               </label>
               <input
@@ -249,7 +339,8 @@ function Login() {
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
-                  if (status === "error") clearPreviousError();
+                  clearAuthFeedback();
+                  clearResendFeedback();
                 }}
                 disabled={isLoading}
                 className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
@@ -258,10 +349,7 @@ function Login() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="text-sm font-medium text-[#0F172A]"
-              >
+              <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">
                 Senha
               </label>
               <input
@@ -273,7 +361,7 @@ function Login() {
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value);
-                  if (status === "error") clearPreviousError();
+                  clearAuthFeedback();
                 }}
                 disabled={isLoading}
                 className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"

@@ -22,7 +22,7 @@ function Cadastro() {
     setMessage("");
 
     const normalizedName = name.trim();
-    const normalizedEmail = email.trim();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedName || !normalizedEmail || !password || !passwordConfirmation) {
       setStatus("error");
@@ -62,23 +62,37 @@ function Cadastro() {
 
     if (error) {
       setStatus("error");
+      const normalizedError = `${error.code ?? ""} ${error.message}`.toLowerCase();
 
-      const normalizedError = error.message.toLowerCase();
-      if (normalizedError.includes("already registered") || normalizedError.includes("already exists")) {
+      if (
+        normalizedError.includes("already registered") ||
+        normalizedError.includes("already exists")
+      ) {
         setMessage("Já existe uma conta com este e-mail. Tente entrar.");
-      } else if (normalizedError.includes("fetch") || normalizedError.includes("network")) {
+      } else if (
+        normalizedError.includes("fetch") ||
+        normalizedError.includes("network") ||
+        error.status === 0
+      ) {
         setMessage("Não foi possível conectar ao serviço de autenticação. Tente novamente.");
       } else {
-        setMessage("Não foi possível criar sua conta. Verifique os dados e tente novamente.");
+        setMessage(
+          `Não foi possível criar sua conta: ${error.message}`,
+        );
       }
       return;
     }
 
     setStatus("success");
+
     if (data.session) {
-      setMessage("Conta criada com sucesso. Você já pode acessar sua área de aprendizagem.");
+      setMessage(
+        "Conta criada e sessão iniciada. A confirmação de e-mail não foi exigida nesta configuração.",
+      );
     } else {
-      setMessage("Conta criada. Confira seu e-mail para confirmar a conta antes de entrar.");
+      setMessage(
+        "Conta criada com sucesso. Enviamos um e-mail de confirmação. Abra o e-mail enviado pelo Ensina-me e confirme sua conta antes de entrar.",
+      );
     }
   }
 
@@ -115,7 +129,7 @@ function Cadastro() {
           </p>
 
           {message && (
-            <p
+            <div
               className={`mt-5 rounded-md border px-4 py-3 text-sm ${
                 status === "success"
                   ? "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]"
@@ -124,8 +138,16 @@ function Cadastro() {
               role={status === "error" ? "alert" : "status"}
               aria-live="polite"
             >
-              {message}
-            </p>
+              <p>{message}</p>
+              {status === "success" && !dataHasSession(message) && (
+                <Link
+                  to="/login"
+                  className="mt-3 inline-block font-semibold underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7]"
+                >
+                  Ir para o login
+                </Link>
+              )}
+            </div>
           )}
 
           <form className="mt-8 space-y-5" aria-label="Formulário de criação de conta" onSubmit={handleSubmit}>
@@ -225,4 +247,8 @@ function Cadastro() {
       </div>
     </main>
   );
+}
+
+function dataHasSession(message: string) {
+  return message.includes("sessão iniciada");
 }
