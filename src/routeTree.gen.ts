@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as AdminRouteImport } from './routes/admin'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
+  '/admin': typeof AdminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
+  '/admin': typeof AdminRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,14 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
+  '/admin': typeof AdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/app' | '/cadastro' | '/onboarding'
+  fullPaths: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app' | '/cadastro' | '/onboarding'
-  id: '__root__' | '/' | '/login' | '/app' | '/cadastro' | '/onboarding'
+  to: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
+  id: '__root__' | '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +86,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   CadastroRoute: typeof CadastroRoute
   OnboardingRoute: typeof OnboardingRoute
+  AdminRoute: typeof AdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +142,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   CadastroRoute: CadastroRoute,
   OnboardingRoute: OnboardingRoute,
+  AdminRoute: AdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
