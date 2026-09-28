@@ -18,45 +18,57 @@ function Login() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("");
 
     const normalizedEmail = email.trim();
     if (!normalizedEmail || !password) {
-      setStatus("error");
       setMessage("Preencha o e-mail e a senha para continuar.");
+      setStatus("error");
       return;
     }
 
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      setStatus("error");
       setMessage("Informe um endereço de e-mail válido.");
+      setStatus("error");
       return;
     }
 
+    setMessage("");
     setStatus("loading");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
 
-    if (error) {
-      setStatus("error");
+      if (error) {
+        const normalizedError = error.message.toLowerCase();
 
-      const normalizedError = error.message.toLowerCase();
-      if (normalizedError.includes("invalid login credentials")) {
-        setMessage("E-mail ou senha inválidos, ou usuário inexistente.");
-      } else if (normalizedError.includes("fetch") || normalizedError.includes("network")) {
-        setMessage("Não foi possível conectar ao serviço de autenticação. Tente novamente.");
-      } else {
-        setMessage("Não foi possível entrar. Verifique seus dados e tente novamente.");
+        if (
+          normalizedError.includes("invalid login credentials") ||
+          normalizedError.includes("user not found")
+        ) {
+          setMessage("E-mail ou senha inválidos, ou usuário inexistente.");
+        } else if (
+          normalizedError.includes("fetch") ||
+          normalizedError.includes("network")
+        ) {
+          setMessage("Não foi possível conectar ao serviço de autenticação. Tente novamente.");
+        } else {
+          setMessage("Não foi possível entrar. Verifique seus dados e tente novamente.");
+        }
+
+        setStatus("error");
+        return;
       }
-      return;
-    }
 
-    setStatus("success");
-    setMessage("Login realizado com sucesso. Redirecionando para sua área...");
-    await navigate({ to: "/app/dashboard" });
+      setStatus("success");
+      setMessage("Login realizado com sucesso. Redirecionando para sua área...");
+      await navigate({ to: "/app/dashboard" });
+    } catch {
+      setMessage("Não foi possível concluir o login. Tente novamente.");
+      setStatus("error");
+    }
   }
 
   const isLoading = status === "loading";
@@ -72,7 +84,10 @@ function Login() {
           Ensina-me
         </Link>
 
-        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
+        <section
+          className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8"
+          aria-labelledby="login-title"
+        >
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
             Área do aluno
           </p>
@@ -97,7 +112,11 @@ function Login() {
             </p>
           )}
 
-          <form className="mt-8 space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
+          <form
+            className="mt-8 space-y-5"
+            aria-label="Formulário de login"
+            onSubmit={handleSubmit}
+          >
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
@@ -115,12 +134,15 @@ function Login() {
                 required
               />
             </div>
+
             <div>
               <div className="flex items-center justify-between gap-4">
                 <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">
                   Senha
                 </label>
-                <span className="text-xs text-[#64748B]">Use sua senha cadastrada</span>
+                <span className="text-xs text-[#64748B]">
+                  Use sua senha cadastrada
+                </span>
               </div>
               <input
                 id="password"
@@ -135,6 +157,7 @@ function Login() {
                 required
               />
             </div>
+
             <button
               type="submit"
               disabled={isLoading}
