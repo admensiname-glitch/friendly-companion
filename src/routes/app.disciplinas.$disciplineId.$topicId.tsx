@@ -239,10 +239,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
     }
   }
 
-  if (uniqueSources.length === 0) {
-    console.debug("[Ensina-me] SourcesSection: nenhuma fonte encontrada", { totalCitations: citations.length });
-    return null;
-  }
+  if (uniqueSources.length === 0) return null;
 
   return (
     <section aria-labelledby="sources-heading" className="mt-12">
@@ -252,10 +249,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
       <div className="mt-4 space-y-4">
         {uniqueSources.map((cit) => {
           const src = cit.source;
-          if (!src) {
-            console.debug("[Ensina-me] Fonte não resolvida para citation", { citationId: cit.id, sourceId: cit.source_id });
-            return null;
-          }
+          if (!src) return null;
 
           const year = src.publication_date
             ? new Date(src.publication_date).getFullYear().toString()
@@ -449,7 +443,7 @@ function TopicDetailPage() {
           .eq("material_id", mat.id);
 
         if (citationsError) {
-          console.debug("[Ensina-me] Erro ao buscar citations:", citationsError.message);
+          // silent — citations são opcionais
         }
 
         const rawCitations = (citationsData ?? []) as MaterialCitation[];
@@ -463,7 +457,7 @@ function TopicDetailPage() {
             .in("id", sourceIds);
 
           if (sourcesError) {
-            console.debug("[Ensina-me] Erro ao buscar sources:", sourcesError.message);
+            // silent
           }
 
           const sourcesMap: Record<string, Source> = {};
@@ -474,11 +468,7 @@ function TopicDetailPage() {
           const enriched = rawCitations
             .map((cit) => ({ ...cit, source: sourcesMap[cit.source_id] }));
 
-          console.debug("[Ensina-me] Fontes carregadas", {
-            citationsCount: rawCitations.length,
-            sourcesCount: Object.keys(sourcesMap).length,
-            enrichedCount: enriched.length,
-          });
+
 
           setCitations(enriched);
         }
