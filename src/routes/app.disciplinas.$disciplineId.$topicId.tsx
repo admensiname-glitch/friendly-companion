@@ -71,6 +71,35 @@ function normalize(str: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+// ─── Render paragraph breaks ───────────────────────────────────────────────────
+// Converts literal \n and \n\n into real visual paragraph breaks.
+// Handles both Unix (\n) and legacy (\n\n) line break styles.
+
+function renderParagraphs(text: string | null | undefined): React.ReactNode[] {
+  if (!text) return [];
+
+  const normalized = text.replace(/\r\n/g, "\n");
+  const blocks = normalized.split(/\n\n+/);
+
+  return blocks.map((block, bi) => {
+    const lines = block.split(/\n/).filter((l) => l.trim().length > 0);
+    if (lines.length === 0) return null;
+    if (lines.length === 1) {
+      return <p key={bi} className={bi > 0 ? "mt-3" : ""}>{lines[0]}</p>;
+    }
+    return (
+      <p key={bi} className={bi > 0 ? "mt-3" : ""}>
+        {lines.map((line, li) => (
+          <span key={li}>
+            {line}
+            {li < lines.length - 1 && <br />}
+          </span>
+        ))}
+      </p>
+    );
+  }).filter(Boolean) as React.ReactNode[];
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function TopicSkeleton() {
@@ -171,10 +200,8 @@ function MaterialSectionItem({ section }: { section: MaterialSection }) {
       >
         {section.title}
       </h3>
-      <div className="mt-3 space-y-3 text-base leading-7 text-[#334155]">
-        {section.content.split("\n\n").map((para, i) => (
-          <p key={i}>{para}</p>
-        ))}
+      <div className="mt-3 space-y-2 text-base leading-7 text-[#334155]">
+        {renderParagraphs(section.content)}
       </div>
     </section>
   );
@@ -183,30 +210,34 @@ function MaterialSectionItem({ section }: { section: MaterialSection }) {
 // ─── Sources section ──────────────────────────────────────────────────────────
 
 function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
-  // Collect unique sources
-  const uniqueSources = citations.filter((c) => c.source).reduce<(MaterialCitation & { source: Source })[]>((acc, cit) => {
-    if (cit.source && !acc.some((s) => s.source.id === cit.source!.id)) {
-      acc.push(cit as MaterialCitation & { source: Source });
+  const seen = new Set<string>();
+  const uniqueSources: (MaterialCitation & { source: Source })[] = [];
+
+  for (const cit of citations) {
+    if (cit.source && cit.source.id && !seen.has(cit.source.id)) {
+      seen.add(cit.source.id);
+      uniqueSources.push(cit as MaterialCitation & { source: Source });
     }
-    return acc;
-  }, []);
+  }
 
   if (uniqueSources.length === 0) return null;
 
   return (
     <section aria-labelledby="sources-heading" className="mt-12">
-      <h2
-        id="sources-heading"
-        className="text-lg font-semibold text-[#0F172A]"
-      >
+      <h2 id="sources-heading" className="text-lg font-semibold text-[#0F172A]">
         Fontes utilizadas
       </h2>
       <div className="mt-4 space-y-4">
         {uniqueSources.map((cit) => {
           const src = cit.source;
-          const year = src.publication_date ? new Date(src.publication_date).getFullYear().toString() : null;
+          const year = src.publication_date
+            ? new Date(src.publication_date).getFullYear().toString()
+            : null;
           return (
-            <div key={src.id} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+            <div
+              key={src.id}
+              className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4"
+            >
               <p className="text-sm font-medium text-[#0F172A]">{src.title}</p>
               {src.authors && src.authors.length > 0 && (
                 <p className="mt-1 text-sm text-[#64748B]">
@@ -245,7 +276,6 @@ function TopicDetailPage() {
   const { disciplineId, topicId } = Route.useParams();
   const [topic, setTopic] = useState<TopicDetail | null>(null);
   const [disciplineName, setDisciplineName] = useState<string | null>(null);
-  const [officialDisciplineId, setOfficialDisciplineId] = useState<string | null>(null);
   const [material, setMaterial] = useState<Material | null>(null);
   const [sections, setSections] = useState<MaterialSection[]>([]);
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
@@ -260,7 +290,6 @@ function TopicDetailPage() {
       setError(false);
       setTopic(null);
       setDisciplineName(null);
-      setOfficialDisciplineId(null);
       setMaterial(null);
       setSections([]);
       setCitations([]);
@@ -327,7 +356,6 @@ function TopicDetailPage() {
 
       const official = officialDiscData as OfficialDiscipline;
       setDisciplineName(official.name);
-      setOfficialDisciplineId(official.id);
 
       // Step 4: Fetch the topic using the official discipline id
       const { data: topicData, error: topicError } = await supabase
@@ -352,15 +380,15 @@ function TopicDetailPage() {
 
       setTopic(topicData as TopicDetail);
 
-      // Step 5: Fetch published material using the resolved topic.id (NOT topicId from URL)
-      const { data: materialData, error: materialError } = await supabase
+      // Step 5: Fetch published material using the resolved topic.id
+      const { data: materialData } = await supabase
         .from("materials")
         .select("id, topic_id, title, introduction, status")
         .eq("topic_id", (topicData as TopicDetail).id)
         .eq("status", "published")
         .maybeSingle();
 
-      if (!materialError && materialData) {
+      if (materialData) {
         const mat = materialData as Material;
         setMaterial(mat);
 
@@ -373,7 +401,7 @@ function TopicDetailPage() {
 
         setSections((sectionsData as MaterialSection[]) ?? []);
 
-        // Step 7: Fetch citations with source data
+        // Step 7: Fetch citations
         const { data: citationsData } = await supabase
           .from("material_citations")
           .select("id, material_id, source_id, citation_label, locator")
@@ -394,12 +422,11 @@ function TopicDetailPage() {
             sourcesMap[src.id] = src as Source;
           });
 
-          const enrichedCitations = rawCitations.map((cit) => ({
-            ...cit,
-            source: sourcesMap[cit.source_id],
-          }));
+          const enriched = rawCitations
+            .map((cit) => ({ ...cit, source: sourcesMap[cit.source_id] }))
+            .filter((cit) => cit.source != null);
 
-          setCitations(enrichedCitations);
+          setCitations(enriched);
         }
       }
 
@@ -412,7 +439,10 @@ function TopicDetailPage() {
   return (
     <section aria-labelledby="topic-title">
       {/* ── Breadcrumb ── */}
-      <nav aria-label="Navegação" className="flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
+      <nav
+        aria-label="Navegação"
+        className="flex flex-wrap items-center gap-2 text-sm text-[#64748B]"
+      >
         <Link
           to="/app/dashboard"
           className="hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
@@ -432,97 +462,65 @@ function TopicDetailPage() {
           params={{ disciplineId }}
           className="hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
         >
-          {loading ? "..." : (disciplineName ?? "Disciplina")}
+          {disciplineName ?? "Disciplina"}
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-[#0F172A]">
-          {loading ? "..." : (topic?.name ?? "Tópico")}
+        <span className="text-[#0F172A]" aria-current="page">
+          {topic?.name ?? "Tópico"}
         </span>
       </nav>
 
-      {/* ── Header ── */}
-      <p className="mt-6 text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
-        Tópico
-      </p>
+      {/* ── Topic header ── */}
+      <div className="mt-6">
+        <div className="flex items-center gap-2 text-sm text-[#64748B]">
+          {disciplineName && (
+            <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-medium text-[#0242D7]">
+              {disciplineName}
+            </span>
+          )}
+        </div>
+        <h1 id="topic-title" className="mt-2 text-3xl font-bold text-[#0F172A]">
+          {topic?.name ?? "Carregando..."}
+        </h1>
+        {topic?.description && (
+          <p className="mt-2 text-base leading-7 text-[#475569]">
+            {topic.description}
+          </p>
+        )}
+      </div>
 
+      {/* ── Loading ── */}
       {loading && <TopicSkeleton />}
 
+      {/* ── Error ── */}
       {!loading && error && <ErrorState />}
 
-      {!loading && notFound && <NotFound />}
+      {/* ── Not found ── */}
+      {!loading && !error && notFound && <NotFound />}
 
-      {!loading && !error && !notFound && topic && officialDisciplineId && (
-        <>
-          <h1
-            id="topic-title"
-            className="mt-3 text-3xl font-bold tracking-[-0.04em] text-[#0F172A] sm:text-4xl"
-          >
-            {topic.name}
-          </h1>
+      {/* ── Topic found but no material ── */}
+      {!loading && !error && !notFound && !material && <ContentPlaceholder />}
 
-          {disciplineName && (
-            <p className="mt-2 text-base text-[#64748B]">
-              <span className="font-medium">Disciplina:</span> {disciplineName}
-            </p>
-          )}
-
-          {topic.description && (
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#64748B]">
-              {topic.description}
-            </p>
-          )}
-
-          {/* ── Material or placeholder ── */}
-          {material ? (
-            <article aria-labelledby="material-heading" className="mt-8">
-              <h2
-                id="material-heading"
-                className="text-2xl font-bold text-[#0F172A]"
-              >
-                {material.title}
-              </h2>
-
-              {material.introduction && (
-                <p className="mt-3 max-w-2xl text-base leading-7 italic text-[#475569]">
-                  {material.introduction}
-                </p>
-              )}
-
-              {/* Sections */}
-              {sections.map((section) => (
-                <MaterialSectionItem key={section.id} section={section} />
-              ))}
-
-              {/* Sources */}
-              <SourcesSection citations={citations} />
-            </article>
-          ) : (
-            <ContentPlaceholder />
-          )}
-
-          {/* ── Navigation links ── */}
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link
-              to="/app/disciplinas/$disciplineId"
-              params={{ disciplineId }}
-              className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#CBD5E1] bg-white px-4 text-sm font-medium text-[#0F172A] transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-            >
-              Voltar para a disciplina
-            </Link>
-            <Link
-              to="/app/disciplinas"
-              className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#CBD5E1] bg-white px-4 text-sm font-medium text-[#0F172A] transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-            >
-              Voltar para disciplinas
-            </Link>
-            <Link
-              to="/app/dashboard"
-              className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#CBD5E1] bg-white px-4 text-sm font-medium text-[#0F172A] transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-            >
-              Voltar ao dashboard
-            </Link>
+      {/* ── Topic found with material ── */}
+      {!loading && !error && !notFound && material && (
+        <div className="mt-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-[#0F172A]">
+              {material.title}
+            </h2>
+            {material.introduction && (
+              <div className="mt-4 text-base leading-7 text-[#334155]">
+                {renderParagraphs(material.introduction)}
+              </div>
+            )}
           </div>
-        </>
+
+          {sections.map((section) => (
+            <MaterialSectionItem key={section.id} section={section} />
+          ))}
+
+          <SourcesSection citations={citations} />
+        </div>
       )}
     </section>
   );
