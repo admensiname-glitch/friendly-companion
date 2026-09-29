@@ -24,6 +24,16 @@ interface Topic {
   position: number;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function normalize(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function DisciplineSkeleton() {
@@ -59,7 +69,7 @@ function NotFound() {
         </svg>
       </div>
       <h2 className="mt-4 font-semibold text-[#0F172A]">Disciplina não encontrada</h2>
-      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
         Esta disciplina não existe ou você não tem acesso a ela.
       </p>
       <Link
@@ -85,7 +95,7 @@ function ErrorState() {
   );
 }
 
-// ─── Catalog not linked ───────────────────────────────────────────────────────
+// ─── Catalog not linked ────────────────────────────────────────────────────────
 
 function CatalogNotLinked() {
   return (
@@ -106,7 +116,7 @@ function CatalogNotLinked() {
         </svg>
       </div>
       <h2 className="mt-4 font-semibold text-[#0F172A]">Catálogo não vinculado</h2>
-      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
         Esta disciplina ainda não está vinculada ao catálogo acadêmico oficial.
       </p>
     </div>
@@ -144,7 +154,7 @@ function TopicsList({ topics }: { topics: Topic[] }) {
   );
 }
 
-// ─── Content placeholder ───────────────────────────────────────────────────────
+// ─── Content placeholder ────────────────────────────────────────────────────────
 
 function ContentPlaceholder() {
   return (
@@ -165,7 +175,7 @@ function ContentPlaceholder() {
         </svg>
       </div>
       <h3 className="mt-4 font-semibold text-[#0F172A]">Conteúdo de aprendizagem</h3>
-      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
         Os conteúdos desta disciplina serão disponibilizados aqui.
       </p>
     </div>
@@ -225,30 +235,36 @@ function DisciplineDetailPage() {
 
       setStudentDisc(studentDiscData as StudentDiscipline);
 
-      // Step 2: Try to match with official catalog (disciplines table)
+      // Step 2: Match with official catalog by name (exact, client-side)
+      // student_disciplines has no FK to disciplines — use name matching (Rule 2)
       const { data: officialDiscs, error: officialError } = await supabase
         .from("disciplines")
         .select("id, name, course_id")
-        .ilike("name", studentDiscData.discipline_name)
-        .eq("published", true)
-        .limit(1);
+        .eq("published", true);
 
-      if (officialError) {
+      if (officialError || !officialDiscs) {
         setCatalogLinked(false);
         setLoading(false);
         return;
       }
 
-      if (!officialDiscs || officialDiscs.length === 0) {
+      const studentNameNorm = normalize(studentDiscData.discipline_name);
+
+      // Exactly-one-match on normalized name (Rule 2)
+      const matches = (officialDiscs as OfficialDiscipline[]).filter(
+        (d) => normalize(d.name) === studentNameNorm,
+      );
+
+      if (matches.length !== 1) {
         setCatalogLinked(false);
         setLoading(false);
         return;
       }
 
-      // Step 3: Load published topics from the matched official discipline
-      const officialDisc = officialDiscs[0] as OfficialDiscipline;
+      const officialDisc = matches[0];
       setCatalogLinked(true);
 
+      // Step 3: Load published topics from the matched official discipline
       const { data: topicsData, error: topicsError } = await supabase
         .from("topics")
         .select("id, name, description, position")
@@ -313,7 +329,8 @@ function DisciplineDetailPage() {
           </h1>
 
           <p className="mt-2 text-base text-[#64748B]">
-            <span className="font-medium text-[#64748B]">Curso:</span>{" "}
+            <span className="font-medium">Curso:</span>
+            {" "}
             {studentDisc.course}
           </p>
 
