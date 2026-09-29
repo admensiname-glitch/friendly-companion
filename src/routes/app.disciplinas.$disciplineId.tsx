@@ -11,6 +11,19 @@ interface StudentDiscipline {
   course: string;
 }
 
+interface OfficialDiscipline {
+  id: string;
+  name: string;
+  course_id: string;
+}
+
+interface Topic {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+}
+
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 function DisciplineSkeleton() {
@@ -46,7 +59,7 @@ function NotFound() {
         </svg>
       </div>
       <h2 className="mt-4 font-semibold text-[#0F172A]">Disciplina não encontrada</h2>
-      <p className="mt-2 max-w-sm mx-auto text-sm leading-6 text-[#64748B]">
+      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
         Esta disciplina não existe ou você não tem acesso a ela.
       </p>
       <Link
@@ -72,6 +85,65 @@ function ErrorState() {
   );
 }
 
+// ─── Catalog not linked ───────────────────────────────────────────────────────
+
+function CatalogNotLinked() {
+  return (
+    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6 text-[#0242D7]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      </div>
+      <h2 className="mt-4 font-semibold text-[#0F172A]">Catálogo não vinculado</h2>
+      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
+        Esta disciplina ainda não está vinculada ao catálogo acadêmico oficial.
+      </p>
+    </div>
+  );
+}
+
+// ─── Topics list ───────────────────────────────────────────────────────────────
+
+function TopicsList({ topics }: { topics: Topic[] }) {
+  if (topics.length === 0) {
+    return (
+      <div className="mt-6 rounded-md border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-6 text-center text-sm text-[#64748B]">
+        Tópicos ainda não cadastrados.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 space-y-3">
+      <h2 className="text-sm font-semibold text-[#0F172A]">Tópicos</h2>
+      <div className="space-y-2">
+        {topics.map((topic) => (
+          <div
+            key={topic.id}
+            className="rounded-lg border border-[#E2E8F0] bg-white p-4"
+          >
+            <p className="font-medium text-[#0F172A]">{topic.name}</p>
+            {topic.description && (
+              <p className="mt-1 text-sm text-[#64748B]">{topic.description}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Content placeholder ───────────────────────────────────────────────────────
 
 function ContentPlaceholder() {
@@ -93,7 +165,7 @@ function ContentPlaceholder() {
         </svg>
       </div>
       <h3 className="mt-4 font-semibold text-[#0F172A]">Conteúdo de aprendizagem</h3>
-      <p className="mt-2 max-w-sm mx-auto text-sm leading-6 text-[#64748B]">
+      <p className="mt-2 mx-auto max-w-sm text-sm leading-6 text-[#64748B]">
         Os conteúdos desta disciplina serão disponibilizados aqui.
       </p>
     </div>
@@ -108,16 +180,20 @@ export const Route = createFileRoute("/app/disciplinas/$disciplineId")({
 
 function DisciplineDetailPage() {
   const { disciplineId } = Route.useParams();
-  const [discipline, setDiscipline] = useState<StudentDiscipline | null>(null);
+  const [studentDisc, setStudentDisc] = useState<StudentDiscipline | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [catalogLinked, setCatalogLinked] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const loadDiscipline = async () => {
+    const loadData = async () => {
       setLoading(true);
       setNotFound(false);
       setError(false);
+      setCatalogLinked(null);
+      setTopics([]);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -127,30 +203,70 @@ function DisciplineDetailPage() {
 
       const userId = sessionData.session.user.id;
 
-      const { data, error: fetchError } = await supabase
+      // Step 1: Load student's discipline
+      const { data: studentDiscData, error: studentDiscError } = await supabase
         .from("student_disciplines")
         .select("id, discipline_name, course")
         .eq("id", disciplineId)
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (fetchError) {
+      if (studentDiscError) {
         setError(true);
         setLoading(false);
         return;
       }
 
-      if (!data) {
+      if (!studentDiscData) {
         setNotFound(true);
         setLoading(false);
         return;
       }
 
-      setDiscipline(data as StudentDiscipline);
+      setStudentDisc(studentDiscData as StudentDiscipline);
+
+      // Step 2: Try to match with official catalog (disciplines table)
+      const { data: officialDiscs, error: officialError } = await supabase
+        .from("disciplines")
+        .select("id, name, course_id")
+        .ilike("name", studentDiscData.discipline_name)
+        .eq("published", true)
+        .limit(1);
+
+      if (officialError) {
+        setCatalogLinked(false);
+        setLoading(false);
+        return;
+      }
+
+      if (!officialDiscs || officialDiscs.length === 0) {
+        setCatalogLinked(false);
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: Load published topics from the matched official discipline
+      const officialDisc = officialDiscs[0] as OfficialDiscipline;
+      setCatalogLinked(true);
+
+      const { data: topicsData, error: topicsError } = await supabase
+        .from("topics")
+        .select("id, name, description, position")
+        .eq("discipline_id", officialDisc.id)
+        .eq("published", true)
+        .order("position", { ascending: true });
+
+      if (topicsError) {
+        setTopics([]);
+        setLoading(false);
+        return;
+      }
+
+      setTopics((topicsData as Topic[]) ?? []);
       setLoading(false);
     };
 
-    loadDiscipline();
+    loadData();
   }, [disciplineId]);
 
   return (
@@ -172,7 +288,7 @@ function DisciplineDetailPage() {
         </Link>
         <span aria-hidden="true">/</span>
         <span className="text-[#0F172A]">
-          {loading ? "..." : (discipline?.discipline_name ?? "Disciplina")}
+          {loading ? "..." : (studentDisc?.discipline_name ?? "Disciplina")}
         </span>
       </nav>
 
@@ -187,21 +303,28 @@ function DisciplineDetailPage() {
 
       {!loading && notFound && <NotFound />}
 
-      {!loading && !error && !notFound && discipline && (
+      {!loading && !error && !notFound && studentDisc && (
         <>
           <h1
             id="discipline-title"
             className="mt-3 text-3xl font-bold tracking-[-0.04em] text-[#0F172A] sm:text-4xl"
           >
-            {discipline.discipline_name}
+            {studentDisc.discipline_name}
           </h1>
 
           <p className="mt-2 text-base text-[#64748B]">
             <span className="font-medium text-[#64748B]">Curso:</span>{" "}
-            {discipline.course}
+            {studentDisc.course}
           </p>
 
-          <ContentPlaceholder />
+          {catalogLinked === false && <CatalogNotLinked />}
+
+          {catalogLinked === true && (
+            <>
+              <TopicsList topics={topics} />
+              <ContentPlaceholder />
+            </>
+          )}
 
           {/* ── Navigation links ── */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
