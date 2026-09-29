@@ -15,7 +15,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AdminAtivarRouteImport } from './routes/admin.ativar'
+import { Route as AdminAtivarRouteImport } from './routes/admin.dashboard'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,14 +81,6 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
   '/admin/ativar': typeof AdminAtivarRoute
-}
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
-  id: '__root__' | '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
-  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
@@ -163,7 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRoutesByFullPath>()
 
 import type { getRouter } from './router.tsx'
 import type { startInstance } from './start.ts'
