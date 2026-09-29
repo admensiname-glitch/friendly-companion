@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -60,17 +60,12 @@ function EmptyState() {
 
 // ─── Discipline card ───────────────────────────────────────────────────────────
 
-interface DisciplineCardProps {
-  discipline: StudentDiscipline;
-  onClick: () => void;
-}
-
-function DisciplineCard({ discipline, onClick }: DisciplineCardProps) {
+function DisciplineCard({ discipline }: { discipline: StudentDiscipline }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full rounded-xl border border-[#E2E8F0] bg-white p-5 text-left transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+    <Link
+      to="/app/disciplinas/$disciplineId"
+      params={{ disciplineId: discipline.id }}
+      className="block w-full rounded-xl border border-[#E2E8F0] bg-white p-5 text-left transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -87,7 +82,7 @@ function DisciplineCard({ discipline, onClick }: DisciplineCardProps) {
           Pedagogia
         </span>
       </div>
-    </button>
+    </Link>
   );
 }
 
@@ -135,10 +130,6 @@ function DisciplinesPage() {
     loadDisciplines();
   }, []);
 
-  function handleDisciplineClick(discipline: StudentDiscipline) {
-    // Future: navigate(`/app/disciplinas/${discipline.id}`)
-  }
-
   return (
     <section aria-labelledby="disciplines-title">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
@@ -170,11 +161,7 @@ function DisciplinesPage() {
       {!loading && !error && disciplines.length > 0 && (
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {disciplines.map((disc) => (
-            <DisciplineCard
-              key={disc.id}
-              discipline={disc}
-              onClick={() => handleDisciplineClick(disc)}
-            />
+            <DisciplineCard key={disc.id} discipline={disc} />
           ))}
         </div>
       )}
