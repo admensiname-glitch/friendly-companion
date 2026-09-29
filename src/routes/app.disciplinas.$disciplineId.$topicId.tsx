@@ -72,32 +72,50 @@ function normalize(str: string): string {
 }
 
 // ─── Render paragraph breaks ───────────────────────────────────────────────────
-// Converts literal \n and \n\n into real visual paragraph breaks.
-// Handles both Unix (\n) and legacy (\n\n) line break styles.
+// Handles: real newlines, literal backslash-n strings (\n), mixed line endings.
+// Splits on double newlines (paragraph breaks) and single newlines (line breaks
+// within a paragraph). Preserves spaces — does not collapse whitespace.
 
 function renderParagraphs(text: string | null | undefined): React.ReactNode[] {
   if (!text) return [];
 
-  const normalized = text.replace(/\r\n/g, "\n");
-  const blocks = normalized.split(/\n\n+/);
+  // Normalize all line endings to Unix \n first
+  const step1 = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-  return blocks.map((block, bi) => {
-    const lines = block.split(/\n/).filter((l) => l.trim().length > 0);
-    if (lines.length === 0) return null;
-    if (lines.length === 1) {
-      return <p key={bi} className={bi > 0 ? "mt-3" : ""}>{lines[0]}</p>;
-    }
-    return (
-      <p key={bi} className={bi > 0 ? "mt-3" : ""}>
-        {lines.map((line, li) => (
-          <span key={li}>
-            {line}
-            {li < lines.length - 1 && <br />}
-          </span>
-        ))}
-      </p>
-    );
-  }).filter(Boolean) as React.ReactNode[];
+  // Replace literal backslash-n and backslash-n-backslash-n sequences
+  const step2 = step1
+    .replace(/\\n\\n/g, "\u0002PARA\u0002")
+    .replace(/\\n/g, "\u0003LINE\u0003");
+
+  // Split on paragraph marker
+  const paragraphs = step2.split("\u0002PARA\u0002");
+
+  return paragraphs
+    .map((para, pi) => {
+      // Split inside a paragraph on line-break marker
+      const lines = para.split("\u0003LINE\u0003").filter((l) => l.trim().length > 0);
+      if (lines.length === 0) return null;
+
+      if (lines.length === 1) {
+        return (
+          <p key={`${pi}-0`} className={pi > 0 ? "mt-3" : ""}>
+            {lines[0]}
+          </p>
+        );
+      }
+
+      return (
+        <p key={`${pi}-0`} className={pi > 0 ? "mt-3" : ""}>
+          {lines.map((line, li) => (
+            <span key={li}>
+              {line}
+              {li < lines.length - 1 && <br />}
+            </span>
+          ))}
+        </p>
+      );
+    })
+    .filter(Boolean) as React.ReactNode[];
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -210,17 +228,21 @@ function MaterialSectionItem({ section }: { section: MaterialSection }) {
 // ─── Sources section ──────────────────────────────────────────────────────────
 
 function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
+  // Deduplicate sources by id — only include citations that have a resolved source
   const seen = new Set<string>();
-  const uniqueSources: (MaterialCitation & { source: Source })[] = [];
+  const uniqueSources: MaterialCitation[] = [];
 
   for (const cit of citations) {
-    if (cit.source && cit.source.id && !seen.has(cit.source.id)) {
-      seen.add(cit.source.id);
-      uniqueSources.push(cit as MaterialCitation & { source: Source });
+    if (cit.source_id && !seen.has(cit.source_id)) {
+      seen.add(cit.source_id);
+      uniqueSources.push(cit);
     }
   }
 
-  if (uniqueSources.length === 0) return null;
+  if (uniqueSources.length === 0) {
+    console.debug("[Ensina-me] SourcesSection: nenhuma fonte encontrada", { totalCitations: citations.length });
+    return null;
+  }
 
   return (
     <section aria-labelledby="sources-heading" className="mt-12">
@@ -230,19 +252,28 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
       <div className="mt-4 space-y-4">
         {uniqueSources.map((cit) => {
           const src = cit.source;
+          if (!src) {
+            console.debug("[Ensina-me] Fonte não resolvida para citation", { citationId: cit.id, sourceId: cit.source_id });
+            return null;
+          }
+
           const year = src.publication_date
             ? new Date(src.publication_date).getFullYear().toString()
             : null;
+
+          const authorsText = src.authors && src.authors.length > 0
+            ? src.authors.map((a) => a.name).join("; ")
+            : null;
+
           return (
             <div
               key={src.id}
               className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4"
             >
               <p className="text-sm font-medium text-[#0F172A]">{src.title}</p>
-              {src.authors && src.authors.length > 0 && (
+              {authorsText && (
                 <p className="mt-1 text-sm text-[#64748B]">
-                  {src.authors.map((a) => a.name).join("; ")}
-                  {year ? ` (${year})` : ""}
+                  {authorsText}{year ? ` (${year})` : ""}
                 </p>
               )}
               {cit.locator && (
@@ -402,20 +433,28 @@ function TopicDetailPage() {
         setSections((sectionsData as MaterialSection[]) ?? []);
 
         // Step 7: Fetch citations
-        const { data: citationsData } = await supabase
+        const { data: citationsData, error: citationsError } = await supabase
           .from("material_citations")
           .select("id, material_id, source_id, citation_label, locator")
           .eq("material_id", mat.id);
+
+        if (citationsError) {
+          console.debug("[Ensina-me] Erro ao buscar citations:", citationsError.message);
+        }
 
         const rawCitations = (citationsData ?? []) as MaterialCitation[];
 
         // Step 8: Enrich citations with source info
         if (rawCitations.length > 0) {
           const sourceIds = rawCitations.map((c) => c.source_id);
-          const { data: sourcesData } = await supabase
+          const { data: sourcesData, error: sourcesError } = await supabase
             .from("sources")
             .select("id, title, authors, publication_date, doi, canonical_url")
             .in("id", sourceIds);
+
+          if (sourcesError) {
+            console.debug("[Ensina-me] Erro ao buscar sources:", sourcesError.message);
+          }
 
           const sourcesMap: Record<string, Source> = {};
           (sourcesData ?? []).forEach((src) => {
@@ -423,8 +462,13 @@ function TopicDetailPage() {
           });
 
           const enriched = rawCitations
-            .map((cit) => ({ ...cit, source: sourcesMap[cit.source_id] }))
-            .filter((cit) => cit.source != null);
+            .map((cit) => ({ ...cit, source: sourcesMap[cit.source_id] }));
+
+          console.debug("[Ensina-me] Fontes carregadas", {
+            citationsCount: rawCitations.length,
+            sourcesCount: Object.keys(sourcesMap).length,
+            enrichedCount: enriched.length,
+          });
 
           setCitations(enriched);
         }
