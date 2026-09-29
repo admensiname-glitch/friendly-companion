@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -56,9 +56,13 @@ function EmptyState() {
 
 // ─── Discipline card ──────────────────────────────────────────────────────────
 
-function DisciplineCard({ name, course }: { name: string; course: string }) {
+function DisciplineCard({ id, name, course }: { id: string; name: string; course: string }) {
   return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 transition-shadow hover:shadow-sm">
+    <Link
+      to="/app/disciplinas/$disciplineId"
+      params={{ disciplineId: id }}
+      className="block rounded-xl border border-[#E2E8F0] bg-white p-5 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold text-[#0F172A]">{name}</p>
@@ -68,7 +72,7 @@ function DisciplineCard({ name, course }: { name: string; course: string }) {
           Pedagogia
         </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -230,6 +234,7 @@ function AppDashboard() {
             {disciplines.map((disc) => (
               <DisciplineCard
                 key={disc.id}
+                id={disc.id}
                 name={disc.discipline_name}
                 course={disc.course}
               />
