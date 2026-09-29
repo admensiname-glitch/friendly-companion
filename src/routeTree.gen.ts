@@ -35,7 +35,7 @@ const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
-  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute, AppDisciplinas$disciplineId$topicIdRoute, AppDashboardRoute],
+  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute, AppDashboardRoute],
 } as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/app/disciplinas',
@@ -46,11 +46,12 @@ const AppDisciplinas$disciplineIdRoute = AppDisciplinas$disciplineIdRouteImport.
   id: '/app/disciplinas/:disciplineId',
   path: '/disciplinas/:disciplineId',
   getParentRoute: () => AppRoute,
+  children: () => [AppDisciplinas$disciplineId$topicIdRoute],
 } as any)
 const AppDisciplinas$disciplineId$topicIdRoute = AppDisciplinas$disciplineId$topicIdRouteImport.update({
   id: '/app/disciplinas/:disciplineId/:topicId',
   path: '/disciplinas/:disciplineId/:topicId',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AppDisciplinas$disciplineIdRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/app/dashboard',
@@ -168,7 +169,7 @@ declare module '@tanstack/react-router' {
       path: '/disciplinas/:disciplineId/:topicId'
       fullPath: '/app/disciplinas/:disciplineId/:topicId'
       preLoaderRoute: typeof AppDisciplinas$disciplineId$topicIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppDisciplinas$disciplineIdRoute
     }
     '/cadastro': {
       id: '/cadastro'
