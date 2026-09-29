@@ -261,9 +261,19 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
             ? new Date(src.publication_date).getFullYear().toString()
             : null;
 
-          const authorsText = src.authors && src.authors.length > 0
-            ? src.authors.map((a) => a.name).join("; ")
-            : null;
+          const authorsText = (() => {
+            if (!src.authors || src.authors.length === 0) return null;
+            // Accept flat string array (DB stores ["Name1", "Name2"])
+            // or object array (TypeScript type: [{name: "Name1"}])
+            const names = src.authors.map((a: unknown) => {
+              if (typeof a === 'string') return a;
+              if (typeof a === 'object' && a !== null && 'name' in a) {
+                return (a as {name: string}).name;
+              }
+              return String(a);
+            });
+            return names.join("; ");
+          })();
 
           return (
             <div
