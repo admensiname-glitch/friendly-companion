@@ -128,7 +128,7 @@ function CatalogNotLinked() {
 
 // ─── Topics list ───────────────────────────────────────────────────────────────
 
-function TopicsList({ topics }: { topics: Topic[] }) {
+function TopicsList({ topics, disciplineId }: { topics: Topic[]; disciplineId: string }) {
   if (topics.length === 0) {
     return (
       <div className="mt-6 rounded-md border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-6 text-center text-sm text-[#64748B]">
@@ -358,7 +358,7 @@ function DisciplineDetailPage() {
 
           {catalogLinked === true && (
             <>
-              <TopicsList topics={topics} />
+              <TopicsList topics={topics} disciplineId={disciplineId} />
               <ContentPlaceholder />
             </>
           )}
