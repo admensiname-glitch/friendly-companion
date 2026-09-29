@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -94,11 +94,16 @@ function DisciplineCard({ discipline, onClick }: DisciplineCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/disciplinas")({
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      throw new Error("not-authenticated");
+    }
+  },
   component: DisciplinesPage,
 });
 
 function DisciplinesPage() {
-  const navigate = useNavigate();
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
