@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -32,6 +33,12 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
+  id: '/app/disciplinas',
+  path: '/disciplinas',
+  getParentRoute: () => AppRoute,
+} as any)
+
 const CadastroRoute = CadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AppRoute
+  '/app/disciplinas': typeof AppDisciplinasRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AppRoute
+  '/app/disciplinas': typeof AppDisciplinasRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -77,6 +86,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AppRoute
+  '/app/disciplinas': typeof AppDisciplinasRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -114,6 +124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/disciplinas': {
+      id: '/app/disciplinas'
+      path: '/disciplinas'
+      fullPath: '/app/disciplinas'
+      preLoaderRoute: typeof AppDisciplinasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/cadastro': {
       id: '/cadastro'
       path: '/cadastro'
@@ -149,6 +166,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   AppRoute: AppRoute,
+  AppDisciplinasRoute: AppDisciplinasRoute,
   CadastroRoute: CadastroRoute,
   OnboardingRoute: OnboardingRoute,
   AdminRoute: AdminRoute,
