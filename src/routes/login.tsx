@@ -21,6 +21,44 @@ type AuthErrorLike = {
   status?: number;
 };
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  if (visible) {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 3l18 18" />
+        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+        <path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c5.2 0 9 4.5 9 8a8.7 8.7 0 0 1-1.2 3.2" />
+        <path d="M6.2 6.2A9.2 9.2 0 0 0 3 12c0 3.5 3.8 8 9 8a9.8 9.8 0 0 0 4.1-.9" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 12S6.2 4 12 4s9.5 8 9.5 8-3.7 8-9.5 8a9.7 9.7 0 0 1-4-.8" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 function getAuthErrorDetails(error: AuthErrorLike) {
   const code = error.code || "não informado";
   const message = error.message || "O Supabase não informou uma mensagem de erro.";
@@ -105,6 +143,7 @@ function Login() {
   const resendPending = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<LoginStatus>("normal");
   const [message, setMessage] = useState("");
   const [authDiagnostic, setAuthDiagnostic] = useState<AuthDiagnostic>(null);
@@ -352,21 +391,33 @@ function Login() {
               <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">
                 Senha
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="Digite sua senha"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  clearAuthFeedback();
-                }}
-                disabled={isLoading}
-                className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
-                required
-              />
+              <div className="relative mt-2">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Digite sua senha"
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    clearAuthFeedback();
+                  }}
+                  disabled={isLoading}
+                  className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  disabled={isLoading}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-md text-[#64748B] transition-colors hover:text-[#0242D7] focus-visible:rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0242D7] disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={showPassword}
+                >
+                  <PasswordVisibilityIcon visible={showPassword} />
+                </button>
+              </div>
             </div>
 
             <button

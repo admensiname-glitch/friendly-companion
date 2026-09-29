@@ -9,11 +9,51 @@ export const Route = createFileRoute("/cadastro")({
 
 type SignUpStatus = "normal" | "loading" | "success" | "error";
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  if (visible) {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 3l18 18" />
+        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+        <path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c5.2 0 9 4.5 9 8a8.7 8.7 0 0 1-1.2 3.2" />
+        <path d="M6.2 6.2A9.2 9.2 0 0 0 3 12c0 3.5 3.8 8 9 8a9.8 9.8 0 0 0 4.1-.9" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 12S6.2 4 12 4s9.5 8 9.5 8-3.7 8-9.5 8a9.7 9.7 0 0 1-4-.8" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 function Cadastro() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
   const [status, setStatus] = useState<SignUpStatus>("normal");
   const [message, setMessage] = useState("");
 
@@ -191,38 +231,66 @@ function Cadastro() {
               <label htmlFor="senha-cadastro" className="text-sm font-medium text-[#0F172A]">
                 Senha
               </label>
-              <input
-                id="senha-cadastro"
-                name="senha"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Crie uma senha com pelo menos 6 caracteres"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={isLoading}
-                className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
-                required
-                minLength={6}
-              />
+              <div className="relative mt-2">
+                <input
+                  id="senha-cadastro"
+                  name="senha"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Crie uma senha com pelo menos 6 caracteres"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={isLoading}
+                  className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  disabled={isLoading}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-md text-[#64748B] transition-colors hover:text-[#0242D7] focus-visible:rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0242D7] disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  aria-pressed={showPassword}
+                >
+                  <PasswordVisibilityIcon visible={showPassword} />
+                </button>
+              </div>
             </div>
 
             <div>
               <label htmlFor="confirmar-senha-cadastro" className="text-sm font-medium text-[#0F172A]">
                 Confirmar senha
               </label>
-              <input
-                id="confirmar-senha-cadastro"
-                name="confirmar-senha"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Repita sua senha"
-                value={passwordConfirmation}
-                onChange={(event) => setPasswordConfirmation(event.target.value)}
-                disabled={isLoading}
-                className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
-                required
-                minLength={6}
-              />
+              <div className="relative mt-2">
+                <input
+                  id="confirmar-senha-cadastro"
+                  name="confirmar-senha"
+                  type={showPasswordConfirmation ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Repita sua senha"
+                  value={passwordConfirmation}
+                  onChange={(event) => setPasswordConfirmation(event.target.value)}
+                  disabled={isLoading}
+                  className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordConfirmation((current) => !current)}
+                  disabled={isLoading}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-md text-[#64748B] transition-colors hover:text-[#0242D7] focus-visible:rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0242D7] disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={
+                    showPasswordConfirmation
+                      ? "Ocultar confirmação da senha"
+                      : "Mostrar confirmação da senha"
+                  }
+                  aria-pressed={showPasswordConfirmation}
+                >
+                  <PasswordVisibilityIcon visible={showPasswordConfirmation} />
+                </button>
+              </div>
             </div>
 
             <button
