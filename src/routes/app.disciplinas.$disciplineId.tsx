@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -378,6 +378,9 @@ function DisciplineDetailPage() {
               Voltar ao dashboard
             </Link>
           </div>
+
+          {/* ── Child route content (topic detail) ── */}
+          {studentDisc && catalogLinked === true && <Outlet />}
         </>
       )}
     </section>
