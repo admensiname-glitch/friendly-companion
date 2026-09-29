@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppDisciplinas$disciplineIdRouteImport } from './routes/app.disciplinas.$disciplineId'
+import { Route as AppDisciplinas$disciplineId$topicIdRouteImport } from './routes/app.disciplinas.$disciplineId.$topicId'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -34,7 +35,7 @@ const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
-  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute, AppDashboardRoute],
+  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute, AppDisciplinas$disciplineId$topicIdRoute, AppDashboardRoute],
 } as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/app/disciplinas',
@@ -44,6 +45,11 @@ const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
 const AppDisciplinas$disciplineIdRoute = AppDisciplinas$disciplineIdRouteImport.update({
   id: '/app/disciplinas/:disciplineId',
   path: '/disciplinas/:disciplineId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDisciplinas$disciplineId$topicIdRoute = AppDisciplinas$disciplineId$topicIdRouteImport.update({
+  id: '/app/disciplinas/:disciplineId/:topicId',
+  path: '/disciplinas/:disciplineId/:topicId',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/app/disciplinas': typeof AppDisciplinasRoute
   '/app/disciplinas/:disciplineId': typeof AppDisciplinas$disciplineIdRoute
+  '/app/disciplinas/:disciplineId/:topicId': typeof AppDisciplinas$disciplineId$topicIdRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/app/disciplinas': typeof AppDisciplinasRoute
   '/app/disciplinas/:disciplineId': typeof AppDisciplinas$disciplineIdRoute
+  '/app/disciplinas/:disciplineId/:topicId': typeof AppDisciplinas$disciplineId$topicIdRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/app/disciplinas': typeof AppDisciplinasRoute
   '/app/disciplinas/:disciplineId': typeof AppDisciplinas$disciplineIdRoute
+  '/app/disciplinas/:disciplineId/:topicId': typeof AppDisciplinas$disciplineId$topicIdRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
@@ -152,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/disciplinas/:disciplineId'
       fullPath: '/app/disciplinas/:disciplineId'
       preLoaderRoute: typeof AppDisciplinas$disciplineIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/disciplinas/:disciplineId/:topicId': {
+      id: '/app/disciplinas/:disciplineId/:topicId'
+      path: '/disciplinas/:disciplineId/:topicId'
+      fullPath: '/app/disciplinas/:disciplineId/:topicId'
+      preLoaderRoute: typeof AppDisciplinas$disciplineId$topicIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/cadastro': {

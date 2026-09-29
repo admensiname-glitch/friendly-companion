@@ -142,15 +142,17 @@ function TopicsList({ topics }: { topics: Topic[] }) {
       <h2 className="text-sm font-semibold text-[#0F172A]">Tópicos</h2>
       <div className="space-y-2">
         {topics.map((topic) => (
-          <div
+          <Link
             key={topic.id}
-            className="rounded-lg border border-[#E2E8F0] bg-white p-4"
+            to="/app/disciplinas/$disciplineId/$topicId"
+            params={{ disciplineId, topicId: topic.id }}
+            className="block rounded-lg border border-[#E2E8F0] bg-white p-4 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
           >
             <p className="font-medium text-[#0F172A]">{topic.name}</p>
             {topic.description && (
               <p className="mt-1 text-sm text-[#64748B]">{topic.description}</p>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </div>
