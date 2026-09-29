@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppDisciplinas$disciplineIdRouteImport } from './routes/app.disciplinas.$disciplineId'
 import { Route as CadastroRouteImport } from './routes/cadastro'
@@ -33,7 +34,7 @@ const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
-  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute],
+  children: () => [AppDisciplinasRoute, AppDisciplinas$disciplineIdRoute, AppDashboardRoute],
 } as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/app/disciplinas',
@@ -43,6 +44,11 @@ const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
 const AppDisciplinas$disciplineIdRoute = AppDisciplinas$disciplineIdRouteImport.update({
   id: '/app/disciplinas/:disciplineId',
   path: '/disciplinas/:disciplineId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/app/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -106,6 +112,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   AppRoute: typeof AppRoute
+  AppDisciplinasRoute: typeof AppDisciplinasRoute
+  AppDashboardRoute: typeof AppDashboardRoute
   CadastroRoute: typeof CadastroRoute
   OnboardingRoute: typeof OnboardingRoute
   AdminRoute: typeof AdminRoute
@@ -184,6 +192,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AppRoute: AppRoute,
   AppDisciplinasRoute: AppDisciplinasRoute,
+  AppDashboardRoute: AppDashboardRoute,
   CadastroRoute: CadastroRoute,
   OnboardingRoute: OnboardingRoute,
   AdminRoute: AdminRoute,
