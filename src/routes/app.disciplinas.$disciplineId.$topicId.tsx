@@ -352,11 +352,11 @@ function TopicDetailPage() {
 
       setTopic(topicData as TopicDetail);
 
-      // Step 5: Fetch published material for this topic
+      // Step 5: Fetch published material using the resolved topic.id (NOT topicId from URL)
       const { data: materialData, error: materialError } = await supabase
         .from("materials")
         .select("id, topic_id, title, introduction, status")
-        .eq("topic_id", topicId)
+        .eq("topic_id", (topicData as TopicDetail).id)
         .eq("status", "published")
         .maybeSingle();
 
