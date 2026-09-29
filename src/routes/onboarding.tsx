@@ -28,6 +28,16 @@ interface ProfileData {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+interface TechnicalError {
+  operation: string;
+  error: {
+    message: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+  } | null;
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 const steps: { id: Step; label: string }[] = [
@@ -588,6 +598,55 @@ function ReviewSummary({ profile, disciplines, exams }: ReviewSummaryProps) {
   );
 }
 
+// ─── Technical error details (colapsável) ─────────────────────────────────────
+
+interface TechnicalErrorDetailsProps {
+  techError: TechnicalError | null;
+}
+
+function TechnicalErrorDetails({ techError }: TechnicalErrorDetailsProps) {
+  if (!techError) return null;
+
+  return (
+    <details className="mt-4 rounded-md border border-[#FECACA] bg-[#FFF5F5] px-4 py-3">
+      <summary className="cursor-pointer text-xs font-mono font-medium text-[#991B1B]">
+        Detalhes técnicos (desenvolvimento)
+      </summary>
+      <div className="mt-3 space-y-1 font-mono text-xs text-[#991B1B]">
+        <p>
+          <span className="font-semibold">Operação:</span> {techError.operation}
+        </p>
+        {techError.error && (
+          <>
+            <p>
+              <span className="font-semibold">Mensagem:</span>{" "}
+              {techError.error.message}
+            </p>
+            {techError.error.code && (
+              <p>
+                <span className="font-semibold">Código:</span>{" "}
+                {techError.error.code}
+              </p>
+            )}
+            {techError.error.details && (
+              <p>
+                <span className="font-semibold">Detalhes:</span>{" "}
+                {techError.error.details}
+              </p>
+            )}
+            {techError.error.hint && (
+              <p>
+                <span className="font-semibold">Dica:</span>{" "}
+                {techError.error.hint}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
@@ -642,6 +701,7 @@ function Onboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState("");
+  const [technicalError, setTechnicalError] = useState<TechnicalError | null>(null);
 
   // ── Load existing data on mount ──
   useEffect(() => {
@@ -740,53 +800,94 @@ function Onboarding() {
   }
 
   // ── Save disciplines ──
-  async function saveDisciplines(userId: string) {
-    if (disciplines.length > 0) {
-      await supabase
-        .from("student_disciplines")
-        .delete()
-        .eq("user_id", userId);
+  async function saveDisciplines(userId: string): Promise<{ error: TechnicalError["error"] }> {
+    // Delete existing
+    const { error: deleteError } = await supabase
+      .from("student_disciplines")
+      .delete()
+      .eq("user_id", userId);
 
-      const discRows = disciplines.map((name) => ({
-        user_id: userId,
-        discipline_name: name,
-        course: "Pedagogia",
-      }));
+    if (deleteError) {
+      return {
+        error: {
+          message: deleteError.message,
+          code: deleteError.code,
+          details: deleteError.details,
+          hint: deleteError.hint,
+        },
+      };
+    }
 
-      const { error } = await supabase
-        .from("student_disciplines")
-        .insert(discRows);
-
-      return { error };
-    } else {
-      await supabase
-        .from("student_disciplines")
-        .delete()
-        .eq("user_id", userId);
+    if (disciplines.length === 0) {
       return { error: null };
     }
+
+    const discRows = disciplines.map((name) => ({
+      user_id: userId,
+      discipline_name: name,
+      course: "Pedagogia",
+    }));
+
+    const { error: insertError } = await supabase
+      .from("student_disciplines")
+      .insert(discRows);
+
+    if (insertError) {
+      return {
+        error: {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
+        },
+      };
+    }
+
+    return { error: null };
   }
 
   // ── Save exams ──
-  async function saveExams(userId: string) {
-    await supabase
+  async function saveExams(userId: string): Promise<{ error: TechnicalError["error"] }> {
+    const { error: deleteError } = await supabase
       .from("student_exams")
       .delete()
       .eq("user_id", userId);
 
-    if (exams.length > 0) {
-      const examRows = exams.map((e) => ({
-        user_id: userId,
-        discipline: e.discipline,
-        exam_type: e.examType,
-        exam_date: e.examDate || null,
-      }));
+    if (deleteError) {
+      return {
+        error: {
+          message: deleteError.message,
+          code: deleteError.code,
+          details: deleteError.details,
+          hint: deleteError.hint,
+        },
+      };
+    }
 
-      const { error } = await supabase
-        .from("student_exams")
-        .insert(examRows);
+    if (exams.length === 0) {
+      return { error: null };
+    }
 
-      return { error };
+    const examRows = exams.map((e) => ({
+      user_id: userId,
+      discipline: e.discipline,
+      exam_type: e.examType,
+      exam_date: e.examDate || null,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("student_exams")
+      .insert(examRows);
+
+    if (insertError) {
+      return {
+        error: {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
+        },
+      };
     }
 
     return { error: null };
@@ -836,6 +937,7 @@ function Onboarding() {
 
     setIsLoading(true);
     setMessage("");
+    setTechnicalError(null);
     setStatus("saving");
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -848,7 +950,7 @@ function Onboarding() {
 
     const userId = sessionData.session.user.id;
 
-    // Save profile
+    // Step 1: Save profile with onboarding_completed = false
     const difficultiesArray = difficulties
       .split(",")
       .map((d) => d.trim())
@@ -863,7 +965,7 @@ function Onboarding() {
           semester,
           daily_study_minutes: dailyStudyMinutes,
           difficulties: difficultiesArray.length > 0 ? difficultiesArray : null,
-          onboarding_completed: true,
+          onboarding_completed: false,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
@@ -871,23 +973,54 @@ function Onboarding() {
 
     if (profileError) {
       setMessage("Não foi possível salvar seu perfil. Tente novamente.");
+      setTechnicalError({ operation: "Salvar perfil", error: {
+        message: profileError.message,
+        code: profileError.code,
+        details: profileError.details,
+        hint: profileError.hint,
+      }});
       setStatus("error");
       setIsLoading(false);
       return;
     }
 
-    // Save disciplines
-    const { error: discError } = await saveDisciplines(userId);
-    if (discError) {
-      setMessage("Disciplinas não puderam ser salvas.");
+    // Step 2: Save disciplines (delete + insert, capture both errors)
+    const discResult = await saveDisciplines(userId);
+    if (discResult.error) {
+      setMessage("Não foi possível salvar suas disciplinas. Tente novamente.");
+      setTechnicalError({ operation: "Salvar disciplinas", error: discResult.error });
+      setStatus("error");
+      setIsLoading(false);
+      return;
     }
 
-    // Save exams
-    const { error: examError } = await saveExams(userId);
-    if (examError) {
-      setMessage((prev) =>
-        prev ? `${prev} Avaliações não puderam ser salvas.` : "Avaliações não puderam ser salvas.",
-      );
+    // Step 3: Save exams (delete + insert, capture both errors)
+    const examResult = await saveExams(userId);
+    if (examResult.error) {
+      setMessage("Não foi possível salvar suas avaliações. Tente novamente.");
+      setTechnicalError({ operation: "Salvar avaliações", error: examResult.error });
+      setStatus("error");
+      setIsLoading(false);
+      return;
+    }
+
+    // Step 4: All operations succeeded — mark onboarding as completed
+    const { error: completeError } = await supabase
+      .from("student_profiles")
+      .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+
+    if (completeError) {
+      setMessage("Não foi possível finalizar a configuração. Tente novamente.");
+      setTechnicalError({ operation: "Finalizar onboarding", error: {
+        message: completeError.message,
+        code: completeError.code,
+        details: completeError.details,
+        hint: completeError.hint,
+      }});
+      setStatus("error");
+      setIsLoading(false);
+      return;
     }
 
     setStatus("saved");
@@ -948,7 +1081,8 @@ function Onboarding() {
               className="mt-5 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]"
               role="alert"
             >
-              {message}
+              <p>{message}</p>
+              <TechnicalErrorDetails techError={technicalError} />
             </div>
           )}
 
