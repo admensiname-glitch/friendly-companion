@@ -228,6 +228,12 @@ function MaterialSectionItem({ section }: { section: MaterialSection }) {
 // ─── Sources section ──────────────────────────────────────────────────────────
 
 function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
+  // DIAGNÓSTICO: revelar o que chega ao componente
+  console.debug("[DEBUG] SourcesSection → citations recebidas:", citations.length);
+  citations.forEach((cit) => {
+    console.debug("[DEBUG] cit.source_id:", cit.source_id, "| publication_date:", cit.source?.publication_date);
+  });
+
   // Deduplicate sources by id — only include citations that have a resolved source
   const seen = new Set<string>();
   const uniqueSources: MaterialCitation[] = [];
@@ -465,10 +471,19 @@ function TopicDetailPage() {
             sourcesMap[src.id] = src as Source;
           });
 
-          const enriched = rawCitations
+                    const enriched = rawCitations
             .map((cit) => ({ ...cit, source: sourcesMap[cit.source_id] }));
 
-
+          // DIAGNÓSTICO: revelar publication_date real do banco
+          console.debug("[DEBUG] sourceIds buscados:", sourceIds);
+          console.debug("[DEBUG] sourcesMap keys:", Object.keys(sourcesMap));
+          enriched.forEach((cit) => {
+            console.debug("[DEBUG] citation source →", {
+              source_id: cit.source_id,
+              publication_date: cit.source?.publication_date,
+              title: cit.source?.title,
+            });
+          });
 
           setCitations(enriched);
         }
