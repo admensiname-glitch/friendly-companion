@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminAtivarRouteImport } from './routes/admin.ativar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,10 +42,16 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAtivarRoute = AdminAtivarRouteImport.update({
+  id: '/admin/ativar',
+  path: '/ativar',
+  getParentRoute: () => AdminRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
+  children: () => [AdminAtivarRoute],
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -54,6 +61,7 @@ export interface FileRoutesByFullPath {
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
+  '/admin/ativar': typeof AdminAtivarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +70,7 @@ export interface FileRoutesByTo {
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
+  '/admin/ativar': typeof AdminAtivarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +80,14 @@ export interface FileRoutesById {
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
+  '/admin/ativar': typeof AdminAtivarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
+  fullPaths: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
-  id: '__root__' | '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin'
+  to: '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
+  id: '__root__' | '/' | '/login' | '/app' | '/cadastro' | '/onboarding' | '/admin' | '/admin/ativar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +142,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/ativar': {
+      id: '/admin/ativar'
+      path: '/ativar'
+      fullPath: '/admin/ativar'
+      preLoaderRoute: typeof AdminAtivarRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
