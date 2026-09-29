@@ -8,7 +8,7 @@ import { useRef, useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/admin/ativar")({
+export const Route = createFileRoute("/admin-ativar")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getSession();
 
