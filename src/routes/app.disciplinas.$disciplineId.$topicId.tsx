@@ -5,6 +5,21 @@ import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface StudentDiscipline {
+  id: string;
+  discipline_name: string;
+  course: string;
+}
+
+interface DisciplineAlias {
+  discipline_id: string;
+}
+
+interface OfficialDiscipline {
+  id: string;
+  name: string;
+}
+
 interface TopicDetail {
   id: string;
   name: string;
@@ -12,8 +27,14 @@ interface TopicDetail {
   discipline_id: string;
 }
 
-interface DisciplineName {
-  name: string;
+// ─── Normalization ─────────────────────────────────────────────────────────────
+
+function normalize(str: string): string {
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -87,6 +108,7 @@ function TopicDetailPage() {
   const { disciplineId, topicId } = Route.useParams();
   const [topic, setTopic] = useState<TopicDetail | null>(null);
   const [disciplineName, setDisciplineName] = useState<string | null>(null);
+  const [officialDisciplineId, setOfficialDisciplineId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
@@ -98,6 +120,7 @@ function TopicDetailPage() {
       setError(false);
       setTopic(null);
       setDisciplineName(null);
+      setOfficialDisciplineId(null);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -105,13 +128,71 @@ function TopicDetailPage() {
         return;
       }
 
-      // Step 1: Fetch the topic
+      const userId = sessionData.session.user.id;
+
+      // Step 1: Load student's discipline from URL id
+      const { data: studentDiscData, error: studentDiscError } = await supabase
+        .from("student_disciplines")
+        .select("id, discipline_name, course")
+        .eq("id", disciplineId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (studentDiscError) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
+      if (!studentDiscData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const studentDisc = studentDiscData as StudentDiscipline;
+
+      // Step 2: Normalize and look up alias
+      const studentNameNorm = normalize(studentDisc.discipline_name);
+
+      const { data: aliasData, error: aliasError } = await supabase
+        .from("discipline_aliases")
+        .select("discipline_id")
+        .eq("normalized_alias", studentNameNorm);
+
+      if (aliasError || !aliasData || aliasData.length !== 1) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const alias = aliasData[0] as DisciplineAlias;
+
+      // Step 3: Verify official discipline exists and is published
+      const { data: officialDiscData, error: officialError } = await supabase
+        .from("disciplines")
+        .select("id, name")
+        .eq("id", alias.discipline_id)
+        .eq("published", true)
+        .maybeSingle();
+
+      if (officialError || !officialDiscData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const official = officialDiscData as OfficialDiscipline;
+      setDisciplineName(official.name);
+      setOfficialDisciplineId(official.id);
+
+      // Step 4: Fetch the topic using the official discipline id
       const { data: topicData, error: topicError } = await supabase
         .from("topics")
         .select("id, name, description, discipline_id")
         .eq("id", topicId)
+        .eq("discipline_id", official.id)
         .eq("published", true)
-        .eq("discipline_id", disciplineId)
         .maybeSingle();
 
       if (topicError) {
@@ -127,19 +208,6 @@ function TopicDetailPage() {
       }
 
       setTopic(topicData as TopicDetail);
-
-      // Step 2: Fetch the discipline name
-      const { data: discData } = await supabase
-        .from("disciplines")
-        .select("name")
-        .eq("id", disciplineId)
-        .eq("published", true)
-        .maybeSingle();
-
-      if (discData) {
-        setDisciplineName((discData as DisciplineName).name);
-      }
-
       setLoading(false);
     };
 
@@ -188,7 +256,7 @@ function TopicDetailPage() {
 
       {!loading && notFound && <NotFound />}
 
-      {!loading && !error && !notFound && topic && (
+      {!loading && !error && !notFound && topic && officialDisciplineId && (
         <>
           <h1
             id="topic-title"
