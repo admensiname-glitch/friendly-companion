@@ -112,8 +112,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   AppRoute: typeof AppRoute
-  AppDisciplinasRoute: typeof AppDisciplinasRoute
-  AppDashboardRoute: typeof AppDashboardRoute
   CadastroRoute: typeof CadastroRoute
   OnboardingRoute: typeof OnboardingRoute
   AdminRoute: typeof AdminRoute
@@ -191,8 +189,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   AppRoute: AppRoute,
-  AppDisciplinasRoute: AppDisciplinasRoute,
-  AppDashboardRoute: AppDashboardRoute,
   CadastroRoute: CadastroRoute,
   OnboardingRoute: OnboardingRoute,
   AdminRoute: AdminRoute,
