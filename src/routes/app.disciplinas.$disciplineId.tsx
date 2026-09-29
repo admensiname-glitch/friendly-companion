@@ -11,10 +11,13 @@ interface StudentDiscipline {
   course: string;
 }
 
+interface DisciplineAlias {
+  discipline_id: string;
+}
+
 interface OfficialDiscipline {
   id: string;
   name: string;
-  course_id: string;
 }
 
 interface Topic {
@@ -191,6 +194,7 @@ export const Route = createFileRoute("/app/disciplinas/$disciplineId")({
 function DisciplineDetailPage() {
   const { disciplineId } = Route.useParams();
   const [studentDisc, setStudentDisc] = useState<StudentDiscipline | null>(null);
+  const [officialDiscName, setOfficialDiscName] = useState<string | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [catalogLinked, setCatalogLinked] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -204,6 +208,7 @@ function DisciplineDetailPage() {
       setError(false);
       setCatalogLinked(null);
       setTopics([]);
+      setOfficialDiscName(null);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -235,40 +240,53 @@ function DisciplineDetailPage() {
 
       setStudentDisc(studentDiscData as StudentDiscipline);
 
-      // Step 2: Match with official catalog by name (exact, client-side)
-      // student_disciplines has no FK to disciplines — use name matching (Rule 2)
-      const { data: officialDiscs, error: officialError } = await supabase
-        .from("disciplines")
-        .select("id, name, course_id")
-        .eq("published", true);
-
-      if (officialError || !officialDiscs) {
-        setCatalogLinked(false);
-        setLoading(false);
-        return;
-      }
-
+      // Step 2: Normalize the student's discipline name and look up an alias
       const studentNameNorm = normalize(studentDiscData.discipline_name);
 
-      // Exactly-one-match on normalized name (Rule 2)
-      const matches = (officialDiscs as OfficialDiscipline[]).filter(
-        (d) => normalize(d.name) === studentNameNorm,
-      );
+      // Look for exactly one matching alias
+      const { data: aliasData, error: aliasError } = await supabase
+        .from("discipline_aliases")
+        .select("discipline_id")
+        .eq("normalized_alias", studentNameNorm);
 
-      if (matches.length !== 1) {
+      if (aliasError || !aliasData || aliasData.length === 0) {
         setCatalogLinked(false);
         setLoading(false);
         return;
       }
 
-      const officialDisc = matches[0];
+      // Accept only exactly one match
+      if (aliasData.length !== 1) {
+        setCatalogLinked(false);
+        setLoading(false);
+        return;
+      }
+
+      const alias = aliasData[0] as DisciplineAlias;
+
+      // Step 3: Verify the referenced discipline exists and is published
+      const { data: officialDiscData, error: officialError } = await supabase
+        .from("disciplines")
+        .select("id, name")
+        .eq("id", alias.discipline_id)
+        .eq("published", true)
+        .maybeSingle();
+
+      if (officialError || !officialDiscData) {
+        setCatalogLinked(false);
+        setLoading(false);
+        return;
+      }
+
+      const official = officialDiscData as OfficialDiscipline;
+      setOfficialDiscName(official.name);
       setCatalogLinked(true);
 
-      // Step 3: Load published topics from the matched official discipline
+      // Step 4: Load published topics from the official discipline
       const { data: topicsData, error: topicsError } = await supabase
         .from("topics")
         .select("id, name, description, position")
-        .eq("discipline_id", officialDisc.id)
+        .eq("discipline_id", official.id)
         .eq("published", true)
         .order("position", { ascending: true });
 
@@ -304,7 +322,7 @@ function DisciplineDetailPage() {
         </Link>
         <span aria-hidden="true">/</span>
         <span className="text-[#0F172A]">
-          {loading ? "..." : (studentDisc?.discipline_name ?? "Disciplina")}
+          {loading ? "..." : (officialDiscName ?? studentDisc?.discipline_name ?? "Disciplina")}
         </span>
       </nav>
 
@@ -325,7 +343,7 @@ function DisciplineDetailPage() {
             id="discipline-title"
             className="mt-3 text-3xl font-bold tracking-[-0.04em] text-[#0F172A] sm:text-4xl"
           >
-            {studentDisc.discipline_name}
+            {officialDiscName ?? studentDisc.discipline_name}
           </h1>
 
           <p className="mt-2 text-base text-[#64748B]">
