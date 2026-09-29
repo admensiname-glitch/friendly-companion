@@ -10,14 +10,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Step = "institution" | "disciplines" | "availability";
+type Step = "institution" | "disciplines" | "exams" | "final";
+
+interface ExamData {
+  id: string;
+  discipline: string;
+  examType: string;
+  examDate: string;
+}
 
 interface ProfileData {
   institution: string;
   semester: number | null;
   dailyStudyMinutes: number;
-  disciplines: string[];
-  onboardingCompleted: boolean;
+  difficulties: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -27,18 +33,15 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 const steps: { id: Step; label: string }[] = [
   { id: "institution", label: "Instituição" },
   { id: "disciplines", label: "Disciplinas" },
-  { id: "availability", label: "Disponibilidade" },
+  { id: "exams", label: "Avaliações" },
+  { id: "final", label: "Disponibilidade" },
 ];
 
-function StepIndicator({
-  current,
-}: {
-  current: Step;
-}) {
+function StepIndicator({ current }: { current: Step }) {
   const currentIndex = steps.findIndex((s) => s.id === current);
 
   return (
-    <nav aria-label="Progresso do onboarding" className="flex items-center gap-2">
+    <nav aria-label="Progresso do onboarding" className="flex flex-wrap items-center gap-2">
       {steps.map((step, index) => {
         const isCompleted = index < currentIndex;
         const isCurrent = index === currentIndex;
@@ -46,7 +49,7 @@ function StepIndicator({
         return (
           <div key={step.id} className="flex items-center gap-2">
             <div
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                 isCompleted
                   ? "bg-[#0242D7] text-white"
                   : isCurrent
@@ -83,7 +86,9 @@ function StepIndicator({
 
             {index < steps.length - 1 && (
               <div
-                className={`h-px w-8 sm:w-12 ${index < currentIndex ? "bg-[#0242D7]" : "bg-[#E2E8F0]"}`}
+                className={`h-px w-6 sm:w-10 ${
+                  index < currentIndex ? "bg-[#0242D7]" : "bg-[#E2E8F0]"
+                }`}
                 aria-hidden="true"
               />
             )}
@@ -144,9 +149,7 @@ function InstitutionStep({
           id="semester"
           value={semester ?? ""}
           onChange={(e) =>
-            onSemesterChange(
-              e.target.value ? Number(e.target.value) : null,
-            )
+            onSemesterChange(e.target.value ? Number(e.target.value) : null)
           }
           className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
         >
@@ -264,15 +267,178 @@ function DisciplinesStep({
   );
 }
 
-// ─── Step 3: Availability ─────────────────────────────────────────────────────
+// ─── Step 3: Exams ─────────────────────────────────────────────────────────────
 
-interface AvailabilityStepProps {
+interface ExamsStepProps {
+  exams: ExamData[];
+  disciplines: string[];
+  newDiscipline: string;
+  newExamType: string;
+  newExamDate: string;
+  onAddExam: () => void;
+  onRemoveExam: (id: string) => void;
+  onNewDisciplineChange: (v: string) => void;
+  onNewExamTypeChange: (v: string) => void;
+  onNewExamDateChange: (v: string) => void;
+}
+
+const examTypes = [
+  "Prova",
+  "Trabalho",
+  "Apresentação",
+  " Seminário",
+  "Prova final",
+  "Avaliação parcial",
+  "Outro",
+];
+
+function ExamsStep({
+  exams,
+  disciplines,
+  newDiscipline,
+  newExamType,
+  newExamDate,
+  onAddExam,
+  onRemoveExam,
+  onNewDisciplineChange,
+  onNewExamTypeChange,
+  onNewExamDateChange,
+}: ExamsStepProps) {
+  const canAdd =
+    newDiscipline.trim() && newExamType.trim() && newExamDate.trim();
+
+  return (
+    <fieldset className="mt-8 space-y-5">
+      <legend className="sr-only">Avaliações do semestre</legend>
+
+      <div>
+        <label
+          htmlFor="exam-discipline"
+          className="text-sm font-medium text-[#0F172A]"
+        >
+          Disciplina
+        </label>
+        <select
+          id="exam-discipline"
+          value={newDiscipline}
+          onChange={(e) => onNewDisciplineChange(e.target.value)}
+          className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+        >
+          <option value="">Selecione a disciplina</option>
+          {disciplines.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+          {newDiscipline && !disciplines.includes(newDiscipline) && (
+            <option value={newDiscipline}>{newDiscipline}</option>
+          )}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="exam-type" className="text-sm font-medium text-[#0F172A]">
+            Tipo de avaliação
+          </label>
+          <select
+            id="exam-type"
+            value={newExamType}
+            onChange={(e) => onNewExamTypeChange(e.target.value)}
+            className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+          >
+            <option value="">Selecione o tipo</option>
+            {examTypes.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="exam-date" className="text-sm font-medium text-[#0F172A]">
+            Data
+          </label>
+          <input
+            id="exam-date"
+            type="date"
+            value={newExamDate}
+            onChange={(e) => onNewExamDateChange(e.target.value)}
+            className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onAddExam}
+        disabled={!canAdd}
+        className="h-10 w-full rounded-md border border-dashed border-[#CBD5E1] text-sm font-medium text-[#64748B] transition-colors hover:border-[#0242D7] hover:text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        + Adicionar avaliação
+      </button>
+
+      {exams.length > 0 && (
+        <div className="space-y-2">
+          {exams.map((exam) => (
+            <div
+              key={exam.id}
+              className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#0F172A]">
+                  {exam.discipline}
+                </p>
+                <p className="text-xs text-[#64748B]">
+                  {exam.examType}
+                  {exam.examDate && ` — ${exam.examDate}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemoveExam(exam.id)}
+                className="ml-3 shrink-0 text-[#64748B] transition-colors hover:text-[#991B1B] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0242D7]"
+                aria-label="Remover avaliação"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 16 16"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                >
+                  <line x1="3" y1="3" x2="13" y2="13" />
+                  <line x1="13" y1="3" x2="3" y2="13" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {exams.length === 0 && (
+        <p className="text-sm text-[#64748B]">
+          Nenhuma avaliação adicionada. Você pode pular esta etapa.
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+// ─── Step 4: Difficulties & Availability ─────────────────────────────────────
+
+interface FinalStepProps {
+  difficulties: string;
   dailyStudyMinutes: number;
-  onChange: (v: number) => void;
+  onDifficultiesChange: (v: string) => void;
+  onMinutesChange: (v: number) => void;
 }
 
 const timeOptions = [
-  { value: 30, label: "30 minutos" },
+  { value: 30, label: "30 min" },
   { value: 60, label: "1 hora" },
   { value: 90, label: "1h30" },
   { value: 120, label: "2 horas" },
@@ -280,44 +446,149 @@ const timeOptions = [
   { value: 240, label: "4 horas" },
 ];
 
-function AvailabilityStep({
+function FinalStep({
+  difficulties,
   dailyStudyMinutes,
-  onChange,
-}: AvailabilityStepProps) {
+  onDifficultiesChange,
+  onMinutesChange,
+}: FinalStepProps) {
   return (
-    <fieldset className="mt-8 space-y-4">
-      <legend className="sr-only">Tempo disponível para estudo</legend>
+    <fieldset className="mt-8 space-y-6">
+      <legend className="sr-only">Dificuldades e disponibilidade</legend>
 
-      <p className="text-sm font-medium text-[#0F172A]">
-        Quanto tempo você consegue estudar por dia?
-      </p>
+      <div>
+        <label
+          htmlFor="difficulties"
+          className="text-sm font-medium text-[#0F172A]"
+        >
+          Em quais assuntos você sente mais dificuldade?
+        </label>
+        <textarea
+          id="difficulties"
+          rows={4}
+          placeholder="Ex.: estatística, metodologias de pesquisa, filosofia da educação..."
+          value={difficulties}
+          onChange={(e) => onDifficultiesChange(e.target.value)}
+          className="mt-2 w-full resize-none rounded-md border border-[#CBD5E1] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+        />
+        <p className="mt-1.5 text-xs text-[#64748B]">
+          Opcional — deixe em branco se preferir.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {timeOptions.map((opt) => {
-          const isSelected = dailyStudyMinutes === opt.value;
+      <div>
+        <p className="text-sm font-medium text-[#0F172A]">
+          Quanto tempo você consegue estudar por dia?
+        </p>
 
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              aria-pressed={isSelected}
-              className={`h-12 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 ${
-                isSelected
-                  ? "border-[#0242D7] bg-[#EFF6FF] text-[#0242D7]"
-                  : "border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#94A3B8]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {timeOptions.map((opt) => {
+            const isSelected = dailyStudyMinutes === opt.value;
+
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onMinutesChange(opt.value)}
+                aria-pressed={isSelected}
+                className={`h-12 rounded-md border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 ${
+                  isSelected
+                    ? "border-[#0242D7] bg-[#EFF6FF] text-[#0242D7]"
+                    : "border-[#CBD5E1] bg-white text-[#0F172A] hover:border-[#94A3B8]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </fieldset>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Review summary ───────────────────────────────────────────────────────────
+
+interface ReviewSummaryProps {
+  profile: ProfileData;
+  disciplines: string[];
+  exams: ExamData[];
+}
+
+function ReviewSummary({ profile, disciplines, exams }: ReviewSummaryProps) {
+  const difficultyList = profile.difficulties
+    ? profile.difficulties.split(",").map((d) => d.trim()).filter(Boolean)
+    : [];
+
+  return (
+    <div className="mt-8 space-y-5">
+      <h2 className="text-sm font-semibold text-[#0F172A]">
+        Resumo das suas informações
+      </h2>
+
+      <dl className="space-y-4">
+        <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Instituição
+          </dt>
+          <dd className="mt-1 text-sm text-[#0F172A]">
+            {profile.institution || "Não informada"}
+            {profile.semester && ` — ${profile.semester}º período`}
+          </dd>
+        </div>
+
+        <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Disciplinas ({disciplines.length})
+          </dt>
+          <dd className="mt-1 text-sm text-[#0F172A]">
+            {disciplines.length > 0
+              ? disciplines.join(", ")
+              : "Nenhuma disciplina adicionada"}
+          </dd>
+        </div>
+
+        {exams.length > 0 && (
+          <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+            <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+              Avaliações ({exams.length})
+            </dt>
+            <dd className="mt-1 space-y-1">
+              {exams.map((exam) => (
+                <p key={exam.id} className="text-sm text-[#0F172A]">
+                  {exam.discipline} — {exam.examType}
+                  {exam.examDate && ` (${exam.examDate})`}
+                </p>
+              ))}
+            </dd>
+          </div>
+        )}
+
+        <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Tempo de estudo diário
+          </dt>
+          <dd className="mt-1 text-sm text-[#0F172A]">
+            {profile.dailyStudyMinutes} minutos
+          </dd>
+        </div>
+
+        <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Dificuldades relatadas
+          </dt>
+          <dd className="mt-1 text-sm text-[#0F172A]">
+            {difficultyList.length > 0
+              ? difficultyList.join(", ")
+              : "Não foram informadas"}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: async () => {
@@ -346,19 +617,33 @@ export const Route = createFileRoute("/onboarding")({
 function Onboarding() {
   const navigate = useNavigate();
   const saveDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Step ──
   const [step, setStep] = useState<Step>("institution");
+  const stepIndex = steps.findIndex((s) => s.id === step);
+
+  // ── Profile data ──
+  const [institution, setInstitution] = useState("");
+  const [semester, setSemester] = useState<number | null>(null);
+  const [dailyStudyMinutes, setDailyStudyMinutes] = useState(60);
+  const [difficulties, setDifficulties] = useState("");
+
+  // ── Disciplines ──
+  const [disciplines, setDisciplines] = useState<string[]>([]);
+  const [newDiscipline, setNewDiscipline] = useState("");
+
+  // ── Exams ──
+  const [exams, setExams] = useState<ExamData[]>([]);
+  const [newExamDiscipline, setNewExamDiscipline] = useState("");
+  const [newExamType, setNewExamType] = useState("");
+  const [newExamDate, setNewExamDate] = useState("");
+
+  // ── UI state ──
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState("");
 
-  // Form state
-  const [institution, setInstitution] = useState("");
-  const [semester, setSemester] = useState<number | null>(null);
-  const [disciplines, setDisciplines] = useState<string[]>([]);
-  const [newDiscipline, setNewDiscipline] = useState("");
-  const [dailyStudyMinutes, setDailyStudyMinutes] = useState(60);
-
-  // Load existing profile data on mount
+  // ── Load existing data on mount ──
   useEffect(() => {
     const loadProfile = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -378,6 +663,11 @@ function Onboarding() {
         setInstitution(profile.institution ?? "");
         setSemester(profile.semester ?? null);
         setDailyStudyMinutes(profile.daily_study_minutes ?? 60);
+        setDifficulties(
+          Array.isArray(profile.difficulties)
+            ? profile.difficulties.join(", ")
+            : (profile.difficulties ?? ""),
+        );
       }
 
       const { data: discs } = await supabase
@@ -388,13 +678,29 @@ function Onboarding() {
       if (discs && discs.length > 0) {
         setDisciplines(discs.map((d) => d.discipline_name));
       }
+
+      const { data: existingExams } = await supabase
+        .from("student_exams")
+        .select("id, discipline, exam_type, exam_date")
+        .eq("user_id", userId);
+
+      if (existingExams && existingExams.length > 0) {
+        setExams(
+          existingExams.map((e) => ({
+            id: e.id,
+            discipline: e.discipline,
+            examType: e.exam_type,
+            examDate: e.exam_date ?? "",
+          })),
+        );
+      }
     };
 
     loadProfile();
   }, []);
 
-  // Auto-save with debounce
-  async function saveProgress() {
+  // ── Auto-save profile fields with debounce ──
+  async function saveProfile() {
     if (saveDebounce.current) clearTimeout(saveDebounce.current);
 
     saveDebounce.current = setTimeout(async () => {
@@ -405,6 +711,11 @@ function Onboarding() {
 
       const userId = sessionData.session.user.id;
 
+      const difficultiesArray = difficulties
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean);
+
       const { error } = await supabase
         .from("student_profiles")
         .upsert(
@@ -413,6 +724,7 @@ function Onboarding() {
             institution: institution || null,
             semester,
             daily_study_minutes: dailyStudyMinutes,
+            difficulties: difficultiesArray.length > 0 ? difficultiesArray : null,
             onboarding_completed: false,
             updated_at: new Date().toISOString(),
           },
@@ -427,22 +739,98 @@ function Onboarding() {
     }, 800);
   }
 
-  // Save on field changes
-  useEffect(() => {
-    saveProgress();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [institution, semester, dailyStudyMinutes]);
+  // ── Save disciplines ──
+  async function saveDisciplines(userId: string) {
+    if (disciplines.length > 0) {
+      await supabase
+        .from("student_disciplines")
+        .delete()
+        .eq("user_id", userId);
 
+      const discRows = disciplines.map((name) => ({
+        user_id: userId,
+        discipline_name: name,
+        course: "Pedagogia",
+      }));
+
+      const { error } = await supabase
+        .from("student_disciplines")
+        .insert(discRows);
+
+      return { error };
+    } else {
+      await supabase
+        .from("student_disciplines")
+        .delete()
+        .eq("user_id", userId);
+      return { error: null };
+    }
+  }
+
+  // ── Save exams ──
+  async function saveExams(userId: string) {
+    await supabase
+      .from("student_exams")
+      .delete()
+      .eq("user_id", userId);
+
+    if (exams.length > 0) {
+      const examRows = exams.map((e) => ({
+        user_id: userId,
+        discipline: e.discipline,
+        exam_type: e.examType,
+        exam_date: e.examDate || null,
+      }));
+
+      const { error } = await supabase
+        .from("student_exams")
+        .insert(examRows);
+
+      return { error };
+    }
+
+    return { error: null };
+  }
+
+  // ── Navigation ──
   function goNext() {
+    saveProfile();
+
     if (step === "institution") setStep("disciplines");
-    else if (step === "disciplines") setStep("availability");
+    else if (step === "disciplines") setStep("exams");
+    else if (step === "exams") setStep("final");
   }
 
   function goBack() {
+    saveProfile();
+
     if (step === "disciplines") setStep("institution");
-    else if (step === "availability") setStep("disciplines");
+    else if (step === "exams") setStep("disciplines");
+    else if (step === "final") setStep("exams");
   }
 
+  // ── Add/remove exam ──
+  function handleAddExam() {
+    if (!newExamDiscipline.trim() || !newExamType.trim()) return;
+
+    const newExam: ExamData = {
+      id: crypto.randomUUID(),
+      discipline: newExamDiscipline,
+      examType: newExamType,
+      examDate: newExamDate,
+    };
+
+    setExams((prev) => [...prev, newExam]);
+    setNewExamDiscipline("");
+    setNewExamType("");
+    setNewExamDate("");
+  }
+
+  function handleRemoveExam(id: string) {
+    setExams((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  // ── Finish ──
   async function handleFinish() {
     if (isLoading) return;
 
@@ -451,11 +839,21 @@ function Onboarding() {
     setStatus("saving");
 
     const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) return;
+    if (!sessionData.session) {
+      setMessage("Sessão expirada. Faça login novamente.");
+      setStatus("error");
+      setIsLoading(false);
+      return;
+    }
 
     const userId = sessionData.session.user.id;
 
-    // Upsert profile and mark completed
+    // Save profile
+    const difficultiesArray = difficulties
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+
     const { error: profileError } = await supabase
       .from("student_profiles")
       .upsert(
@@ -464,6 +862,7 @@ function Onboarding() {
           institution: institution || null,
           semester,
           daily_study_minutes: dailyStudyMinutes,
+          difficulties: difficultiesArray.length > 0 ? difficultiesArray : null,
           onboarding_completed: true,
           updated_at: new Date().toISOString(),
         },
@@ -471,42 +870,39 @@ function Onboarding() {
       );
 
     if (profileError) {
-      setMessage("Não foi possível salvar. Tente novamente.");
+      setMessage("Não foi possível salvar seu perfil. Tente novamente.");
       setStatus("error");
       setIsLoading(false);
       return;
     }
 
-    // Sync disciplines
-    if (disciplines.length > 0) {
-      const discRows = disciplines.map((name) => ({
-        user_id: userId,
-        discipline_name: name,
-        course: "Pedagogia",
-      }));
+    // Save disciplines
+    const { error: discError } = await saveDisciplines(userId);
+    if (discError) {
+      setMessage("Disciplinas não puderam ser salvas.");
+    }
 
-      // Delete old, insert new
-      await supabase
-        .from("student_disciplines")
-        .delete()
-        .eq("user_id", userId);
-
-      const { error: discError } = await supabase
-        .from("student_disciplines")
-        .insert(discRows);
-
-      if (discError) {
-        setMessage("Disciplinas não puderam ser salvas, mas seu perfil foi criado.");
-        // Not fatal — still complete onboarding
-      }
+    // Save exams
+    const { error: examError } = await saveExams(userId);
+    if (examError) {
+      setMessage((prev) =>
+        prev ? `${prev} Avaliações não puderam ser salvas.` : "Avaliações não puderam ser salvas.",
+      );
     }
 
     setStatus("saved");
     await navigate({ to: "/app/dashboard" });
   }
 
-  const isLastStep = step === "availability";
   const isFirstStep = step === "institution";
+  const isLastStep = step === "final";
+
+  const currentProfile: ProfileData = {
+    institution,
+    semester,
+    dailyStudyMinutes,
+    difficulties,
+  };
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A] sm:py-12">
@@ -543,6 +939,10 @@ function Onboarding() {
             <StepIndicator current={step} />
           </div>
 
+          <p className="mt-4 text-sm font-medium text-[#64748B]">
+            Etapa {stepIndex + 1} de {steps.length}
+          </p>
+
           {message && (
             <div
               className="mt-5 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]"
@@ -556,8 +956,16 @@ function Onboarding() {
             <InstitutionStep
               institution={institution}
               semester={semester}
-              onInstitutionChange={setInstitution}
-              onSemesterChange={setSemester}
+              onInstitutionChange={(v) => {
+                setInstitution(v);
+                setStatus("idle");
+                saveProfile();
+              }}
+              onSemesterChange={(v) => {
+                setSemester(v);
+                setStatus("idle");
+                saveProfile();
+              }}
             />
           )}
 
@@ -571,18 +979,48 @@ function Onboarding() {
                 }
                 setNewDiscipline("");
               }}
-              onRemove={(d) =>
-                setDisciplines((prev) => prev.filter((x) => x !== d))
-              }
+              onRemove={(d) => setDisciplines((prev) => prev.filter((x) => x !== d))}
               onNewChange={setNewDiscipline}
             />
           )}
 
-          {step === "availability" && (
-            <AvailabilityStep
-              dailyStudyMinutes={dailyStudyMinutes}
-              onChange={setDailyStudyMinutes}
+          {step === "exams" && (
+            <ExamsStep
+              exams={exams}
+              disciplines={disciplines}
+              newDiscipline={newExamDiscipline}
+              newExamType={newExamType}
+              newExamDate={newExamDate}
+              onAddExam={handleAddExam}
+              onRemoveExam={handleRemoveExam}
+              onNewDisciplineChange={setNewExamDiscipline}
+              onNewExamTypeChange={setNewExamType}
+              onNewExamDateChange={setNewExamDate}
             />
+          )}
+
+          {step === "final" && (
+            <>
+              <FinalStep
+                difficulties={difficulties}
+                dailyStudyMinutes={dailyStudyMinutes}
+                onDifficultiesChange={(v) => {
+                  setDifficulties(v);
+                  setStatus("idle");
+                  saveProfile();
+                }}
+                onMinutesChange={(v) => {
+                  setDailyStudyMinutes(v);
+                  setStatus("idle");
+                  saveProfile();
+                }}
+              />
+              <ReviewSummary
+                profile={currentProfile}
+                disciplines={disciplines}
+                exams={exams}
+              />
+            </>
           )}
 
           <div className="mt-10 flex items-center justify-between gap-4">
