@@ -94,12 +94,6 @@ function DisciplineCard({ discipline, onClick }: DisciplineCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/disciplinas")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      throw new Error("not-authenticated");
-    }
-  },
   component: DisciplinesPage,
 });
 
