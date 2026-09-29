@@ -32,6 +32,7 @@ const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
+  children: () => [AppDisciplinasRoute],
 } as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/app/disciplinas',
@@ -166,7 +167,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   AppRoute: AppRoute,
-  AppDisciplinasRoute: AppDisciplinasRoute,
   CadastroRoute: CadastroRoute,
   OnboardingRoute: OnboardingRoute,
   AdminRoute: AdminRoute,
