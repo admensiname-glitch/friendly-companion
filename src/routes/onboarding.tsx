@@ -650,6 +650,7 @@ function TechnicalErrorDetails({ techError }: TechnicalErrorDetailsProps) {
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
+  ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
 
