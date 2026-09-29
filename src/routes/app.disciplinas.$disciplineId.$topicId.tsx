@@ -27,6 +27,40 @@ interface TopicDetail {
   discipline_id: string;
 }
 
+interface Material {
+  id: string;
+  topic_id: string;
+  title: string;
+  introduction: string | null;
+  status: string;
+}
+
+interface MaterialSection {
+  id: string;
+  material_id: string;
+  title: string;
+  content: string;
+  position: number;
+}
+
+interface Source {
+  id: string;
+  title: string;
+  authors: { name: string }[];
+  publication_date: string | null;
+  doi: string | null;
+  canonical_url: string | null;
+}
+
+interface MaterialCitation {
+  id: string;
+  material_id: string;
+  source_id: string;
+  citation_label: string | null;
+  locator: string | null;
+  source?: Source;
+}
+
 // ─── Normalization ─────────────────────────────────────────────────────────────
 
 function normalize(str: string): string {
@@ -98,6 +132,109 @@ function ErrorState() {
   );
 }
 
+// ─── Content placeholder (no material yet) ─────────────────────────────────────
+
+function ContentPlaceholder() {
+  return (
+    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-10 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6 text-[#0242D7]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      </div>
+      <h3 className="mt-4 font-semibold text-[#0F172A]">Conteúdo de aprendizagem</h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
+        O conteúdo deste tópico será disponibilizado aqui.
+      </p>
+    </div>
+  );
+}
+
+// ─── Material section ────────────────────────────────────────────────────────
+
+function MaterialSectionItem({ section }: { section: MaterialSection }) {
+  return (
+    <section aria-labelledby={`section-${section.id}`} className="mt-8">
+      <h3
+        id={`section-${section.id}`}
+        className="text-xl font-semibold text-[#0F172A]"
+      >
+        {section.title}
+      </h3>
+      <div className="mt-3 space-y-3 text-base leading-7 text-[#334155]">
+        {section.content.split("\n\n").map((para, i) => (
+          <p key={i}>{para}</p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Sources section ──────────────────────────────────────────────────────────
+
+function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
+  // Collect unique sources
+  const uniqueSources = citations.filter((c) => c.source).reduce<(MaterialCitation & { source: Source })[]>((acc, cit) => {
+    if (cit.source && !acc.some((s) => s.source.id === cit.source!.id)) {
+      acc.push(cit as MaterialCitation & { source: Source });
+    }
+    return acc;
+  }, []);
+
+  if (uniqueSources.length === 0) return null;
+
+  return (
+    <section aria-labelledby="sources-heading" className="mt-12">
+      <h2
+        id="sources-heading"
+        className="text-lg font-semibold text-[#0F172A]"
+      >
+        Fontes utilizadas
+      </h2>
+      <div className="mt-4 space-y-4">
+        {uniqueSources.map((cit) => {
+          const src = cit.source;
+          const year = src.publication_date ? new Date(src.publication_date).getFullYear().toString() : null;
+          return (
+            <div key={src.id} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <p className="text-sm font-medium text-[#0F172A]">{src.title}</p>
+              {src.authors && src.authors.length > 0 && (
+                <p className="mt-1 text-sm text-[#64748B]">
+                  {src.authors.map((a) => a.name).join("; ")}
+                  {year ? ` (${year})` : ""}
+                </p>
+              )}
+              {cit.locator && (
+                <p className="mt-1 text-xs text-[#94A3B8]">{cit.locator}</p>
+              )}
+              {src.canonical_url && (
+                <a
+                  href={src.canonical_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-sm font-medium text-[#0242D7] hover:underline focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+                >
+                  Ver fonte original →
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/disciplinas/$disciplineId/$topicId")({
@@ -109,6 +246,9 @@ function TopicDetailPage() {
   const [topic, setTopic] = useState<TopicDetail | null>(null);
   const [disciplineName, setDisciplineName] = useState<string | null>(null);
   const [officialDisciplineId, setOfficialDisciplineId] = useState<string | null>(null);
+  const [material, setMaterial] = useState<Material | null>(null);
+  const [sections, setSections] = useState<MaterialSection[]>([]);
+  const [citations, setCitations] = useState<MaterialCitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
@@ -121,6 +261,9 @@ function TopicDetailPage() {
       setTopic(null);
       setDisciplineName(null);
       setOfficialDisciplineId(null);
+      setMaterial(null);
+      setSections([]);
+      setCitations([]);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -208,6 +351,58 @@ function TopicDetailPage() {
       }
 
       setTopic(topicData as TopicDetail);
+
+      // Step 5: Fetch published material for this topic
+      const { data: materialData, error: materialError } = await supabase
+        .from("materials")
+        .select("id, topic_id, title, introduction, status")
+        .eq("topic_id", topicId)
+        .eq("status", "published")
+        .maybeSingle();
+
+      if (!materialError && materialData) {
+        const mat = materialData as Material;
+        setMaterial(mat);
+
+        // Step 6: Fetch sections ordered by position
+        const { data: sectionsData } = await supabase
+          .from("material_sections")
+          .select("id, material_id, title, content, position")
+          .eq("material_id", mat.id)
+          .order("position", { ascending: true });
+
+        setSections((sectionsData as MaterialSection[]) ?? []);
+
+        // Step 7: Fetch citations with source data
+        const { data: citationsData } = await supabase
+          .from("material_citations")
+          .select("id, material_id, source_id, citation_label, locator")
+          .eq("material_id", mat.id);
+
+        const rawCitations = (citationsData ?? []) as MaterialCitation[];
+
+        // Step 8: Enrich citations with source info
+        if (rawCitations.length > 0) {
+          const sourceIds = rawCitations.map((c) => c.source_id);
+          const { data: sourcesData } = await supabase
+            .from("sources")
+            .select("id, title, authors, publication_date, doi, canonical_url")
+            .in("id", sourceIds);
+
+          const sourcesMap: Record<string, Source> = {};
+          (sourcesData ?? []).forEach((src) => {
+            sourcesMap[src.id] = src as Source;
+          });
+
+          const enrichedCitations = rawCitations.map((cit) => ({
+            ...cit,
+            source: sourcesMap[cit.source_id],
+          }));
+
+          setCitations(enrichedCitations);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -277,30 +472,33 @@ function TopicDetailPage() {
             </p>
           )}
 
-          {/* ── Content placeholder ── */}
-          <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-10 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-6 w-6 text-[#0242D7]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {/* ── Material or placeholder ── */}
+          {material ? (
+            <article aria-labelledby="material-heading" className="mt-8">
+              <h2
+                id="material-heading"
+                className="text-2xl font-bold text-[#0F172A]"
               >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </div>
-            <h3 className="mt-4 font-semibold text-[#0F172A]">
-              Conteúdo de aprendizagem
-            </h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#64748B]">
-              O conteúdo deste tópico será disponibilizado aqui.
-            </p>
-          </div>
+                {material.title}
+              </h2>
+
+              {material.introduction && (
+                <p className="mt-3 max-w-2xl text-base leading-7 italic text-[#475569]">
+                  {material.introduction}
+                </p>
+              )}
+
+              {/* Sections */}
+              {sections.map((section) => (
+                <MaterialSectionItem key={section.id} section={section} />
+              ))}
+
+              {/* Sources */}
+              <SourcesSection citations={citations} />
+            </article>
+          ) : (
+            <ContentPlaceholder />
+          )}
 
           {/* ── Navigation links ── */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
