@@ -91,7 +91,7 @@ const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
-  children: () => [AdminDashboardRoute, AdminContentRoute, AdminAtivarRoute],
+  children: () => [AdminDashboardRoute, AdminContentRoute],
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
