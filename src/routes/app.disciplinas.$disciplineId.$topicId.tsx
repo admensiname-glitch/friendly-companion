@@ -41,6 +41,7 @@ interface MaterialSection {
   title: string;
   content: string;
   position: number;
+  section_type: "concept" | "explanation" | "deepening" | "examples" | "common_mistakes" | "review";
 }
 
 interface Source {
@@ -257,15 +258,30 @@ function ContentPlaceholder() {
 // ─── Material section ──────────────────────────────────────────────────────────
 
 function MaterialSectionItem({ section }: { section: MaterialSection }) {
+  const labels: Record<MaterialSection["section_type"], string> = {
+    concept: "Ideia central",
+    explanation: "Entenda",
+    deepening: "Aprofunde",
+    examples: "Na prática",
+    common_mistakes: "Atenção",
+    review: "Revisão rápida",
+  };
+
   return (
-    <section aria-labelledby={`section-${section.id}`} className="mt-8">
+    <section
+      aria-labelledby={`section-${section.id}`}
+      className="mt-8 border-l-2 border-[#E2E8F0] pl-5 sm:pl-6"
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
+        {labels[section.section_type]}
+      </p>
       <h3
         id={`section-${section.id}`}
-        className="text-xl font-semibold text-[#0F172A]"
+        className="mt-1 text-xl font-semibold text-[#0F172A]"
       >
         {section.title}
       </h3>
-      <div className="mt-3 space-y-2 text-base leading-7 text-[#334155]">
+      <div className="mt-3 max-w-3xl space-y-2 text-base leading-7 text-[#334155]">
         {renderParagraphs(section.content)}
       </div>
     </section>
@@ -1371,7 +1387,7 @@ function TopicDetailPage() {
         // Step 6: Fetch sections
         const { data: sectionsData } = await supabase
           .from("material_sections")
-          .select("id, material_id, title, content, position")
+          .select("id, material_id, title, content, position, section_type")
           .eq("material_id", mat.id)
           .order("position", { ascending: true });
 
