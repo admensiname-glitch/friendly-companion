@@ -942,6 +942,38 @@ export type Database = {
         }
         Relationships: []
       }
+      student_material_section_progress: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          section_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          section_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          section_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_material_section_progress_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "material_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_profiles: {
         Row: {
           created_at: string
@@ -1297,6 +1329,13 @@ export type Database = {
       get_student_study_recommendation: { Args: never; Returns: Json }
       get_student_today_study: { Args: never; Returns: Json }
       has_role: { Args: { required_role: string }; Returns: boolean }
+      mark_material_section_complete: {
+        Args: { _section_id: string }
+        Returns: {
+          completed_sections: number
+          total_sections: number
+        }[]
+      }
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
         Returns: undefined
