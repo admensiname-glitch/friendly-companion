@@ -802,6 +802,44 @@ export type Database = {
           },
         ]
       }
+      study_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_sessions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topic_sources: {
         Row: {
           created_at: string
@@ -917,6 +955,7 @@ export type Database = {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
       }
+      finish_study_session: { Args: { _session_id: string }; Returns: Json }
       get_admin_content_overview: {
         Args: never
         Returns: {
@@ -944,11 +983,13 @@ export type Database = {
         }[]
       }
       get_student_study_recommendation: { Args: never; Returns: Json }
+      get_student_today_study: { Args: never; Returns: Json }
       has_role: { Args: { required_role: string }; Returns: boolean }
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
         Returns: undefined
       }
+      start_study_session: { Args: { _topic_id: string }; Returns: Json }
       start_topic_evaluation: { Args: { _topic_id: string }; Returns: Json }
       submit_application_answer: {
         Args: {
