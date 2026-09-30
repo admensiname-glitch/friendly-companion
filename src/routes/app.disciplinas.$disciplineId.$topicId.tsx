@@ -713,7 +713,13 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
 
 // ─── Formal evaluation ─────────────────────────────────────────────────────────
 
-function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
+function EvaluationSection({
+  exercise,
+  onDifficultyUpdate,
+}: {
+  exercise: Exercise | null;
+  onDifficultyUpdate: () => Promise<void>;
+}) {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<EvaluationResult | null>(null);
@@ -846,6 +852,7 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
       return;
     }
     setResult(data as EvaluationResult);
+    await onDifficultyUpdate();
   }
 
   return (
@@ -987,6 +994,22 @@ function TopicDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
+  const refreshDifficulties = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (!userId) return;
+
+    const { data } = await supabase
+      .from("student_topic_difficulties")
+      .select("difficulty_tag, count, review_status")
+      .eq("user_id", userId)
+      .eq("topic_id", topicId)
+      .eq("review_status", "pending")
+      .order("count", { ascending: false });
+
+    setDifficulties((data ?? []) as TopicDifficulty[]);
+  }, [topicId]);
+
   const handleAnswerRevealed = useCallback(
     async (questionId: string, selectedOptionId: string | null, openText: string | null) => {
       const { data, error: answerError } = await supabase.rpc("submit_application_answer", {
@@ -1007,8 +1030,10 @@ function TopicDetailPage() {
       if (typeof result?.exercises_completed === "number") {
         setExerciseProgress(result.exercises_completed);
       }
+
+      await refreshDifficulties();
     },
-    [],
+    [refreshDifficulties],
   );
 
   useEffect(() => {
@@ -1411,7 +1436,10 @@ function TopicDetailPage() {
 
           <SourcesSection citations={citations} />
           <ReviewSection difficulties={difficulties} />
-          <EvaluationSection exercise={evaluation} />
+          <EvaluationSection
+            exercise={evaluation}
+            onDifficultyUpdate={refreshDifficulties}
+          />
         </div>
       )}
     </section>
