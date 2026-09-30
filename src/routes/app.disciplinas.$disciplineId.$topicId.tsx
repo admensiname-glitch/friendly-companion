@@ -1698,8 +1698,39 @@ function TopicDetailPage() {
         )}
       </div>
 
+      {/* ── Study map ── */}
+      {!loading && !error && !notFound && sections.length > 0 && (
+        <nav
+          aria-label="Mapa do estudo"
+          className="mt-6 rounded-xl border border-[#E2E8F0] bg-white p-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-[#0F172A]">Mapa do estudo</p>
+            <span className="text-xs text-[#64748B]">
+              {contentProgress.completed}/{contentProgress.total} partes estudadas
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {sections.map((section) => (
+              <a
+                key={section.id}
+                href={`#section-${section.id}`}
+                className={
+                  completedSectionIds.includes(section.id)
+                    ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
+                    : "rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-xs font-medium text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+                }
+              >
+                {completedSectionIds.includes(section.id) ? "✓ " : ""}
+                {section.title}
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
+
       {/* ── Loading ── */}
-      {loading && <TopicSkeleton />}
+      {loading && <TopicSkeleton />
 
       {/* ── Error ── */}
       {!loading && error && <ErrorState />}
