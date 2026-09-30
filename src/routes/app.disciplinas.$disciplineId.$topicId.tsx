@@ -477,6 +477,152 @@ function renderTutorContent(text: string): React.ReactNode[] {
   });
 }
 
+function TutorMicroAssessmentCard({
+  assessment,
+  onAnswered,
+}: {
+  assessment: TutorMicroAssessment;
+  onAnswered: (result: TutorMicroResult) => void;
+}) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [result, setResult] = useState<TutorMicroResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function answer() {
+    if (selected === null || submitting || result) return;
+
+    setSubmitting(true);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        action: "answer_microassessment",
+        micro_assessment_id: assessment.id,
+        selected_option_index: selected,
+      },
+    });
+
+    setSubmitting(false);
+
+    if (error || !data?.explanation) {
+      return;
+    }
+
+    const nextResult: TutorMicroResult = {
+      is_correct: Boolean(data.is_correct),
+      selected_option_index: Number(data.selected_option_index),
+      correct_option_index: Number(data.correct_option_index),
+      explanation: String(data.explanation),
+      attempted: data.attempted == null ? null : Number(data.attempted),
+      correct: data.correct == null ? null : Number(data.correct),
+    };
+
+    setResult(nextResult);
+    onAnswered(nextResult);
+  }
+
+  const difficultyLabel = {
+    introductory: "Inicial",
+    intermediate: "Intermediária",
+    advanced: "Avançada",
+  }[assessment.difficulty];
+
+  return (
+    <div className="mt-5 rounded-xl border border-[#BFDBFE] bg-[#F8FBFF] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0242D7]">
+            Microavaliação
+          </p>
+          <p className="mt-1 text-xs text-[#64748B]">
+            Nível {difficultyLabel}
+            {assessment.concept_tags.length > 0
+              ? " · " + assessment.concept_tags.join(" · ")
+              : ""}
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#64748B]">
+          1 questão
+        </span>
+      </div>
+
+      <p className="mt-4 text-base font-semibold leading-7 text-[#0F172A]">
+        {assessment.question}
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {assessment.options.map((option, index) => {
+          const isSelected = selected === index;
+          const isCorrect = result?.correct_option_index === index;
+          const isWrongSelection = result && isSelected && !result.is_correct;
+
+          let className =
+            "w-full rounded-lg border px-4 py-3 text-left text-sm leading-6 transition-colors";
+
+          if (result && isCorrect) {
+            className += " border-[#16A34A] bg-[#F0FDF4] text-[#166534]";
+          } else if (result && isWrongSelection) {
+            className += " border-[#DC2626] bg-[#FEF2F2] text-[#991B1B]";
+          } else if (isSelected) {
+            className += " border-[#0242D7] bg-[#EFF6FF] text-[#0242D7]";
+          } else {
+            className += " border-[#E2E8F0] bg-white text-[#334155] hover:border-[#BFDBFE]";
+          }
+
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setSelected(index)}
+              disabled={Boolean(result) || submitting}
+              className={className}
+              aria-pressed={isSelected}
+            >
+              <span className="mr-2 font-semibold">
+                {String.fromCharCode(65 + index)}.
+              </span>
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      {!result && (
+        <button
+          type="button"
+          onClick={() => void answer()}
+          disabled={selected === null || submitting}
+          className="mt-4 rounded-md bg-[#0242D7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting ? "Corrigindo…" : "Responder"}
+        </button>
+      )}
+
+      {result && (
+        <div
+          className={
+            result.is_correct
+              ? "mt-4 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-4 text-sm leading-6 text-[#166534]"
+              : "mt-4 rounded-lg border border-[#FED7AA] bg-[#FFF7ED] p-4 text-sm leading-6 text-[#9A3412]"
+          }
+          role="status"
+        >
+          <p className="font-semibold">
+            {result.is_correct ? "Muito bem. Você acertou." : "Ainda não. Vamos entender o raciocínio."}
+          </p>
+          <p className="mt-1">
+            {result.explanation}
+          </p>
+          {result.attempted !== null && result.correct !== null && (
+            <p className="mt-3 text-xs font-medium opacity-80">
+              Seu desempenho nas microavaliações deste tópico: {result.correct}/{result.attempted}.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TutorSection({ topicId, topicName }: { topicId: string; topicName: string }) {
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
