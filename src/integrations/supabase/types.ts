@@ -913,6 +913,20 @@ export type Database = {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
       }
+      get_student_dashboard_topics: {
+        Args: never
+        Returns: {
+          best_score: number
+          discipline_id: string
+          discipline_name: string
+          progress: number
+          review_count: number
+          status: string
+          topic_description: string
+          topic_id: string
+          topic_name: string
+        }[]
+      }
       has_role: { Args: { required_role: string }; Returns: boolean }
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
