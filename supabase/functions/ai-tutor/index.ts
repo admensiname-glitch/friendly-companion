@@ -25,20 +25,38 @@ function json(data: unknown, status = 200) {
   });
 }
 
-function extractOutputText(payload: any): string {
-  if (typeof payload?.output_text === "string") return payload.output_text;
+type UnknownRecord = Record<string, unknown>;
 
-  const parts = Array.isArray(payload?.output)
-    ? payload.output.flatMap((item: any) =>
-        Array.isArray(item?.content) ? item.content : [],
-      )
-    : [];
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
 
-  return parts
-    .filter((part: any) => part?.type === "output_text" && typeof part?.text === "string")
-    .map((part: any) => part.text)
-    .join("\n")
-    .trim();
+function extractOutputText(payload: unknown): string {
+  if (!isRecord(payload)) return "";
+
+  if (typeof payload.output_text === "string") {
+    return payload.output_text;
+  }
+
+  if (!Array.isArray(payload.output)) return "";
+
+  const texts: string[] = [];
+
+  for (const item of payload.output) {
+    if (!isRecord(item) || !Array.isArray(item.content)) continue;
+
+    for (const part of item.content) {
+      if (
+        isRecord(part) &&
+        part.type === "output_text" &&
+        typeof part.text === "string"
+      ) {
+        texts.push(part.text);
+      }
+    }
+  }
+
+  return texts.join("\n").trim();
 }
 
 Deno.serve(async (req: Request) => {
@@ -60,7 +78,12 @@ Deno.serve(async (req: Request) => {
       try {
         const parsed = JSON.parse(publishableKeysRaw);
         publishableKey = parsed?.default ?? publishableKey;
-      } catch {}
+      } catch (error) {
+        console.warn(
+          "[Ensina-me] SUPABASE_PUBLISHABLE_KEYS inválido",
+          error instanceof Error ? error.message : "valor inválido",
+        );
+      }
     }
 
     if (!publishableKey) {
