@@ -191,13 +191,13 @@ Deno.serve(async (req: Request) => {
       .eq("review_status", "pending")
       .order("count", { ascending: false });
 
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
-    if (!geminiApiKey) {
-      console.warn("[Ensina-me] ai-tutor: GEMINI_API_KEY ausente no ambiente da Edge Function.");
+    const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+    if (!groqApiKey) {
+      console.warn("[Ensina-me] ai-tutor: GROQ_API_KEY ausente no ambiente da Edge Function.");
       return json(
         {
           error:
-            "O tutor de IA ainda não foi configurado. Adicione GEMINI_API_KEY nos secrets do Supabase.",
+            "O Tutor ainda não foi configurado. Adicione GROQ_API_KEY nos secrets do Supabase.",
         },
         503,
       );
@@ -283,35 +283,30 @@ Deno.serve(async (req: Request) => {
       "CONTEXTO ACADÊMICO:\n" +
       safeContext;
 
-    const contents = [
-      ...recentHistory.map((message) => ({
-        role: message.role === "assistant" ? "model" : "user",
-        parts: [{ text: message.content }],
-      })),
-      { role: "user", parts: [{ text: userMessage }] },
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...recentHistory,
+      { role: "user", content: userMessage },
     ];
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
-    let geminiResponse: Response;
+    let groqResponse: Response;
     try {
-      geminiResponse = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      groqResponse = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": geminiApiKey,
+            Authorization: "Bearer " + groqApiKey,
           },
           body: JSON.stringify({
-            system_instruction: {
-              parts: [{ text: systemPrompt }],
-            },
-            contents,
-            generationConfig: {
-              maxOutputTokens: 800,
-            },
+            model: "openai/gpt-oss-120b",
+            messages,
+            max_tokens: 800,
+            temperature: 0.2,
           }),
           signal: controller.signal,
         },
@@ -331,34 +326,32 @@ Deno.serve(async (req: Request) => {
       clearTimeout(timeout);
     }
 
-    const payload = await geminiResponse.json();
+    const payload = await groqResponse.json();
 
-    if (!geminiResponse.ok) {
+    if (!groqResponse.ok) {
       const providerErrorRecord =
         isRecord(payload) && isRecord(payload.error) ? payload.error : null;
       const providerError =
         providerErrorRecord && typeof providerErrorRecord.message === "string"
           ? providerErrorRecord.message
           : "erro não especificado";
-      const requestId =
-        geminiResponse.headers.get("x-request-id") ??
-        geminiResponse.headers.get("x-goog-request-id");
+      const requestId = groqResponse.headers.get("x-request-id");
 
       console.error(
-        "[Ensina-me] ai-tutor: Gemini respondeu com erro",
+        "[Ensina-me] ai-tutor: Groq respondeu com erro",
         JSON.stringify({
-          status: geminiResponse.status,
+          status: groqResponse.status,
           request_id: requestId,
           message: providerError,
         }),
       );
 
       const userFacingError =
-        geminiResponse.status === 401 || geminiResponse.status === 403
-          ? "A credencial do tutor não foi aceita pelo provedor de IA. Verifique a configuração do GEMINI_API_KEY no Supabase."
-          : geminiResponse.status === 429
+        groqResponse.status === 401 || groqResponse.status === 403
+          ? "A credencial do Tutor não foi aceita pelo provedor de IA. Verifique a configuração do GROQ_API_KEY no Supabase."
+          : groqResponse.status === 429
             ? "O limite gratuito do provedor de IA foi atingido temporariamente. Tente novamente mais tarde."
-            : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+            : "O Tutor de IA não conseguiu gerar a resposta. Tente novamente.";
 
       return json(
         {
