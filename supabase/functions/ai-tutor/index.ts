@@ -476,6 +476,7 @@ Deno.serve(async (req: Request) => {
       "- A questão deve avaliar o conceito mais relevante do tópico e, quando houver, atacar uma dificuldade pendente do aluno.\n" +
       "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +
       "- Evite pistas óbvias, pegadinhas artificiais e ambiguidades.\n" +
+      "- Quando uma microavaliação for gerada, NÃO repita a questão nem as alternativas no campo message; no texto, apenas convide o aluno a responder a questão apresentada abaixo.\n" +
       "- Explique o gabarito de forma curta e pedagógica.\n" +
       "- Ajuste a dificuldade: introductory para primeira compreensão, intermediate para aplicação, advanced para análise.\n" +
       "- concept_tags deve conter de 1 a 3 conceitos avaliados.\n\n" +
