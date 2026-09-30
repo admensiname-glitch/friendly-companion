@@ -292,7 +292,8 @@ function DisciplineDetailPage() {
 
       const userId = sessionData.session.user.id;
 
-      // Step 1: Load student's discipline
+      // Resolve the path parameter as either the student's private discipline id
+      // or the official published catalog discipline id.
       const { data: studentDiscData, error: studentDiscError } = await supabase
         .from("student_disciplines")
         .select("id, discipline_name, course")
@@ -306,53 +307,66 @@ function DisciplineDetailPage() {
         return;
       }
 
-      if (!studentDiscData) {
-        setNotFound(true);
-        setLoading(false);
-        return;
+      let official: OfficialDiscipline | null = null;
+
+      if (studentDiscData) {
+        const studentDisc = studentDiscData as StudentDiscipline;
+        setStudentDisc(studentDisc);
+
+        // Student discipline: resolve its display name through the alias table.
+        const studentNameNorm = normalize(studentDisc.discipline_name);
+
+        const { data: aliasData, error: aliasError } = await supabase
+          .from("discipline_aliases")
+          .select("discipline_id")
+          .eq("normalized_alias", studentNameNorm);
+
+        if (aliasError || !aliasData || aliasData.length !== 1) {
+          setCatalogLinked(false);
+          setLoading(false);
+          return;
+        }
+
+        const { data: officialDiscData, error: officialError } = await supabase
+          .from("disciplines")
+          .select("id, name")
+          .eq("id", aliasData[0].discipline_id)
+          .eq("published", true)
+          .maybeSingle();
+
+        if (officialError || !officialDiscData) {
+          setCatalogLinked(false);
+          setLoading(false);
+          return;
+        }
+
+        official = officialDiscData as OfficialDiscipline;
+      } else {
+        // Catalog discipline: support direct access using the official id.
+        const { data: catalogDiscData, error: catalogDiscError } = await supabase
+          .from("disciplines")
+          .select("id, name")
+          .eq("id", disciplineId)
+          .eq("published", true)
+          .maybeSingle();
+
+        if (catalogDiscError || !catalogDiscData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        official = catalogDiscData as OfficialDiscipline;
+
+        // Build a display-only student discipline so the shared page can render
+        // the same topic list and nested topic route.
+        setStudentDisc({
+          id: official.id,
+          discipline_name: official.name,
+          course: "Pedagogia",
+        });
       }
 
-      setStudentDisc(studentDiscData as StudentDiscipline);
-
-      // Step 2: Normalize the student's discipline name and look up an alias
-      const studentNameNorm = normalize(studentDiscData.discipline_name);
-
-      // Look for exactly one matching alias
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("discipline_aliases")
-        .select("discipline_id")
-        .eq("normalized_alias", studentNameNorm);
-
-      if (aliasError || !aliasData || aliasData.length === 0) {
-        setCatalogLinked(false);
-        setLoading(false);
-        return;
-      }
-
-      // Accept only exactly one match
-      if (aliasData.length !== 1) {
-        setCatalogLinked(false);
-        setLoading(false);
-        return;
-      }
-
-      const alias = aliasData[0] as DisciplineAlias;
-
-      // Step 3: Verify the referenced discipline exists and is published
-      const { data: officialDiscData, error: officialError } = await supabase
-        .from("disciplines")
-        .select("id, name")
-        .eq("id", alias.discipline_id)
-        .eq("published", true)
-        .maybeSingle();
-
-      if (officialError || !officialDiscData) {
-        setCatalogLinked(false);
-        setLoading(false);
-        return;
-      }
-
-      const official = officialDiscData as OfficialDiscipline;
       setOfficialDiscName(official.name);
       setCatalogLinked(true);
 
