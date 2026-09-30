@@ -394,6 +394,72 @@ interface TutorMessage {
   content: string;
 }
 
+function renderTutorInline(text: string): React.ReactNode {
+  return text.split(/(\\*\\*[^*]+\\*\\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function renderTutorContent(text: string): React.ReactNode[] {
+  const lines = text.replace(/\\r\\n/g, "\\n").split("\\n");
+
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return <div key={index} className="h-2" />;
+    }
+
+    if (trimmed === "---") {
+      return <hr key={index} className="my-3 border-[#E2E8F0]" />;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      return (
+        <h4 key={index} className="mt-2 font-semibold text-[#0F172A]">
+          {renderTutorInline(trimmed.slice(4))}
+        </h4>
+      );
+    }
+
+    if (trimmed.startsWith("## ")) {
+      return (
+        <h3 key={index} className="mt-2 text-base font-semibold text-[#0F172A]">
+          {renderTutorInline(trimmed.slice(3))}
+        </h3>
+      );
+    }
+
+    if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+      return (
+        <div key={index} className="flex gap-2">
+          <span aria-hidden="true" className="text-[#0242D7]">•</span>
+          <span>{renderTutorInline(trimmed.slice(2))}</span>
+        </div>
+      );
+    }
+
+    if (/^\d+\.\s/.test(trimmed)) {
+      const match = trimmed.match(/^(\d+)\.\s(.+)$/);
+      return match ? (
+        <div key={index} className="flex gap-2">
+          <span className="font-semibold text-[#0242D7]">{match[1]}.</span>
+          <span>{renderTutorInline(match[2])}</span>
+        </div>
+      ) : null;
+    }
+
+    return (
+      <p key={index} className={index > 0 ? "mt-2" : ""}>
+        {renderTutorInline(trimmed)}
+      </p>
+    );
+  });
+}
+
 function TutorSection({ topicId, topicName }: { topicId: string; topicName: string }) {
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -402,6 +468,25 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [opened, setOpened] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+
+  const quickPrompts = [
+    {
+      label: "Explique mais simples",
+      message: `Explique este tópico de forma mais simples, como se eu estivesse vendo o assunto pela primeira vez. Preserve a precisão acadêmica.`,
+    },
+    {
+      label: "Dê um exemplo",
+      message: `Dê um exemplo prático deste tópico e explique por que o exemplo está correto.`,
+    },
+    {
+      label: "Teste meu conhecimento",
+      message: `Faça uma questão de nível intermediário sobre este tópico. Não mostre a resposta ainda; espere eu tentar.`,
+    },
+    {
+      label: "Compare conceitos",
+      message: `Compare os conceitos mais importantes deste tópico em uma explicação curta e clara, destacando as diferenças essenciais.`,
+    },
+  ];
 
   useEffect(() => {
     void (async () => {
@@ -440,8 +525,8 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     }
   }, [messages, loading, opened]);
 
-  async function sendMessage() {
-    const message = input.trim();
+  async function sendMessage(prefilledMessage?: string) {
+    const message = (prefilledMessage ?? input).trim();
     if (!message || loading) return;
 
     setLoading(true);
@@ -558,7 +643,9 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
                       : "max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#334155]"
                   }
                 >
-                  {message.content}
+                  {message.role === "assistant"
+                    ? <div className="space-y-1">{renderTutorContent(message.content)}</div>
+                    : message.content}
                 </div>
               ))}
 
@@ -572,6 +659,19 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
             </div>
 
             <div className="border-t border-[#E2E8F0] p-4">
+              <div className="mb-3 flex flex-wrap gap-2" aria-label="Atalhos do Tutor">
+                {quickPrompts.map((prompt) => (
+                  <button
+                    key={prompt.label}
+                    type="button"
+                    onClick={() => void sendMessage(prompt.message)}
+                    disabled={loading}
+                    className="rounded-full border border-[#BFDBFE] bg-[#F8FAFC] px-3 py-1.5 text-xs font-semibold text-[#0242D7] transition-colors hover:bg-[#EFF6FF] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {prompt.label}
+                  </button>
+                ))}
+              </div>
               <textarea
                 aria-label="Mensagem para o tutor Ensina-me"
                 value={input}
