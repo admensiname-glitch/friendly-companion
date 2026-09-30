@@ -634,6 +634,38 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
 
   useEffect(() => {
     if (!exercise?.questions?.length) return;
+
+    void (async () => {
+      const { data } = await supabase
+        .from("evaluation_attempts")
+        .select("id, score, correct_answers, total_questions")
+        .eq("exercise_id", exercise.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data && data.score !== null) {
+        const score = Number(data.score);
+        const band =
+          score < 40
+            ? "novice"
+            : score < 65
+              ? "developing"
+              : score < 85
+                ? "proficient"
+                : "mastered";
+
+        setResult({
+          attempt_id: data.id,
+          score,
+          correct_answers: data.correct_answers,
+          total_questions: data.total_questions,
+          band,
+        });
+      }
+    })();
+
     setShuffledOrders((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -795,6 +827,18 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
             <p className="mt-4 text-sm leading-6 text-[#475569]">
               Esse resultado fica registrado no seu progresso e poderá orientar as próximas revisões.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setStarted(false);
+                setAttemptId(null);
+                setAnswers({});
+              }}
+              className="mt-5 rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC]"
+            >
+              Fazer nova tentativa
+            </button>
           </div>
         )}
       </div>
