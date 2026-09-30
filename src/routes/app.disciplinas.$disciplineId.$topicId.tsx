@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -355,6 +355,8 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [opened, setOpened] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const messageEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -387,12 +389,19 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     })();
   }, [topicId]);
 
+  useEffect(() => {
+    if (opened) {
+      messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [messages, loading, opened]);
+
   async function sendMessage() {
     const message = input.trim();
     if (!message || loading) return;
 
     setLoading(true);
     setInput("");
+    setErrorMessage(null);
 
     const localId = "local-" + Date.now();
     setMessages((current) => [
@@ -413,12 +422,13 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     if (error || !data?.message) {
       const messageText =
         data?.error ??
-        "Não foi possível responder agora. Verifique a configuração do tutor e tente novamente.";
+        "Não foi possível responder agora. Tente novamente.";
 
-      setMessages((current) => [
-        ...current,
-        { id: localId + "-error", role: "assistant", content: messageText },
-      ]);
+      setMessages((current) =>
+        current.filter((item) => item.id !== localId),
+      );
+      setInput(message);
+      setErrorMessage(messageText);
       return;
     }
 
@@ -460,7 +470,20 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
         {opened && (
           <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
-            <div className="max-h-[28rem] space-y-4 overflow-y-auto p-5">
+            <div
+              className="max-h-[28rem] space-y-4 overflow-y-auto p-5"
+              aria-live="polite"
+              aria-busy={loading}
+            >
+              {errorMessage && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm leading-6 text-[#991B1B]"
+                >
+                  {errorMessage}
+                </div>
+              )}
+
               {messages.length === 0 && (
                 <div className="rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#475569]">
                   <strong className="text-[#0F172A]">{topicName}</strong>
@@ -487,10 +510,13 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
                   Pensando com base no tópico…
                 </div>
               )}
+
+              <div ref={messageEndRef} aria-hidden="true" />
             </div>
 
             <div className="border-t border-[#E2E8F0] p-4">
               <textarea
+                aria-label="Mensagem para o tutor Ensina-me"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => {
@@ -505,7 +531,9 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
                 className="w-full resize-none rounded-lg border border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/20"
               />
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-[#94A3B8]">Enter envia · Shift+Enter cria uma nova linha</p>
+                <p className="text-xs text-[#94A3B8]">
+                  {input.length}/4000 · Enter envia · Shift+Enter cria uma nova linha
+                </p>
                 <button
                   type="button"
                   onClick={() => void sendMessage()}
