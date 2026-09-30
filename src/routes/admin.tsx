@@ -95,6 +95,12 @@ function AdminLayout() {
               Dashboard
             </Link>
             <Link
+              to="/admin/conteudo"
+              className="rounded-md px-4 py-2 text-sm font-medium text-[#0F172A] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+            >
+              Conteúdo
+            </Link>
+            <Link
               to="/app/dashboard"
               className="rounded-md px-4 py-2 text-sm font-medium text-[#0F172A] transition-colors hover:bg-white focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
             >
