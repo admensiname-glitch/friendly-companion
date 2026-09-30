@@ -1,24 +1,29 @@
-# Friendly Companion
+# Ensina-me
 
-oi
+Plataforma universitária de aprendizagem com IA para estudo orientado por conteúdo acadêmico confiável.
 
-This project was built with [Lovable](https://lovable.dev).
+## Arquitetura
 
-## Build with Lovable
+- TanStack Start + React + TypeScript
+- TanStack Router com rotas file-based
+- Supabase para Auth, PostgreSQL, RLS, RPCs e Edge Functions
+- Tutor acadêmico com OpenAI Responses API
+- Catálogo global de disciplinas e tópicos, independente da matriz curricular individual
+- Fluxo pedagógico: conteúdo → prática → feedback → revisão → avaliação → domínio
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f5760db6-77d8-43e9-8892-8305a32cf202).
+## Estado atual
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+O MVP já possui autenticação e onboarding, dashboard personalizado, catálogo global, materiais didáticos rastreáveis, exercícios de aplicação, avaliações formais, mapa de dificuldades, sessões de estudo, revisão, desempenho, área administrativa e tutor de IA por tópico.
 
-## Development
+O tutor exige autenticação por JWT no gateway, limita o uso individual a 60 mensagens nas últimas 24 horas, mantém histórico por tópico, usa o material publicado como contexto prioritário e possui timeout para evitar requisições presas.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Desenvolvimento local
+
+Requisitos: Node.js ou Bun.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+git clone <url-do-repositorio>
+cd friendly-companion
+bun install
+bun run dev
 ```
