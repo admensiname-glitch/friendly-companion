@@ -242,7 +242,7 @@ function AppDashboard() {
 
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {topicsProgress
-              .filter((topic) => topic.status !== "completed" || topic.progress < 100)
+              .filter((topic) => topic.review_count > 0 || topic.status !== "completed" || topic.progress < 100)
               .slice(0, 2)
               .map((topic) => (
                 <Link
@@ -260,9 +260,11 @@ function AppDashboard() {
                   <p className="mt-2 text-sm leading-6 text-[#475569]">
                     {topic.review_count > 0
                       ? topic.review_count + " ponto" + (topic.review_count === 1 ? "" : "s") + " aguardando revisão."
-                      : topic.progress > 0
-                        ? topic.progress + "% concluído."
-                        : "Comece este tópico para construir sua base."}
+                      : topic.best_score !== null
+                        ? "Última avaliação: " + topic.best_score + "%."
+                        : topic.progress > 0
+                          ? topic.progress + "% do percurso concluído."
+                          : "Comece este tópico para construir sua base."}
                   </p>
                   <span className="mt-5 inline-flex rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white">
                     Continuar
