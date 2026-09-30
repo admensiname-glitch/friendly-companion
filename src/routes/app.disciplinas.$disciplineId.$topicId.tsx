@@ -1730,7 +1730,7 @@ function TopicDetailPage() {
       )}
 
       {/* ── Loading ── */}
-      {loading && <TopicSkeleton />
+      {loading && <TopicSkeleton />}
 
       {/* ── Error ── */}
       {!loading && error && <ErrorState />}
