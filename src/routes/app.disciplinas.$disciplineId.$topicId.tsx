@@ -342,6 +342,186 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
   );
 }
 
+interface TutorMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
+function TutorSection({ topicId, topicName }: { topicId: string; topicName: string }) {
+  const [messages, setMessages] = useState<TutorMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [opened, setOpened] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) return;
+
+      const { data: conversation } = await supabase
+        .from("ai_conversations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("topic_id", topicId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!conversation) return;
+
+      setConversationId(conversation.id);
+
+      const { data: history } = await supabase
+        .from("ai_messages")
+        .select("id, role, content")
+        .eq("conversation_id", conversation.id)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(30);
+
+      setMessages((history ?? []) as TutorMessage[]);
+    })();
+  }, [topicId]);
+
+  async function sendMessage() {
+    const message = input.trim();
+    if (!message || loading) return;
+
+    setLoading(true);
+    setInput("");
+
+    const localId = "local-" + Date.now();
+    setMessages((current) => [
+      ...current,
+      { id: localId, role: "user", content: message },
+    ]);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        topic_id: topicId,
+        conversation_id: conversationId,
+        message,
+      },
+    });
+
+    setLoading(false);
+
+    if (error || !data?.message) {
+      const messageText =
+        data?.error ??
+        "Não foi possível responder agora. Verifique a configuração do tutor e tente novamente.";
+
+      setMessages((current) => [
+        ...current,
+        { id: localId + "-error", role: "assistant", content: messageText },
+      ]);
+      return;
+    }
+
+    setConversationId(data.conversation_id ?? conversationId);
+    setMessages((current) => [
+      ...current,
+      {
+        id: "assistant-" + Date.now(),
+        role: "assistant",
+        content: data.message,
+      },
+    ]);
+  }
+
+  return (
+    <section aria-labelledby="tutor-heading" className="mt-12">
+      <div className="border-t border-[#E2E8F0] pt-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
+              Tutor Ensina-me
+            </p>
+            <h2 id="tutor-heading" className="mt-2 text-2xl font-semibold text-[#0F172A]">
+              Tire dúvidas sobre este tópico
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
+              O tutor usa o conteúdo deste tópico para explicar, fazer perguntas e ajudar você a raciocinar.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpened((value) => !value)}
+            className="rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2 text-sm font-semibold text-[#0242D7]"
+            aria-expanded={opened}
+          >
+            {opened ? "Fechar tutor" : "Abrir tutor"}
+          </button>
+        </div>
+
+        {opened && (
+          <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
+            <div className="max-h-[28rem] space-y-4 overflow-y-auto p-5">
+              {messages.length === 0 && (
+                <div className="rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#475569]">
+                  <strong className="text-[#0F172A]">{topicName}</strong>
+                  <br />
+                  Comece com uma dúvida, peça uma explicação em linguagem mais simples ou peça um exemplo.
+                </div>
+              )}
+
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={
+                    message.role === "user"
+                      ? "ml-auto max-w-[85%] rounded-xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white"
+                      : "max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#334155]"
+                  }
+                >
+                  {message.content}
+                </div>
+              ))}
+
+              {loading && (
+                <div className="max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm text-[#64748B]">
+                  Pensando com base no tópico…
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-[#E2E8F0] p-4">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void sendMessage();
+                  }
+                }}
+                rows={3}
+                maxLength={4000}
+                placeholder="Ex.: explique a diferença entre alfabetização e letramento."
+                className="w-full resize-none rounded-lg border border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/20"
+              />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-[#94A3B8]">Enter envia · Shift+Enter cria uma nova linha</p>
+                <button
+                  type="button"
+                  onClick={() => void sendMessage()}
+                  disabled={loading || input.trim().length === 0}
+                  className="rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Enviando…" : "Enviar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Exercise option ─────────────────────────────────────────────────────────
 
 function ExerciseOptionItem({
@@ -1440,6 +1620,7 @@ function TopicDetailPage() {
             exercise={evaluation}
             onDifficultyUpdate={refreshDifficulties}
           />
+          <TutorSection topicId={topicId} topicName={topic?.name ?? "este tópico"} />
         </div>
       )}
     </section>
