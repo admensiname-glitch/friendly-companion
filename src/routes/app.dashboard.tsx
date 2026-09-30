@@ -35,6 +35,15 @@ interface DashboardTopic {
   review_count: number;
 }
 
+interface StudyRecommendation {
+  topic_id: string | null;
+  discipline_id?: string;
+  topic_name?: string;
+  discipline_name?: string;
+  reason: "review" | "continue" | "start" | "none";
+  message: string;
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -99,6 +108,7 @@ function AppDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
   const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
+  const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -134,6 +144,13 @@ function AppDashboard() {
 
       if (!topicProgressError) {
         setTopicsProgress((topicProgressData ?? []) as DashboardTopic[]);
+      }
+
+      const { data: recommendationData, error: recommendationError } =
+        await supabase.rpc("get_student_study_recommendation");
+
+      if (!recommendationError && recommendationData) {
+        setRecommendation(recommendationData as StudyRecommendation);
       }
 
       setLoading(false);
@@ -232,6 +249,34 @@ function AppDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Today's focus ── */}
+      {!loading && recommendation?.topic_id && recommendation.discipline_id && (
+        <div className="mt-8 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
+            Seu foco de hoje
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-[#0F172A]">
+            {recommendation.topic_name}
+          </h2>
+          <p className="mt-1 text-sm font-medium text-[#475569]">
+            {recommendation.discipline_name}
+          </p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#475569]">
+            {recommendation.message}
+          </p>
+          <Link
+            to="/app/disciplinas/$disciplineId/$topicId"
+            params={{
+              disciplineId: recommendation.discipline_id,
+              topicId: recommendation.topic_id,
+            }}
+            className="mt-5 inline-flex rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0038B8]"
+          >
+            Estudar agora
+          </Link>
+        </div>
+      )}
 
       {/* ── Continue studying ── */}
       {!loading && topicsProgress.length > 0 && (
