@@ -106,6 +106,7 @@ interface TopicDifficulty {
   difficulty_tag: string;
   count: number;
   review_status: string;
+  correct_count: number;
 }
 
 const DOMAIN_LABELS: Record<EvaluationResult["band"], string> = {
@@ -881,7 +882,9 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
                 </span>
               </div>
               <p className="mt-2 text-sm text-[#64748B]">
-                Revise o conceito e pratique novamente antes de uma nova avaliação.
+                {difficulty.review_status === "reviewed"
+                  ? "Você já acertou uma vez. Continue praticando para consolidar."
+                  : "Retome o conceito e pratique novamente antes de uma nova avaliação."}
               </p>
             </div>
           ))}
@@ -1381,7 +1384,7 @@ function TopicDetailPage() {
         .select("difficulty_tag, count, review_status")
         .eq("user_id", userId)
         .eq("topic_id", topicId)
-        .eq("review_status", "pending")
+        .neq("review_status", "mastered")
         .order("count", { ascending: false });
 
       setDifficulties((difficultyData ?? []) as TopicDifficulty[]);
