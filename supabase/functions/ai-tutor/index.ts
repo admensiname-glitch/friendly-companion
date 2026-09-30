@@ -333,11 +333,16 @@ Deno.serve(async (req: Request) => {
     const payload = await openAIResponse.json();
 
     if (!openAIResponse.ok) {
-      const providerError = isRecord(payload) && isRecord(payload.error)
-        ? typeof payload.error.message === "string"
-          ? payload.error.message
-          : "erro não especificado"
+      const providerErrorRecord = isRecord(payload) && isRecord(payload.error)
+        ? payload.error
+        : null;
+      const providerError = providerErrorRecord && typeof providerErrorRecord.message === "string"
+        ? providerErrorRecord.message
         : "erro não especificado";
+      const providerErrorCode =
+        providerErrorRecord && typeof providerErrorRecord.code === "string"
+          ? providerErrorRecord.code
+          : null;
       const requestId = openAIResponse.headers.get("x-request-id");
       console.error(
         "[Ensina-me] ai-tutor: OpenAI respondeu com erro",
@@ -347,9 +352,14 @@ Deno.serve(async (req: Request) => {
       const userFacingError =
         openAIResponse.status === 401 || openAIResponse.status === 403
           ? "A credencial do tutor não foi aceita pelo provedor de IA. Verifique a configuração do OPENAI_API_KEY no Supabase."
-          : openAIResponse.status === 429
-            ? "O provedor de IA está temporariamente limitando as solicitações. Tente novamente em instantes."
-            : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+          : openAIResponse.status === 429 &&
+              (providerErrorCode === "insufficient_quota" ||
+                providerError.toLowerCase().includes("no credits remaining") ||
+                providerError.toLowerCase().includes("credit_balance_exhausted"))
+            ? "O tutor está sem créditos disponíveis na conta da API da OpenAI. Adicione créditos ao faturamento da API e tente novamente."
+            : openAIResponse.status === 429
+              ? "O provedor de IA está temporariamente limitando as solicitações. Tente novamente em instantes."
+              : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
 
       return json(
         {
