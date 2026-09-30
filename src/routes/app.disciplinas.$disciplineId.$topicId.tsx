@@ -464,49 +464,38 @@ function ExerciseQuestionItem({
 
 function ExerciseSection({
   exercises,
-  userId,
-  topicId,
   onAnswerRevealed,
 }: {
   exercises: Exercise[];
-  userId: string;
-  topicId: string;
-  onAnswerRevealed: (questionId: string, exerciseId: string, isCorrect: boolean, difficultyTags: string[]) => void;
+  onAnswerRevealed: (
+    questionId: string,
+    selectedOptionId: string | null,
+    openText: string | null,
+  ) => Promise<void>;
 }) {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
-  // Shuffled option order per question — initialized once, stable after selection
   const [shuffledOptionOrders, setShuffledOptionOrders] = useState<Record<string, string[]>>({});
 
-  // Initialize shuffled orders when exercises load
   useEffect(() => {
     if (exercises.length === 0) return;
-
-    const newOrders: Record<string, string[]> = {};
-
-    for (const exercise of exercises) {
-      if (!exercise.questions) continue;
-      for (const question of exercise.questions) {
-        if (question.question_type !== "multiple_choice") continue;
-        if (!question.options || question.options.length === 0) continue;
-
-        const questionId = question.id;
-        // Only shuffle if no selection has been made for this question yet
-        if (!selectedOptions[questionId] && !shuffledOptionOrders[questionId]) {
-          const optionIds = question.options.map((o) => o.id);
-          // Fisher-Yates shuffle
-          for (let i = optionIds.length - 1; i > 0; i--) {
+    setShuffledOptionOrders((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const exercise of exercises) {
+        for (const question of exercise.questions ?? []) {
+          if (question.question_type !== "multiple_choice" || !question.options?.length || next[question.id]) continue;
+          const ids = question.options.map((option) => option.id);
+          for (let i = ids.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [optionIds[i], optionIds[j]] = [optionIds[j], optionIds[i]];
+            [ids[i], ids[j]] = [ids[j], ids[i]];
           }
-          newOrders[questionId] = optionIds;
+          next[question.id] = ids;
+          changed = true;
         }
       }
-    }
-
-    if (Object.keys(newOrders).length > 0) {
-      setShuffledOptionOrders((prev) => ({ ...prev, ...newOrders }));
-    }
+      return changed ? next : prev;
+    });
   }, [exercises]);
 
   if (exercises.length === 0) return null;
@@ -520,120 +509,51 @@ function ExerciseSection({
     });
   }
 
-  function handleReveal(questionId: string, exerciseId: string) {
-    // Find the question to get is_correct and difficulty_tag
-    const question = exercises
-      .flatMap(e => e.questions ?? [])
-      .find(q => q.id === questionId);
-    
-    const selectedOption = question?.options?.find(
-      o => o.id === selectedOptions[questionId]
-    );
-    
-    const isCorrect = selectedOption?.is_correct ?? false;
-    const difficultyTags = question?.difficulty_tag ?? [];
-    
-    // Notify parent about the answer
-    onAnswerRevealed(questionId, exerciseId, isCorrect, difficultyTags);
-    
-    setRevealedQuestions((prev) => new Set(prev).add(questionId));
+  function getOrderedOptions(question: ExerciseQuestion): ExerciseOption[] {
+    if (question.question_type !== "multiple_choice" || !question.options) return question.options ?? [];
+    const order = shuffledOptionOrders[question.id];
+    if (!order) return question.options;
+    const byId = new Map(question.options.map((option) => [option.id, option]));
+    return order.map((id) => byId.get(id)).filter(Boolean) as ExerciseOption[];
   }
 
-  // Build ordered options using shuffled IDs
-  function getOrderedOptions(question: ExerciseQuestion): ExerciseOption[] {
-    if (question.question_type !== "multiple_choice" || !question.options) {
-      return question.options ?? [];
-    }
-
-    const shuffledIds = shuffledOptionOrders[question.id];
-    if (!shuffledIds) {
-      return question.options;
-    }
-
-    const optionMap = new Map(question.options.map((o) => [o.id, o]));
-    return shuffledIds.map((id) => optionMap.get(id)!).filter(Boolean);
+  async function handleReveal(questionId: string) {
+    const selectedOptionId = selectedOptions[questionId] ?? null;
+    if (!selectedOptionId) return;
+    await onAnswerRevealed(questionId, selectedOptionId, null);
+    setRevealedQuestions((prev) => new Set(prev).add(questionId));
   }
 
   return (
     <section aria-labelledby="exercises-heading" className="mt-12">
       <div className="flex items-center gap-2">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="h-5 w-5 shrink-0 text-[#0242D7]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M9 11l3 3L22 4" />
-          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-        </svg>
-        <h2 id="exercises-heading" className="text-lg font-semibold text-[#0F172A]">
-          Exercícios de aplicação
-        </h2>
+        <h2 id="exercises-heading" className="text-lg font-semibold text-[#0F172A]">Exercícios de aplicação</h2>
       </div>
       <p className="mt-1 text-sm text-[#64748B]">
         Pratique os conceitos estudados. Selecione a alternativa correta e clique em Ver resposta.
       </p>
-
       <div className="mt-6 space-y-8">
         {exercises.map((exercise) => (
-          <div
-            key={exercise.id}
-            className="rounded-xl border border-[#E2E8F0] bg-white p-6"
-          >
+          <div key={exercise.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
             <div>
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-semibold text-[#0F172A]">{exercise.title}</h3>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    exercise.difficulty === "easy"
-                      ? "bg-[#F0FDF4] text-[#15803D]"
-                      : exercise.difficulty === "medium"
-                        ? "bg-[#FFFBEB] text-[#B45309]"
-                        : "bg-[#FEF2F2] text-[#B91C1C]"
-                  }`}
-                >
-                  {exercise.difficulty === "easy"
-                    ? "Fácil"
-                    : exercise.difficulty === "medium"
-                      ? "Médio"
-                      : "Difícil"}
-                </span>
-              </div>
+              <h3 className="font-semibold text-[#0F172A]">{exercise.title}</h3>
               {exercise.content && (
-                <div className="mt-3 text-sm leading-7 text-[#475569]">
-                  {renderParagraphs(exercise.content)}
-                </div>
+                <div className="mt-3 text-sm leading-7 text-[#475569]">{renderParagraphs(exercise.content)}</div>
               )}
             </div>
-
             {exercise.questions && exercise.questions.length > 0 && (
               <div>
                 {exercise.questions.map((question) => {
-                  // Use ordered options (shuffled for display, stable after selection)
-                  const orderedQuestion = {
-                    ...question,
-                    options: getOrderedOptions(question),
-                  };
-
+                  const orderedQuestion = { ...question, options: getOrderedOptions(question) };
                   return (
                     <ExerciseQuestionItem
                       key={question.id}
                       question={orderedQuestion}
                       selectedOptionId={selectedOptions[question.id] ?? null}
-                      revealedOptionId={
-                        revealedQuestions.has(question.id)
-                          ? selectedOptions[question.id] ?? null
-                          : null
-                      }
+                      revealedOptionId={revealedQuestions.has(question.id) ? selectedOptions[question.id] ?? null : null}
                       openText=""
-                      onSelectOption={(optionId) =>
-                        handleSelectOption(question.id, optionId)
-                      }
-                      onRevealAnswer={() => handleReveal(question.id, exercise.id)}
+                      onSelectOption={(optionId) => handleSelectOption(question.id, optionId)}
+                      onRevealAnswer={() => handleReveal(question.id)}
                     />
                   );
                 })}
@@ -664,112 +584,18 @@ function TopicDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
-  // Track which exercises have been answered (for counting unique completions)
-  const [answeredExercises, setAnsweredExercises] = useState<Set<string>>(new Set());
-
-  // ── Upsert progress ─────────────────────────────────────────────────────────
-  const upsertProgress = useCallback(
-    async (userId: string, topicId: string, exerciseId: string, isFirstAnswerForExercise: boolean) => {
-      // UPSERT: inserts or updates on conflict with (user_id, topic_id)
-      // Uses auth.uid() implicitly via RLS, but we pass userId for the insert values
-      const { data: existingProgress } = await supabase
-        .from("student_topic_progress")
-        .select("id, exercises_completed, status")
-        .eq("user_id", userId)
-        .eq("topic_id", topicId)
-        .maybeSingle();
-
-      if (!existingProgress) {
-        // INSERT new progress record
-        await supabase.from("student_topic_progress").insert({
-          user_id: userId,
-          topic_id: topicId,
-          status: "in_progress",
-          exercises_completed: 1,
-          attempts_count: 1,
-          started_at: new Date().toISOString(),
-        });
-      } else {
-        // UPDATE existing progress — always includes topicId and userId in WHERE clause
-        const newExercisesCompleted = isFirstAnswerForExercise
-          ? (existingProgress.exercises_completed ?? 0) + 1
-          : existingProgress.exercises_completed;
-
-        await supabase
-          .from("student_topic_progress")
-          .update({
-            exercises_completed: newExercisesCompleted,
-            attempts_count: (existingProgress.exercises_completed ?? 0) + 1,
-            status: "in_progress",
-          })
-          .eq("user_id", userId)
-          .eq("topic_id", topicId);
-      }
-    },
-    []
-  );
-
-  // ── Record difficulty via RPC ───────────────────────────────────────────────
-  const recordDifficulty = useCallback(
-    async (topicId: string, difficultyTags: string[]) => {
-      for (const tag of difficultyTags) {
-        // RPC SECURITY DEFINER: user_id comes from auth.uid(), not from client
-        await supabase.rpc("record_topic_difficulty", {
-          _topic_id: topicId,
-          _difficulty_tag: tag,
-        });
-      }
-    },
-    []
-  );
-
-  // ── Handle answer revealed ──────────────────────────────────────────────────
   const handleAnswerRevealed = useCallback(
-    async (
-      questionId: string,
-      exerciseId: string,
-      isCorrect: boolean,
-      difficultyTags: string[]
-    ) => {
-      // Find the question's selected option from the loaded data
-      const question = exercises
-        .flatMap(e => e.questions ?? [])
-        .find(q => q.id === questionId);
-      
-      const selectedOptionId = Object.entries(
-        // This is a simplified approach — in a real app you'd track this in state
-        {}
-      ).find(([, oid]) => oid)[0];
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
-
-      const userId = sessionData.session.user.id;
-
-      // Find selected option from the question
-      const selectedOption = question?.options?.find(o => 
-        // We need to find which option was selected — this requires tracking it
-        true // placeholder - actual selection tracking would go here
-      );
-
-      // Step 1: Save the answer (already done in the reveal handler)
-      // The answer was already saved when "Ver resposta" was clicked
-
-      // Step 2: Check if this is the first time answering this exercise
-      const isFirstAnswerForExercise = !answeredExercises.has(exerciseId);
-
-      // Step 3: Update progress
-      await upsertProgress(userId, topicId, exerciseId, isFirstAnswerForExercise);
-
-      // Step 4: Record difficulty if incorrect
-      if (!isCorrect && difficultyTags.length > 0) {
-        await recordDifficulty(topicId, difficultyTags);
+    async (questionId: string, selectedOptionId: string | null, openText: string | null) => {
+      const { error: answerError } = await supabase.rpc("submit_application_answer", {
+        _question_id: questionId,
+        _selected_option_id: selectedOptionId,
+        _open_text: openText,
+      });
+      if (answerError) {
+        console.error("[Ensina-me] Erro ao salvar resposta:", answerError);
       }
-
-      // Mark this exercise as answered
-      setAnsweredExercises(prev => new Set(prev).add(exerciseId));
     },
-    [exercises, answeredExercises, upsertProgress, recordDifficulty, topicId]
+    [],
   );
 
   useEffect(() => {
@@ -1089,8 +915,6 @@ function TopicDetailPage() {
 
           <ExerciseSection
             exercises={exercises}
-            userId=""
-            topicId={topicId}
             onAnswerRevealed={handleAnswerRevealed}
           />
 
