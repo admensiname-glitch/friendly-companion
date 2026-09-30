@@ -982,6 +982,18 @@ export type Database = {
           topic_name: string
         }[]
       }
+      get_student_review_items: {
+        Args: never
+        Returns: {
+          count: number
+          difficulty_tag: string
+          discipline_id: string
+          discipline_name: string
+          last_occurrence: string
+          topic_id: string
+          topic_name: string
+        }[]
+      }
       get_student_study_recommendation: { Args: never; Returns: Json }
       get_student_today_study: { Args: never; Returns: Json }
       has_role: { Args: { required_role: string }; Returns: boolean }
