@@ -94,14 +94,20 @@ interface Exercise {
   questions?: ExerciseQuestion[];
 }
 
-interface ExerciseAnswerInsert {
-  user_id: string;
-  question_id: string;
-  selected_option_id: string | null;
-  open_text: string | null;
-  is_correct: boolean | null;
-  feedback: string | null;
+interface EvaluationResult {
+  attempt_id: string;
+  score: number;
+  correct_answers: number;
+  total_questions: number;
+  band: "novice" | "developing" | "proficient" | "mastered";
 }
+
+const DOMAIN_LABELS: Record<EvaluationResult["band"], string> = {
+  novice: "Em desenvolvimento inicial",
+  developing: "Em desenvolvimento",
+  proficient: "Proficiente",
+  mastered: "Domínio consolidado",
+};
 
 // ─── Normalization ─────────────────────────────────────────────────────────────
 
@@ -566,6 +572,186 @@ function ExerciseSection({
   );
 }
 
+// ─── Formal evaluation ─────────────────────────────────────────────────────────
+
+function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<EvaluationResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [shuffledOrders, setShuffledOrders] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (!exercise?.questions?.length) return;
+    setShuffledOrders((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const q of exercise.questions ?? []) {
+        if (!q.options?.length || next[q.id]) continue;
+        const ids = q.options.map((o) => o.id);
+        for (let i = ids.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [ids[i], ids[j]] = [ids[j], ids[i]];
+        }
+        next[q.id] = ids;
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [exercise]);
+
+  if (!exercise) return null;
+  const questions = exercise.questions ?? [];
+  if (!questions.length) return null;
+
+  const orderedOptions = (question: ExerciseQuestion) => {
+    const order = shuffledOrders[question.id];
+    if (!order) return question.options ?? [];
+    const byId = new Map((question.options ?? []).map((o) => [o.id, o]));
+    return order.map((id) => byId.get(id)).filter(Boolean) as ExerciseOption[];
+  };
+
+  async function startEvaluation() {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("start_topic_evaluation", {
+      _topic_id: exercise.topic_id,
+    });
+    setLoading(false);
+    if (error || !data) {
+      console.error("[Ensina-me] Erro ao iniciar avaliação:", error);
+      return;
+    }
+    const payload = data as { attempt_id?: string };
+    if (!payload.attempt_id) return;
+    setAttemptId(payload.attempt_id);
+    setAnswers({});
+    setResult(null);
+    setStarted(true);
+  }
+
+  async function finishEvaluation() {
+    if (!attemptId || Object.keys(answers).length !== questions.length) return;
+    setLoading(true);
+    const answerPayload = questions.map((q) => ({
+      question_id: q.id,
+      selected_option_id: answers[q.id],
+    }));
+    const { data, error } = await supabase.rpc("finalize_topic_evaluation", {
+      _attempt_id: attemptId,
+      _answers: answerPayload,
+    });
+    setLoading(false);
+    if (error || !data) {
+      console.error("[Ensina-me] Erro ao finalizar avaliação:", error);
+      return;
+    }
+    setResult(data as EvaluationResult);
+  }
+
+  return (
+    <section aria-labelledby="evaluation-heading" className="mt-12">
+      <div className="border-t border-[#E2E8F0] pt-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
+          Avaliação do tópico
+        </p>
+        <h2 id="evaluation-heading" className="mt-2 text-2xl font-semibold text-[#0F172A]">
+          Verifique seu domínio
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
+          Esta é uma avaliação formal. Ao finalizar, suas respostas geram uma pontuação de domínio para este tópico.
+        </p>
+
+        {!started && !result && (
+          <div className="mt-5 rounded-xl border border-[#E2E8F0] bg-white p-6">
+            <p className="text-sm text-[#475569]">
+              {questions.length} questões de múltipla escolha. Faça a avaliação sem consultar as respostas dos exercícios de aplicação.
+            </p>
+            <button
+              type="button"
+              onClick={startEvaluation}
+              disabled={loading}
+              className="mt-5 rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Iniciando..." : "Iniciar avaliação"}
+            </button>
+          </div>
+        )}
+
+        {started && !result && (
+          <div className="mt-6 space-y-7">
+            {questions.map((question, index) => {
+              const selected = answers[question.id];
+              return (
+                <div key={question.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
+                    Questão {index + 1} de {questions.length}
+                  </p>
+                  <p className="mt-2 text-base font-medium leading-6 text-[#0F172A]">
+                    {question.question_text}
+                  </p>
+                  <div className="mt-4 space-y-2">
+                    {orderedOptions(question).map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: option.id }))}
+                        className={
+                          selected === option.id
+                            ? "w-full rounded-lg border border-[#0242D7] bg-[#EFF6FF] px-4 py-3 text-left text-sm text-[#0242D7]"
+                            : "w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#CBD5E1]"
+                        }
+                      >
+                        {option.content}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="sticky bottom-4 rounded-xl border border-[#BFDBFE] bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-[#475569]">
+                  <strong className="text-[#0F172A]">{Object.keys(answers).length}</strong> de {questions.length} respondidas
+                </p>
+                <button
+                  type="button"
+                  onClick={finishEvaluation}
+                  disabled={loading || Object.keys(answers).length !== questions.length}
+                  className="rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? "Calculando..." : "Finalizar avaliação"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {result && (
+          <div className="mt-6 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-6">
+            <p className="text-sm font-semibold text-[#0242D7]">Resultado da avaliação</p>
+            <div className="mt-3 flex flex-wrap items-end gap-4">
+              <div>
+                <p className="text-4xl font-bold text-[#0F172A]">{result.score}%</p>
+                <p className="mt-1 text-sm text-[#64748B]">
+                  {result.correct_answers} de {result.total_questions} respostas corretas
+                </p>
+              </div>
+              <div className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-[#0F172A]">
+                {DOMAIN_LABELS[result.band]}
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-[#475569]">
+              Esse resultado fica registrado no seu progresso e poderá orientar as próximas revisões.
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/disciplinas/$disciplineId/$topicId")({
@@ -580,6 +766,7 @@ function TopicDetailPage() {
   const [sections, setSections] = useState<MaterialSection[]>([]);
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [evaluation, setEvaluation] = useState<Exercise | null>(null);
   const [exerciseProgress, setExerciseProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -620,6 +807,7 @@ function TopicDetailPage() {
       setSections([]);
       setCitations([]);
       setExercises([]);
+      setEvaluation(null);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -757,7 +945,54 @@ function TopicDetailPage() {
         }
       }
 
-      // Step 8: Fetch application exercises
+      // Step 8: Fetch evaluation and application exercises
+      const { data: evaluationData } = await supabase
+        .from("exercises")
+        .select("id, topic_id, title, exercise_type, content, difficulty, position")
+        .eq("topic_id", topicId)
+        .eq("exercise_type", "evaluation")
+        .eq("published", true)
+        .order("position", { ascending: true })
+        .limit(1);
+
+      const loadedEvaluation = (evaluationData ?? [])[0] as Exercise | undefined;
+
+      if (loadedEvaluation) {
+        const { data: evalQuestionsData } = await supabase
+          .from("exercise_questions")
+          .select("id, exercise_id, question_text, question_type, position, feedback_hint, difficulty_tag")
+          .eq("exercise_id", loadedEvaluation.id)
+          .order("position", { ascending: true });
+
+        const evalQuestions = (evalQuestionsData ?? []) as ExerciseQuestion[];
+        const evalQuestionIds = evalQuestions
+          .filter((q) => q.question_type === "multiple_choice")
+          .map((q) => q.id);
+
+        let evalOptionsByQuestion: Record<string, ExerciseOption[]> = {};
+        if (evalQuestionIds.length > 0) {
+          const { data: evalOptionsData } = await supabase
+            .from("exercise_options")
+            .select("id, question_id, content, is_correct, feedback_correct, feedback_incorrect, position")
+            .in("question_id", evalQuestionIds)
+            .order("position", { ascending: true });
+
+          for (const opt of (evalOptionsData ?? []) as ExerciseOption[]) {
+            if (!evalOptionsByQuestion[opt.question_id]) evalOptionsByQuestion[opt.question_id] = [];
+            evalOptionsByQuestion[opt.question_id].push(opt);
+          }
+        }
+
+        setEvaluation({
+          ...loadedEvaluation,
+          questions: evalQuestions.map((q) => ({
+            ...q,
+            options: evalOptionsByQuestion[q.id] ?? [],
+          })),
+        });
+      }
+
+      // Step 9: Fetch application exercises
       const { data: exercisesData } = await supabase
         .from("exercises")
         .select("id, topic_id, title, exercise_type, content, difficulty, position")
@@ -935,6 +1170,7 @@ function TopicDetailPage() {
           />
 
           <SourcesSection citations={citations} />
+          <EvaluationSection exercise={evaluation} />
         </div>
       )}
     </section>
