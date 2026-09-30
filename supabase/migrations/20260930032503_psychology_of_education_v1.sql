@@ -1,3 +1,12 @@
+-- Rights snapshots for the two additional academic sources.
+insert into public.source_rights (id,source_id,rights_class,access_model,evidence_url,evidence_note,verified_at)
+select gen_random_uuid(),'9a2f4d41-2a65-4c7a-b65d-bb7a7e4f9b01','METADATA_ONLY','OPEN','https://www.scielo.br/j/pee/a/yZmjRzBCCsdJXWQ37ZLtt9M/','Fonte utilizada como referência acadêmica e proveniência; nenhum texto integral é armazenado.',now()
+where not exists (select 1 from public.source_rights where source_id='9a2f4d41-2a65-4c7a-b65d-bb7a7e4f9b01');
+
+insert into public.source_rights (id,source_id,rights_class,access_model,evidence_url,evidence_note,verified_at)
+select gen_random_uuid(),'8e7f9e18-4c9e-4e37-ae2f-7a2c5fcde101','METADATA_ONLY','OPEN','https://www.scielo.br/j/estpsi/a/yHSYRVgtXbrdFnBHw5BVsRc/','Fonte utilizada como referência acadêmica e proveniência; nenhum texto integral é armazenado.',now()
+where not exists (select 1 from public.source_rights where source_id='8e7f9e18-4c9e-4e37-ae2f-7a2c5fcde101');
+
 -- Snapshot migration for Psicologia da Educação content.
 update public.topics set name='Desenvolvimento e aprendizagem', description='Como diferentes perspectivas psicológicas explicam a relação entre desenvolvimento, ação, aprendizagem e contexto educativo.', position=1, published=true where id='7b5e6723-9d87-46dd-9e2e-4e00d1ec05eb';
 update public.topics set name='Construtivismo e construção do conhecimento', description='Como o conhecimento é construído, revisto e reorganizado nas perspectivas construtivistas e socioconstrutivistas.', position=2, published=true where id='7b8f766f-dc23-44ce-8b44-7fc5c0135ddd';
