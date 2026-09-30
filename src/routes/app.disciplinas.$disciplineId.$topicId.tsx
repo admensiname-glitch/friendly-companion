@@ -913,7 +913,7 @@ function TopicDetailPage() {
 
       const userId = sessionData.session.user.id;
 
-      // Step 1: Load student's discipline
+      // Step 1: Resolve either a student's selected discipline or a published catalog discipline.
       const { data: studentDiscData, error: studentDiscError } = await supabase
         .from("student_disciplines")
         .select("id, discipline_name, course")
@@ -927,45 +927,54 @@ function TopicDetailPage() {
         return;
       }
 
-      if (!studentDiscData) {
-        setNotFound(true);
-        setLoading(false);
-        return;
+      let official: OfficialDiscipline | null = null;
+
+      if (studentDiscData) {
+        const studentDisc = studentDiscData as StudentDiscipline;
+        const studentNameNorm = normalize(studentDisc.discipline_name);
+
+        const { data: aliasData, error: aliasError } = await supabase
+          .from("discipline_aliases")
+          .select("discipline_id")
+          .eq("normalized_alias", studentNameNorm);
+
+        if (aliasError || !aliasData || aliasData.length !== 1) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        const { data: officialDiscData, error: officialError } = await supabase
+          .from("disciplines")
+          .select("id, name")
+          .eq("id", aliasData[0].discipline_id)
+          .eq("published", true)
+          .maybeSingle();
+
+        if (officialError || !officialDiscData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        official = officialDiscData as OfficialDiscipline;
+      } else {
+        const { data: catalogDiscData, error: catalogDiscError } = await supabase
+          .from("disciplines")
+          .select("id, name")
+          .eq("id", disciplineId)
+          .eq("published", true)
+          .maybeSingle();
+
+        if (catalogDiscError || !catalogDiscData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        official = catalogDiscData as OfficialDiscipline;
       }
 
-      const studentDisc = studentDiscData as StudentDiscipline;
-
-      // Step 2: Normalize and look up alias
-      const studentNameNorm = normalize(studentDisc.discipline_name);
-
-      const { data: aliasData, error: aliasError } = await supabase
-        .from("discipline_aliases")
-        .select("discipline_id")
-        .eq("normalized_alias", studentNameNorm);
-
-      if (aliasError || !aliasData || aliasData.length !== 1) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-
-      const alias = aliasData[0] as DisciplineAlias;
-
-      // Step 3: Verify official discipline
-      const { data: officialDiscData, error: officialError } = await supabase
-        .from("disciplines")
-        .select("id, name")
-        .eq("id", alias.discipline_id)
-        .eq("published", true)
-        .maybeSingle();
-
-      if (officialError || !officialDiscData) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-
-      const official = officialDiscData as OfficialDiscipline;
       setDisciplineName(official.name);
 
       // Step 4: Fetch the topic
