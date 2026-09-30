@@ -48,6 +48,13 @@ interface TodayStudy {
   minutes: number;
 }
 
+interface StudentExam {
+  id: string;
+  discipline: string;
+  exam_type: string;
+  exam_date: string | null;
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -114,6 +121,7 @@ function AppDashboard() {
   const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
+  const [nextExam, setNextExam] = useState<StudentExam | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -163,6 +171,19 @@ function AppDashboard() {
 
       if (!todayStudyError && todayStudyData) {
         setTodayStudy(todayStudyData as TodayStudy);
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: examData, error: examError } = await supabase
+        .from("student_exams")
+        .select("id, discipline, exam_type, exam_date")
+        .eq("user_id", userId)
+        .gte("exam_date", today)
+        .order("exam_date", { ascending: true })
+        .limit(1);
+
+      if (!examError && examData?.[0]) {
+        setNextExam(examData[0] as StudentExam);
       }
 
       setLoading(false);
@@ -261,6 +282,26 @@ function AppDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Next exam ── */}
+      {!loading && nextExam?.exam_date && (
+        <div className="mt-8 rounded-2xl border border-[#E2E8F0] bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B]">
+            Próxima prova
+          </p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-[#0F172A]">{nextExam.discipline}</h2>
+              <p className="mt-1 text-sm text-[#64748B]">
+                {nextExam.exam_type} · {new Date(nextExam.exam_date + "T12:00:00").toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+            <span className="rounded-full bg-[#FFFBEB] px-3 py-1.5 text-xs font-semibold text-[#92400E]">
+              Planejamento de estudo ativo
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Daily study ── */}
       {!loading && todayStudy && (
