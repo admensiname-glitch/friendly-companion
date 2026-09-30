@@ -42,6 +42,51 @@ function truncateText(value: string, maxCharacters: number): string {
 const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
 const MAX_CONTEXT_CHARACTERS = 24000;
 
+function detectLearningSignals(message: string): string[] {
+  const normalized = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const signals: string[] = [];
+
+  if (/(nao entendi|nao entendo|nao ficou claro|estou confuso|confusa|estou perdido|perdida|muito dificil|dificuldade)/.test(normalized)) {
+    signals.push("compreensao");
+  }
+  if (/(qual a diferenca|diferenca entre|diferencas entre|compare|comparar)/.test(normalized)) {
+    signals.push("comparacao");
+  }
+  if (/(exemplo|na pratica|aplicar|aplicacao|atividade)/.test(normalized)) {
+    signals.push("aplicacao");
+  }
+  if (/(o que e|o que significa|defina|definicao|conceito)/.test(normalized)) {
+    signals.push("conceito");
+  }
+  if (/(como funciona|como fazer|como se faz|passo a passo)/.test(normalized)) {
+    signals.push("procedimento");
+  }
+
+  return [...new Set(signals)];
+}
+
+function detectLearningAction(message: string): "simplify" | "practice" | "review" | "explore" {
+  const normalized = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (/(nao entendi|nao entendo|nao ficou claro|confuso|confusa|dificuldade)/.test(normalized)) {
+    return "simplify";
+  }
+  if (/(questao|questoes|teste meu|quiz|exercicio|praticar|pratique)/.test(normalized)) {
+    return "practice";
+  }
+  if (/(revisao|revisar|resumo|resuma|recapitular|recapitulacao)/.test(normalized)) {
+    return "review";
+  }
+  return "explore";
+}
+
 function extractOutputText(payload: unknown): string {
   if (!isRecord(payload) || !Array.isArray(payload.choices)) return "";
 
@@ -141,6 +186,9 @@ Deno.serve(async (req: Request) => {
     if (userMessage.length > 4000) {
       return json({ error: "A mensagem é muito longa." }, 400);
     }
+
+    const learningSignals = detectLearningSignals(userMessage);
+    const learningAction = detectLearningAction(userMessage);
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count: recentUserMessages, error: usageError } = await supabase
@@ -451,9 +499,45 @@ Deno.serve(async (req: Request) => {
       .eq("id", conversationId)
       .eq("user_id", userData.user.id);
 
+    const { error: progressError } = await supabase
+      .from("student_topic_progress")
+      .upsert(
+        {
+          user_id: userData.user.id,
+          topic_id: topicId,
+          status: "in_progress",
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,topic_id" },
+      );
+
+    if (progressError) {
+      console.warn(
+        "[Ensina-me] ai-tutor: não foi possível atualizar progresso",
+        progressError.message,
+      );
+    }
+
+    for (const signal of learningSignals) {
+      const { error: difficultyError } = await supabase.rpc("record_topic_difficulty", {
+        _topic_id: topicId,
+        _difficulty_tag: signal,
+      });
+
+      if (difficultyError) {
+        console.warn(
+          "[Ensina-me] ai-tutor: não foi possível registrar sinal de dificuldade",
+          JSON.stringify({ signal, message: difficultyError.message }),
+        );
+      }
+    }
+
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
+      learning_action: learningAction,
+      learning_signals: learningSignals,
     });
   } catch (error) {
     console.error(
