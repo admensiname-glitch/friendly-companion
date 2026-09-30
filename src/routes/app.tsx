@@ -114,9 +114,39 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-8 lg:py-14">
+      <main className="mx-auto w-full max-w-7xl px-6 py-10 pb-28 lg:px-8 lg:py-14 lg:pb-14">
         <Outlet />
       </main>
+
+      <nav
+        aria-label="Navegação móvel"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E2E8F0] bg-white/95 px-2 py-2 backdrop-blur sm:hidden"
+      >
+        <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+          {[
+            { to: "/app/dashboard" as const, label: "Início" },
+            { to: "/app/disciplinas" as const, label: "Disciplinas" },
+            { to: "/app/catalogo" as const, label: "Catálogo" },
+            { to: "/app/revisao" as const, label: "Revisão" },
+            { to: "/app/desempenho" as const, label: "Desempenho" },
+          ].map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              activeProps={{
+                className:
+                  "flex min-h-12 items-center justify-center rounded-lg bg-[#EFF6FF] px-1 text-center text-[11px] font-semibold text-[#0242D7]",
+              }}
+              inactiveProps={{
+                className:
+                  "flex min-h-12 items-center justify-center rounded-lg px-1 text-center text-[11px] font-medium text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0242D7]",
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
