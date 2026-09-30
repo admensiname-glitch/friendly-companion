@@ -31,6 +31,17 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
 }
 
+function truncateText(value: string, maxCharacters: number): string {
+  if (value.length <= maxCharacters) return value;
+  return (
+    value.slice(0, maxCharacters) +
+    "\n\n[Parte adicional do contexto omitida para manter a conversa focada.]"
+  );
+}
+
+const DAILY_USER_MESSAGE_LIMIT = 60;
+const MAX_CONTEXT_CHARACTERS = 24000;
+
 function extractOutputText(payload: unknown): string {
   if (!isRecord(payload)) return "";
 
@@ -132,6 +143,28 @@ Deno.serve(async (req: Request) => {
       return json({ error: "A mensagem é muito longa." }, 400);
     }
 
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentUserMessages, error: usageError } = await supabase
+      .from("ai_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userData.user.id)
+      .eq("role", "user")
+      .gte("created_at", since);
+
+    if (usageError) {
+      return json({ error: "Não foi possível verificar o limite de uso." }, 500);
+    }
+
+    if ((recentUserMessages ?? 0) >= DAILY_USER_MESSAGE_LIMIT) {
+      return json(
+        {
+          error:
+            "Você atingiu o limite de 60 mensagens do tutor nas últimas 24 horas. Tente novamente mais tarde.",
+        },
+        429,
+      );
+    }
+
     const { data: topic, error: topicError } = await supabase
       .from("topics")
       .select("id, name, description")
@@ -165,6 +198,17 @@ Deno.serve(async (req: Request) => {
       .eq("topic_id", topicId)
       .eq("review_status", "pending")
       .order("count", { ascending: false });
+
+    const openAIKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAIKey) {
+      return json(
+        {
+          error:
+            "O tutor de IA está estruturado, mas a chave do provedor ainda não foi configurada no Supabase.",
+        },
+        503,
+      );
+    }
 
     let conversationId = body.conversation_id?.trim() || null;
 
@@ -230,6 +274,8 @@ Deno.serve(async (req: Request) => {
       .filter(Boolean)
       .join("\n\n");
 
+    const safeContext = truncateText(context, MAX_CONTEXT_CHARACTERS);
+
     const systemPrompt =
       "Você é o tutor acadêmico do Ensina-me.\n" +
       "Sua função é ajudar o aluno a compreender o conteúdo, raciocinar e praticar.\n" +
@@ -242,19 +288,7 @@ Deno.serve(async (req: Request) => {
       "Considere as dificuldades pendentes do aluno ao explicar, mas nunca exponha dados internos.\n" +
       "Não diga que você é um modelo de linguagem.\n\n" +
       "CONTEXTO ACADÊMICO:\n" +
-      context;
-
-    const openAIKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAIKey) {
-      return json(
-        {
-          error:
-            "O tutor de IA está estruturado, mas a chave do provedor ainda não foi configurada no Supabase.",
-          conversation_id: conversationId,
-        },
-        503,
-      );
-    }
+      safeContext;
 
     const input = [
       { role: "system", content: systemPrompt },
@@ -262,18 +296,38 @@ Deno.serve(async (req: Request) => {
       { role: "user", content: userMessage },
     ];
 
-    const openAIResponse = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + openAIKey,
-      },
-      body: JSON.stringify({
-        model: "gpt-5.6-luna",
-        input,
-        max_output_tokens: 800,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    let openAIResponse: Response;
+    try {
+      openAIResponse = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + openAIKey,
+        },
+        body: JSON.stringify({
+          model: "gpt-5.6-luna",
+          input,
+          max_output_tokens: 800,
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return json(
+          {
+            error: "O tutor demorou mais que o esperado. Tente novamente.",
+            conversation_id: conversationId,
+          },
+          504,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const payload = await openAIResponse.json();
 
