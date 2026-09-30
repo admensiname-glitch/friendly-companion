@@ -213,7 +213,7 @@ function ErrorState() {
   );
 }
 
-// ─── Content placeholder ───────────────────────────────────────────────────────
+// ─── Content placeholder ────────────────────────────────────────────────────────
 
 function ContentPlaceholder() {
   return (
@@ -469,6 +469,39 @@ function ExerciseSection({
 }) {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
+  // Shuffled option order per question — initialized once, stable after selection
+  const [shuffledOptionOrders, setShuffledOptionOrders] = useState<Record<string, string[]>>({});
+
+  // Initialize shuffled orders when exercises load
+  useEffect(() => {
+    if (exercises.length === 0) return;
+
+    const newOrders: Record<string, string[]> = {};
+
+    for (const exercise of exercises) {
+      if (!exercise.questions) continue;
+      for (const question of exercise.questions) {
+        if (question.question_type !== "multiple_choice") continue;
+        if (!question.options || question.options.length === 0) continue;
+
+        const questionId = question.id;
+        // Only shuffle if no selection has been made for this question yet
+        if (!selectedOptions[questionId] && !shuffledOptionOrders[questionId]) {
+          const optionIds = question.options.map((o) => o.id);
+          // Fisher-Yates shuffle
+          for (let i = optionIds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [optionIds[i], optionIds[j]] = [optionIds[j], optionIds[i]];
+          }
+          newOrders[questionId] = optionIds;
+        }
+      }
+    }
+
+    if (Object.keys(newOrders).length > 0) {
+      setShuffledOptionOrders((prev) => ({ ...prev, ...newOrders }));
+    }
+  }, [exercises]);
 
   if (exercises.length === 0) return null;
 
@@ -483,6 +516,21 @@ function ExerciseSection({
 
   function handleReveal(questionId: string) {
     setRevealedQuestions((prev) => new Set(prev).add(questionId));
+  }
+
+  // Build ordered options using shuffled IDs
+  function getOrderedOptions(question: ExerciseQuestion): ExerciseOption[] {
+    if (question.question_type !== "multiple_choice" || !question.options) {
+      return question.options ?? [];
+    }
+
+    const shuffledIds = shuffledOptionOrders[question.id];
+    if (!shuffledIds) {
+      return question.options;
+    }
+
+    const optionMap = new Map(question.options.map((o) => [o.id, o]));
+    return shuffledIds.map((id) => optionMap.get(id)!).filter(Boolean);
   }
 
   return (
@@ -543,23 +591,31 @@ function ExerciseSection({
 
             {exercise.questions && exercise.questions.length > 0 && (
               <div>
-                {exercise.questions.map((question) => (
-                  <ExerciseQuestionItem
-                    key={question.id}
-                    question={question}
-                    selectedOptionId={selectedOptions[question.id] ?? null}
-                    revealedOptionId={
-                      revealedQuestions.has(question.id)
-                        ? selectedOptions[question.id] ?? null
-                        : null
-                    }
-                    openText=""
-                    onSelectOption={(optionId) =>
-                      handleSelectOption(question.id, optionId)
-                    }
-                    onRevealAnswer={() => handleReveal(question.id)}
-                  />
-                ))}
+                {exercise.questions.map((question) => {
+                  // Use ordered options (shuffled for display, stable after selection)
+                  const orderedQuestion = {
+                    ...question,
+                    options: getOrderedOptions(question),
+                  };
+
+                  return (
+                    <ExerciseQuestionItem
+                      key={question.id}
+                      question={orderedQuestion}
+                      selectedOptionId={selectedOptions[question.id] ?? null}
+                      revealedOptionId={
+                        revealedQuestions.has(question.id)
+                          ? selectedOptions[question.id] ?? null
+                          : null
+                      }
+                      openText=""
+                      onSelectOption={(optionId) =>
+                        handleSelectOption(question.id, optionId)
+                      }
+                      onRevealAnswer={() => handleReveal(question.id)}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
