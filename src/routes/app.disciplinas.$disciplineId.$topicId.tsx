@@ -1381,6 +1381,7 @@ function TopicDetailPage() {
         .select("difficulty_tag, count, review_status")
         .eq("user_id", userId)
         .eq("topic_id", topicId)
+        .eq("review_status", "pending")
         .order("count", { ascending: false });
 
       setDifficulties((difficultyData ?? []) as TopicDifficulty[]);
