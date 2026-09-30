@@ -104,12 +104,9 @@ function PerformancePage() {
             ) : (
               <div className="mt-4 space-y-3">
                 {evaluations.map((evaluation) => (
-                  <Link
+                  <div
                     key={evaluation.attempt_id}
-                    to="/app/catalogo/$disciplineId"
-                    params={{ disciplineId: evaluation.topic_id }}
-                    className="block rounded-xl border border-[#E2E8F0] bg-white p-5 hover:shadow-sm"
-                    onClick={(event) => event.preventDefault()}
+                    className="rounded-xl border border-[#E2E8F0] bg-white p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
@@ -122,7 +119,7 @@ function PerformancePage() {
                       </div>
                       <span className="text-2xl font-bold text-[#0242D7]">{evaluation.score}%</span>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
