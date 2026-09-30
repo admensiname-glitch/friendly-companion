@@ -43,25 +43,17 @@ const DAILY_USER_MESSAGE_LIMIT = 60;
 const MAX_CONTEXT_CHARACTERS = 24000;
 
 function extractOutputText(payload: unknown): string {
-  if (!isRecord(payload)) return "";
-
-  if (typeof payload.output_text === "string") {
-    return payload.output_text;
-  }
-
-  if (!Array.isArray(payload.output)) return "";
+  if (!isRecord(payload) || !Array.isArray(payload.candidates)) return "";
 
   const texts: string[] = [];
 
-  for (const item of payload.output) {
-    if (!isRecord(item) || !Array.isArray(item.content)) continue;
+  for (const candidate of payload.candidates) {
+    if (!isRecord(candidate) || !isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) {
+      continue;
+    }
 
-    for (const part of item.content) {
-      if (
-        isRecord(part) &&
-        part.type === "output_text" &&
-        typeof part.text === "string"
-      ) {
+    for (const part of candidate.content.parts) {
+      if (isRecord(part) && typeof part.text === "string") {
         texts.push(part.text);
       }
     }
@@ -199,13 +191,13 @@ Deno.serve(async (req: Request) => {
       .eq("review_status", "pending")
       .order("count", { ascending: false });
 
-    const openAIKey = Deno.env.get("OPENAI_API_KEY")?.trim();
-    if (!openAIKey) {
-      console.warn("[Ensina-me] ai-tutor: OPENAI_API_KEY ausente no ambiente da Edge Function.");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
+    if (!geminiApiKey) {
+      console.warn("[Ensina-me] ai-tutor: GEMINI_API_KEY ausente no ambiente da Edge Function.");
       return json(
         {
           error:
-            "O tutor de IA está estruturado, mas a chave do provedor ainda não foi configurada no Supabase.",
+            "O tutor de IA ainda não foi configurado. Adicione GEMINI_API_KEY nos secrets do Supabase.",
         },
         503,
       );
@@ -291,30 +283,39 @@ Deno.serve(async (req: Request) => {
       "CONTEXTO ACADÊMICO:\n" +
       safeContext;
 
-    const input = [
-      { role: "system", content: systemPrompt },
-      ...recentHistory,
-      { role: "user", content: userMessage },
+    const contents = [
+      ...recentHistory.map((message) => ({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [{ text: message.content }],
+      })),
+      { role: "user", parts: [{ text: userMessage }] },
     ];
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
-    let openAIResponse: Response;
+    let geminiResponse: Response;
     try {
-      openAIResponse = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + openAIKey,
+      geminiResponse = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiApiKey,
+          },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: systemPrompt }],
+            },
+            contents,
+            generationConfig: {
+              maxOutputTokens: 800,
+            },
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          model: "gpt-5.6-luna",
-          input,
-          max_output_tokens: 800,
-        }),
-        signal: controller.signal,
-      });
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return json(
@@ -330,36 +331,34 @@ Deno.serve(async (req: Request) => {
       clearTimeout(timeout);
     }
 
-    const payload = await openAIResponse.json();
+    const payload = await geminiResponse.json();
 
-    if (!openAIResponse.ok) {
-      const providerErrorRecord = isRecord(payload) && isRecord(payload.error)
-        ? payload.error
-        : null;
-      const providerError = providerErrorRecord && typeof providerErrorRecord.message === "string"
-        ? providerErrorRecord.message
-        : "erro não especificado";
-      const providerErrorCode =
-        providerErrorRecord && typeof providerErrorRecord.code === "string"
-          ? providerErrorRecord.code
-          : null;
-      const requestId = openAIResponse.headers.get("x-request-id");
+    if (!geminiResponse.ok) {
+      const providerErrorRecord =
+        isRecord(payload) && isRecord(payload.error) ? payload.error : null;
+      const providerError =
+        providerErrorRecord && typeof providerErrorRecord.message === "string"
+          ? providerErrorRecord.message
+          : "erro não especificado";
+      const requestId =
+        geminiResponse.headers.get("x-request-id") ??
+        geminiResponse.headers.get("x-goog-request-id");
+
       console.error(
-        "[Ensina-me] ai-tutor: OpenAI respondeu com erro",
-        JSON.stringify({ status: openAIResponse.status, request_id: requestId, message: providerError }),
+        "[Ensina-me] ai-tutor: Gemini respondeu com erro",
+        JSON.stringify({
+          status: geminiResponse.status,
+          request_id: requestId,
+          message: providerError,
+        }),
       );
 
       const userFacingError =
-        openAIResponse.status === 401 || openAIResponse.status === 403
-          ? "A credencial do tutor não foi aceita pelo provedor de IA. Verifique a configuração do OPENAI_API_KEY no Supabase."
-          : openAIResponse.status === 429 &&
-              (providerErrorCode === "insufficient_quota" ||
-                providerError.toLowerCase().includes("no credits remaining") ||
-                providerError.toLowerCase().includes("credit_balance_exhausted"))
-            ? "O tutor está sem créditos disponíveis na conta da API da OpenAI. Adicione créditos ao faturamento da API e tente novamente."
-            : openAIResponse.status === 429
-              ? "O provedor de IA está temporariamente limitando as solicitações. Tente novamente em instantes."
-              : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+        geminiResponse.status === 401 || geminiResponse.status === 403
+          ? "A credencial do tutor não foi aceita pelo provedor de IA. Verifique a configuração do GEMINI_API_KEY no Supabase."
+          : geminiResponse.status === 429
+            ? "O limite gratuito do provedor de IA foi atingido temporariamente. Tente novamente mais tarde."
+            : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
 
       return json(
         {
