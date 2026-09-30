@@ -283,7 +283,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
               <p className="text-sm font-medium text-[#0F172A]">{src.title}</p>
               {authorsText && (
                 <p className="mt-1 text-sm text-[#64748B]">
-                  {authorsText}{year ? ` (${year})` : ""}
+                  {authorsText}
                 </p>
               )}
               {cit.locator && (
