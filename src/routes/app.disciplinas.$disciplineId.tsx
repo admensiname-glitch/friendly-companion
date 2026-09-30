@@ -11,10 +11,6 @@ interface StudentDiscipline {
   course: string;
 }
 
-interface DisciplineAlias {
-  discipline_id: string;
-}
-
 interface OfficialDiscipline {
   id: string;
   name: string;
@@ -307,7 +303,7 @@ function DisciplineDetailPage() {
         return;
       }
 
-      let official: OfficialDiscipline | null = null;
+      let official: OfficialDiscipline;
 
       if (studentDiscData) {
         const studentDisc = studentDiscData as StudentDiscipline;
