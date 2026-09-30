@@ -592,7 +592,7 @@ Deno.serve(async (req: Request) => {
       } | null = null;
       let nextMessage: string | null = null;
 
-      if (groqApiKey) {
+      if (groqApiKey && masteryLevel !== "mastered") {
         const { data: topic } = await supabase
           .from("topics")
           .select("id, name, description")
@@ -709,6 +709,11 @@ Deno.serve(async (req: Request) => {
             }
           }
         }
+      }
+
+      if (masteryLevel === "mastered") {
+        nextMessage =
+          "Você já acumulou evidências suficientes de domínio deste tópico. A nova etapa agora é revisá-lo na data programada para fortalecer a retenção.";
       }
 
       return json({
