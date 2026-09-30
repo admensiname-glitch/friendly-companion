@@ -39,7 +39,7 @@ function truncateText(value: string, maxCharacters: number): string {
   );
 }
 
-const DAILY_USER_MESSAGE_LIMIT = 60;
+const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
 const MAX_CONTEXT_CHARACTERS = 24000;
 
 function extractOutputText(payload: unknown): string {
