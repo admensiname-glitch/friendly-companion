@@ -1165,6 +1165,20 @@ export type Database = {
         }[]
       }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
+      get_admin_source_overview: {
+        Args: never
+        Returns: {
+          access_model: string
+          document_count: number
+          publisher: string
+          rights_class: string
+          source_id: string
+          source_type: string
+          title: string
+          topic_count: number
+          verified_at: string
+        }[]
+      }
       get_student_dashboard_topics: {
         Args: never
         Returns: {
