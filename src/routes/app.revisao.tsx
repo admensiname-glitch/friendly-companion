@@ -11,6 +11,8 @@ interface ReviewItem {
   difficulty_tag: string;
   count: number;
   last_occurrence: string;
+  review_status: string;
+  correct_count: number;
 }
 
 const label = (tag: string) =>
@@ -130,6 +132,14 @@ function ReviewPage() {
                           {item.count === 1 ? "ocorrência" : "ocorrências"}
                         </span>
                       </div>
+                      <p className="mt-2 text-xs text-[#64748B]">
+                        {item.review_status === "reviewed"
+                          ? String(item.correct_count) +
+                            " acerto" +
+                            (item.correct_count === 1 ? "" : "s") +
+                            " após a dificuldade · continue praticando."
+                          : "Pendência identificada · revise antes de avançar."}
+                      </p>
                     </div>
                   ))}
                 </div>
