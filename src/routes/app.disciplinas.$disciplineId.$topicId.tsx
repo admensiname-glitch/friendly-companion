@@ -631,6 +631,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [opened, setOpened] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recommendedAction, setRecommendedAction] = useState<"simplify" | "practice" | "review" | "explore" | null>(null);
+  const [microAssessment, setMicroAssessment] = useState<TutorMicroAssessment | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
   const quickPrompts = [
@@ -680,6 +681,34 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
         .limit(30);
 
       setMessages((history ?? []) as TutorMessage[]);
+
+      const { data: pendingAssessment } = await supabase
+        .from("ai_micro_assessments")
+        .select("id, question_text, options, difficulty, concept_tags")
+        .eq("user_id", userId)
+        .eq("topic_id", topicId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingAssessment) {
+        setMicroAssessment({
+          id: pendingAssessment.id,
+          question: pendingAssessment.question_text,
+          options: Array.isArray(pendingAssessment.options)
+            ? pendingAssessment.options.filter((value): value is string => typeof value === "string")
+            : [],
+          difficulty:
+            pendingAssessment.difficulty === "introductory" ||
+            pendingAssessment.difficulty === "advanced"
+              ? pendingAssessment.difficulty
+              : "intermediate",
+          concept_tags: Array.isArray(pendingAssessment.concept_tags)
+            ? pendingAssessment.concept_tags
+            : [],
+        });
+      }
     })();
   }, [topicId]);
 
@@ -740,6 +769,15 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     }
 
     setConversationId(data.conversation_id ?? conversationId);
+    if (data.micro_assessment) {
+      setMicroAssessment({
+        id: data.micro_assessment.id,
+        question: data.micro_assessment.question,
+        options: data.micro_assessment.options,
+        difficulty: data.micro_assessment.difficulty,
+        concept_tags: data.micro_assessment.concept_tags,
+      });
+    }
     setRecommendedAction(
       data.learning_action === "simplify" ||
       data.learning_action === "practice" ||
@@ -826,6 +864,17 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
                 <div className="max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm text-[#64748B]">
                   Pensando com base no tópico…
                 </div>
+              )}
+
+              {microAssessment && (
+                <TutorMicroAssessmentCard
+                  assessment={microAssessment}
+                  onAnswered={(result) => {
+                    setRecommendedAction(
+                      result.is_correct ? "review" : "simplify",
+                    );
+                  }}
+                />
               )}
 
               <div ref={messageEndRef} aria-hidden="true" />
