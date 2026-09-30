@@ -980,6 +980,7 @@ export type Database = {
       }
       student_topic_difficulties: {
         Row: {
+          correct_count: number
           count: number
           difficulty_tag: string
           first_occurrence: string
@@ -990,6 +991,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          correct_count?: number
           count?: number
           difficulty_tag: string
           first_occurrence?: string
@@ -1000,6 +1002,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          correct_count?: number
           count?: number
           difficulty_tag?: string
           first_occurrence?: string
@@ -1299,6 +1302,15 @@ export type Database = {
           _selected_option_id?: string
         }
         Returns: Json
+      }
+      update_topic_difficulty_after_answer: {
+        Args: {
+          _difficulty_tags: string[]
+          _is_correct: boolean
+          _topic_id: string
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
