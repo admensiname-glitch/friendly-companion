@@ -10,6 +10,9 @@ interface Summary {
   pending_review: number;
   today_minutes: number;
   seven_day_minutes: number;
+  micro_questions_attempted: number;
+  micro_questions_correct: number;
+  micro_accuracy: number | null;
 }
 
 interface Evaluation {
@@ -90,6 +93,39 @@ function PerformancePage() {
             <Metric label="Revisões pendentes" value={summary?.pending_review ?? 0} />
             <Metric label="Estudo hoje" value={(summary?.today_minutes ?? 0) + " min"} />
             <Metric label="Estudo nos últimos 7 dias" value={(summary?.seven_day_minutes ?? 0) + " min"} />
+            <Metric label="Microavaliações respondidas" value={summary?.micro_questions_attempted ?? 0} />
+            <Metric
+              label="Aproveitamento no Tutor"
+              value={
+                summary?.micro_accuracy !== null && summary?.micro_accuracy !== undefined
+                  ? summary.micro_accuracy + "%"
+                  : "—"
+              }
+            />
+          </div>
+
+          <div className="mt-10">
+            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
+                    Aprendizagem adaptativa
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-[#0F172A]">
+                    Microavaliações do Tutor
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-[#64748B]">
+                    Questões curtas geradas a partir dos tópicos estudados e usadas para identificar o que já está firme e o que precisa de revisão.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-[#0F172A]">
+                    {summary?.micro_questions_correct ?? 0}/{summary?.micro_questions_attempted ?? 0}
+                  </p>
+                  <p className="text-xs text-[#64748B]">acertos</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="mt-10">
