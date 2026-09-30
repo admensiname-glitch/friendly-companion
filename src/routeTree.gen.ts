@@ -16,6 +16,7 @@ import { Route as AppDisciplinas$disciplineIdRouteImport } from './routes/app.di
 import { Route as AppDisciplinas$disciplineId$topicIdRouteImport } from './routes/app.disciplinas.$disciplineId.$topicId'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCatalogo$disciplineIdRouteImport } from './routes/app.catalogo.$disciplineId'
+import { Route as AppRevisaoRouteImport } from './routes/app.revisao'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -42,6 +43,7 @@ const AppRoute = AppRouteImport.update({
     AppDisciplinasRoute,
     AppDisciplinas$disciplineIdRoute,
     AppCatalogoRoute,
+    AppRevisaoRoute,
   ],
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -75,6 +77,11 @@ const AppCatalogo$disciplineIdRoute = AppCatalogo$disciplineIdRouteImport.update
   id: '/app/catalogo/:disciplineId',
   path: '/catalogo/:disciplineId',
   getParentRoute: () => AppCatalogoRoute,
+} as any)
+const AppRevisaoRoute = AppRevisaoRouteImport.update({
+  id: '/app/revisao',
+  path: '/revisao',
+  getParentRoute: () => AppRoute,
 } as any)
 
 const CadastroRoute = CadastroRouteImport.update({
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/app/disciplinas/:disciplineId/:topicId': typeof AppDisciplinas$disciplineId$topicIdRoute
   '/app/catalogo': typeof AppCatalogoRoute
   '/app/catalogo/:disciplineId': typeof AppCatalogo$disciplineIdRoute
+  '/app/revisao': typeof AppRevisaoRoute
   '/cadastro': typeof CadastroRoute
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
