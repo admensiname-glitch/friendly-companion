@@ -257,7 +257,15 @@ function ContentPlaceholder() {
 
 // ─── Material section ──────────────────────────────────────────────────────────
 
-function MaterialSectionItem({ section }: { section: MaterialSection }) {
+function MaterialSectionItem({
+  section,
+  completed,
+  onComplete,
+}: {
+  section: MaterialSection;
+  completed: boolean;
+  onComplete: () => void;
+}) {
   const labels: Record<MaterialSection["section_type"], string> = {
     concept: "Ideia central",
     explanation: "Entenda",
@@ -270,17 +278,38 @@ function MaterialSectionItem({ section }: { section: MaterialSection }) {
   return (
     <section
       aria-labelledby={`section-${section.id}`}
-      className="mt-8 border-l-2 border-[#E2E8F0] pl-5 sm:pl-6"
+      className={`mt-8 border-l-2 pl-5 transition-colors sm:pl-6 ${
+        completed ? "border-[#BBF7D0]" : "border-[#E2E8F0]"
+      }`}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
-        {labels[section.section_type]}
-      </p>
-      <h3
-        id={`section-${section.id}`}
-        className="mt-1 text-xl font-semibold text-[#0F172A]"
-      >
-        {section.title}
-      </h3>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
+            {labels[section.section_type]}
+          </p>
+          <h3
+            id={`section-${section.id}`}
+            className="mt-1 text-xl font-semibold text-[#0F172A]"
+          >
+            {section.title}
+          </h3>
+        </div>
+
+        <button
+          type="button"
+          onClick={onComplete}
+          disabled={completed}
+          aria-pressed={completed}
+          className={
+            completed
+              ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
+              : "rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+          }
+        >
+          {completed ? "Estudado ✓" : "Marcar como estudado"}
+        </button>
+      </div>
+
       <div className="mt-3 max-w-3xl space-y-2 text-base leading-7 text-[#334155]">
         {renderParagraphs(section.content)}
       </div>
@@ -1212,6 +1241,8 @@ function TopicDetailPage() {
   const [disciplineName, setDisciplineName] = useState<string | null>(null);
   const [material, setMaterial] = useState<Material | null>(null);
   const [sections, setSections] = useState<MaterialSection[]>([]);
+  const [completedSectionIds, setCompletedSectionIds] = useState<string[]>([]);
+  const [contentProgress, setContentProgress] = useState({ completed: 0, total: 0 });
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [evaluation, setEvaluation] = useState<Exercise | null>(null);
@@ -1263,6 +1294,39 @@ function TopicDetailPage() {
     [refreshDifficulties],
   );
 
+  const markSectionComplete = useCallback(
+    async (sectionId: string) => {
+      if (completedSectionIds.includes(sectionId)) return;
+
+      const { data, error: progressError } = await supabase.rpc(
+        "mark_material_section_complete",
+        { _section_id: sectionId },
+      );
+
+      if (progressError) {
+        console.error("[Ensina-me] Erro ao salvar progresso do conteúdo:", progressError);
+        return;
+      }
+
+      const result =
+        Array.isArray(data) && data.length > 0
+          ? (data[0] as { completed_sections?: number; total_sections?: number })
+          : null;
+
+      setCompletedSectionIds((current) =>
+        current.includes(sectionId) ? current : [...current, sectionId],
+      );
+
+      if (result) {
+        setContentProgress({
+          completed: result.completed_sections ?? completedSectionIds.length + 1,
+          total: result.total_sections ?? sections.length,
+        });
+      }
+    },
+    [completedSectionIds, sections.length],
+  );
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -1272,6 +1336,8 @@ function TopicDetailPage() {
       setDisciplineName(null);
       setMaterial(null);
       setSections([]);
+      setCompletedSectionIds([]);
+      setContentProgress({ completed: 0, total: 0 });
       setCitations([]);
       setExercises([]);
       setEvaluation(null);
@@ -1391,7 +1457,25 @@ function TopicDetailPage() {
           .eq("material_id", mat.id)
           .order("position", { ascending: true });
 
-        setSections((sectionsData as MaterialSection[]) ?? []);
+        const loadedSections = (sectionsData as MaterialSection[]) ?? [];
+        setSections(loadedSections);
+        setContentProgress({ completed: 0, total: loadedSections.length });
+
+        const { data: sectionProgressData } = await supabase
+          .from("student_material_section_progress")
+          .select("section_id")
+          .eq("user_id", userId)
+          .in(
+            "section_id",
+            loadedSections.map((section) => section.id),
+          );
+
+        const completedIds = (sectionProgressData ?? []).map((row) => row.section_id);
+        setCompletedSectionIds(completedIds);
+        setContentProgress({
+          completed: completedIds.length,
+          total: loadedSections.length,
+        });
 
         // Step 7: Fetch citations
         const { data: citationsData } = await supabase
@@ -1639,8 +1723,40 @@ function TopicDetailPage() {
                 )}
               </div>
 
+              <div
+                className="mb-6 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"
+                aria-label="Progresso do conteúdo"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <span className="font-semibold text-[#0F172A]">
+                    Progresso do conteúdo
+                  </span>
+                  <span className="text-[#64748B]">
+                    {contentProgress.completed} de {contentProgress.total} partes estudadas
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                  <div
+                    className="h-full rounded-full bg-[#16A34A] transition-all"
+                    style={{
+                      width:
+                        (contentProgress.total > 0
+                          ? Math.round(
+                              (contentProgress.completed / contentProgress.total) * 100,
+                            )
+                          : 0) + "%",
+                    }}
+                  />
+                </div>
+              </div>
+
               {sections.map((section) => (
-                <MaterialSectionItem key={section.id} section={section} />
+                <MaterialSectionItem
+                  key={section.id}
+                  section={section}
+                  completed={completedSectionIds.includes(section.id)}
+                  onComplete={() => void markSectionComplete(section.id)}
+                />
               ))}
             </>
           ) : (
