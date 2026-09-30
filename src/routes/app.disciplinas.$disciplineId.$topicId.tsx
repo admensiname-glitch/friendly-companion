@@ -102,6 +102,12 @@ interface EvaluationResult {
   band: "novice" | "developing" | "proficient" | "mastered";
 }
 
+interface TopicDifficulty {
+  difficulty_tag: string;
+  count: number;
+  review_status: string;
+}
+
 const DOMAIN_LABELS: Record<EvaluationResult["band"], string> = {
   novice: "Em desenvolvimento inicial",
   developing: "Em desenvolvimento",
@@ -572,6 +578,50 @@ function ExerciseSection({
   );
 }
 
+function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
+  if (difficulties.length === 0) return null;
+
+  const label = (tag: string) =>
+    tag
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+  return (
+    <section aria-labelledby="review-heading" className="mt-12">
+      <div className="border-t border-[#E2E8F0] pt-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#D97706]">
+          Próxima revisão
+        </p>
+        <h2 id="review-heading" className="mt-2 text-2xl font-semibold text-[#0F172A]">
+          Pontos que merecem atenção
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
+          O Ensina-me identificou estes temas a partir das suas respostas. Eles entram como prioridade para revisão.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {difficulties.map((difficulty) => (
+            <div
+              key={difficulty.difficulty_tag}
+              className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium text-[#0F172A]">{label(difficulty.difficulty_tag)}</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#92400E]">
+                  {difficulty.count} {difficulty.count === 1 ? "registro" : "registros"}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-[#64748B]">
+                Revise o conceito e pratique novamente antes de uma nova avaliação.
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Formal evaluation ─────────────────────────────────────────────────────────
 
 function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
@@ -767,6 +817,7 @@ function TopicDetailPage() {
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [evaluation, setEvaluation] = useState<Exercise | null>(null);
+  const [difficulties, setDifficulties] = useState<TopicDifficulty[]>([]);
   const [exerciseProgress, setExerciseProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -808,6 +859,7 @@ function TopicDetailPage() {
       setCitations([]);
       setExercises([]);
       setEvaluation(null);
+      setDifficulties([]);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -945,7 +997,17 @@ function TopicDetailPage() {
         }
       }
 
-      // Step 8: Fetch evaluation and application exercises
+      // Step 8: Load persisted learning signals.
+      const { data: difficultyData } = await supabase
+        .from("student_topic_difficulties")
+        .select("difficulty_tag, count, review_status")
+        .eq("user_id", userId)
+        .eq("topic_id", topicId)
+        .order("count", { ascending: false });
+
+      setDifficulties((difficultyData ?? []) as TopicDifficulty[]);
+
+      // Step 9: Fetch evaluation and application exercises
       const { data: evaluationData } = await supabase
         .from("exercises")
         .select("id, topic_id, title, exercise_type, content, difficulty, position")
@@ -1170,6 +1232,7 @@ function TopicDetailPage() {
           />
 
           <SourcesSection citations={citations} />
+          <ReviewSection difficulties={difficulties} />
           <EvaluationSection exercise={evaluation} />
         </div>
       )}
