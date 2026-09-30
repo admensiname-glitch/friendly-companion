@@ -943,6 +943,7 @@ export type Database = {
           topic_name: string
         }[]
       }
+      get_student_study_recommendation: { Args: never; Returns: Json }
       has_role: { Args: { required_role: string }; Returns: boolean }
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
