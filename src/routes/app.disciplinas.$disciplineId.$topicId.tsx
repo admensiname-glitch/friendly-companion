@@ -465,15 +465,27 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     setLoading(false);
 
     if (error || !data?.message) {
-      const messageText =
-        data?.error ??
-        "Não foi possível responder agora. Tente novamente.";
+      let messageText = data?.error;
+
+      if (!messageText && error) {
+        try {
+          const response = (error as { context?: Response }).context;
+          if (response) {
+            const payload = (await response.clone().json()) as { error?: string };
+            messageText = payload.error;
+          }
+        } catch {
+          // Keep the generic message below when the function error has no JSON body.
+        }
+      }
 
       setMessages((current) =>
         current.filter((item) => item.id !== localId),
       );
       setInput(message);
-      setErrorMessage(messageText);
+      setErrorMessage(
+        messageText ?? "Não foi possível responder agora. Tente novamente.",
+      );
       return;
     }
 
