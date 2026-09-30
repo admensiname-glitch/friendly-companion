@@ -1266,14 +1266,30 @@ export type Database = {
           topic_name: string
         }[]
       }
+      get_student_performance_summary: { Args: never; Returns: Json }
+      get_student_recent_evaluations: {
+        Args: { _limit?: number }
+        Returns: {
+          attempt_id: string
+          completed_at: string
+          correct_answers: number
+          discipline_name: string
+          score: number
+          topic_id: string
+          topic_name: string
+          total_questions: number
+        }[]
+      }
       get_student_review_items: {
         Args: never
         Returns: {
+          correct_count: number
           count: number
           difficulty_tag: string
           discipline_id: string
           discipline_name: string
           last_occurrence: string
+          review_status: string
           topic_id: string
           topic_name: string
         }[]
