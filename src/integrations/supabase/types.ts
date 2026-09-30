@@ -913,6 +913,7 @@ export type Database = {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
       }
+      get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_student_dashboard_topics: {
         Args: never
         Returns: {
