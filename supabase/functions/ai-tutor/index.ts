@@ -43,18 +43,25 @@ const DAILY_USER_MESSAGE_LIMIT = 60;
 const MAX_CONTEXT_CHARACTERS = 24000;
 
 function extractOutputText(payload: unknown): string {
-  if (!isRecord(payload) || !Array.isArray(payload.candidates)) return "";
+  if (!isRecord(payload) || !Array.isArray(payload.choices)) return "";
 
   const texts: string[] = [];
 
-  for (const candidate of payload.candidates) {
-    if (!isRecord(candidate) || !isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) {
+  for (const choice of payload.choices) {
+    if (!isRecord(choice) || !isRecord(choice.message)) continue;
+
+    const content = choice.message.content;
+
+    if (typeof content === "string") {
+      texts.push(content);
       continue;
     }
 
-    for (const part of candidate.content.parts) {
-      if (isRecord(part) && typeof part.text === "string") {
-        texts.push(part.text);
+    if (Array.isArray(content)) {
+      for (const part of content) {
+        if (isRecord(part) && typeof part.text === "string") {
+          texts.push(part.text);
+        }
       }
     }
   }
