@@ -395,7 +395,7 @@ interface TutorMessage {
 }
 
 function renderTutorInline(text: string): React.ReactNode {
-  return text.split(/(\\*\\*[^*]+\\*\\*)/g).map((part, index) => {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={index}>{part.slice(2, -2)}</strong>;
     }
@@ -404,7 +404,7 @@ function renderTutorInline(text: string): React.ReactNode {
 }
 
 function renderTutorContent(text: string): React.ReactNode[] {
-  const lines = text.replace(/\\r\\n/g, "\\n").split("\\n");
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 
   return lines.map((line, index) => {
     const trimmed = line.trim();
