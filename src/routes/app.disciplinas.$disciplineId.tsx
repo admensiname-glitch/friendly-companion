@@ -135,10 +135,12 @@ function CatalogNotLinked() {
 function TopicsList({
   topics,
   disciplineId,
+  officialDisciplineId,
   learningState,
 }: {
   topics: Topic[];
   disciplineId: string;
+  officialDisciplineId: string;
   learningState: Record<string, TopicLearningState>;
 }) {
   if (topics.length === 0) {
@@ -179,7 +181,9 @@ function TopicsList({
             <Link
               key={topic.id}
               to="/app/disciplinas/$disciplineId/$topicId"
-              params={{ disciplineId, topicId: topic.id }}
+              // Topic study URLs always use the official catalog discipline id.
+              // The student_disciplines id is only the private personalization key.
+              params={{ disciplineId: officialDisciplineId, topicId: topic.id }}
               className="block rounded-xl border border-[#E2E8F0] bg-white p-5 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -263,6 +267,7 @@ function DisciplineDetailPage() {
   const { disciplineId } = Route.useParams();
   const [studentDisc, setStudentDisc] = useState<StudentDiscipline | null>(null);
   const [officialDiscName, setOfficialDiscName] = useState<string | null>(null);
+  const [officialDiscId, setOfficialDiscId] = useState<string | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [learningState, setLearningState] = useState<Record<string, TopicLearningState>>({});
   const [catalogLinked, setCatalogLinked] = useState<boolean | null>(null);
@@ -279,6 +284,7 @@ function DisciplineDetailPage() {
       setTopics([]);
       setLearningState({});
       setOfficialDiscName(null);
+      setOfficialDiscId(null);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -364,6 +370,7 @@ function DisciplineDetailPage() {
       }
 
       setOfficialDiscName(official.name);
+      setOfficialDiscId(official.id);
       setCatalogLinked(true);
 
       // Step 4: Load published topics from the official discipline
@@ -455,6 +462,7 @@ function DisciplineDetailPage() {
               <TopicsList
                 topics={topics}
                 disciplineId={disciplineId}
+                officialDisciplineId={officialDiscId ?? disciplineId}
                 learningState={learningState}
               />
             </>
