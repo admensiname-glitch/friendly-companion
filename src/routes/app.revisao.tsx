@@ -34,23 +34,10 @@ function ReviewPage() {
 
       const userId = sessionData.session.user.id;
 
-      const { data: difficulties } = await supabase
-        .from("student_topic_difficulties")
-        .select("topic_id, difficulty_tag, count, last_occurrence")
-        .eq("user_id", userId)
-        .eq("review_status", "pending")
-        .order("last_occurrence", { ascending: false });
+      const { data: reviewData } = await supabase.rpc("get_student_review_items");
 
-      const rows = (difficulties ?? []) as Array<{
-        topic_id: string;
-        difficulty_tag: string;
-        count: number;
-        last_occurrence: string;
-      }>;
-
-      const topicIds = [...new Set(rows.map((row) => row.topic_id))];
-      if (topicIds.length === 0) {
-        setItems([]);
+      setItems((reviewData ?? []) as ReviewItem[]);
+      setItems([]);
         setLoading(false);
         return;
       }
