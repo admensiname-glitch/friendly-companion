@@ -1410,7 +1410,7 @@ function TopicDetailPage() {
           .filter((q) => q.question_type === "multiple_choice")
           .map((q) => q.id);
 
-        let evalOptionsByQuestion: Record<string, ExerciseOption[]> = {};
+        const evalOptionsByQuestion: Record<string, ExerciseOption[]> = {};
         if (evalQuestionIds.length > 0) {
           const { data: evalOptionsData } = await supabase
             .from("exercise_options")
@@ -1469,7 +1469,7 @@ function TopicDetailPage() {
           .filter((q) => q.question_type === "multiple_choice")
           .map((q) => q.id);
 
-        let optionsByQuestion: Record<string, ExerciseOption[]> = {};
+        const optionsByQuestion: Record<string, ExerciseOption[]> = {};
         if (questionIds.length > 0) {
           const { data: optionsData } = await supabase
             .from("exercise_options")
