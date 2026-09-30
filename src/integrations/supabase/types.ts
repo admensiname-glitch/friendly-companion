@@ -400,6 +400,52 @@ export type Database = {
         }
         Relationships: []
       }
+      material_chunk_citations: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          section_id: string | null
+          source_chunk_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          section_id?: string | null
+          source_chunk_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          section_id?: string | null
+          source_chunk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_chunk_citations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_chunk_citations_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "material_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_chunk_citations_source_chunk_id_fkey"
+            columns: ["source_chunk_id"]
+            isOneToOne: false
+            referencedRelation: "source_chunks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_citations: {
         Row: {
           citation_label: string | null
@@ -448,6 +494,63 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_generation_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          material_id: string | null
+          model_name: string | null
+          prompt_version: string | null
+          source_count: number
+          started_at: string | null
+          status: string
+          topic_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          model_name?: string | null
+          prompt_version?: string | null
+          source_count?: number
+          started_at?: string | null
+          status?: string
+          topic_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          model_name?: string | null
+          prompt_version?: string | null
+          source_count?: number
+          started_at?: string | null
+          status?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_generation_runs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_generation_runs_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
@@ -527,6 +630,100 @@ export type Database = {
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          embedding: string | null
+          embedding_model: string | null
+          id: string
+          locator: string | null
+          source_document_id: string
+          token_count: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          embedding?: string | null
+          embedding_model?: string | null
+          id?: string
+          locator?: string | null
+          source_document_id: string
+          token_count?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          embedding_model?: string | null
+          id?: string
+          locator?: string | null
+          source_document_id?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_chunks_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "source_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_documents: {
+        Row: {
+          canonical_url: string | null
+          content_sha256: string | null
+          created_at: string
+          document_type: string
+          id: string
+          retrieval_status: string
+          retrieval_url: string | null
+          retrieved_at: string | null
+          rights_snapshot: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          content_sha256?: string | null
+          created_at?: string
+          document_type?: string
+          id?: string
+          retrieval_status?: string
+          retrieval_url?: string | null
+          retrieved_at?: string | null
+          rights_snapshot?: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_url?: string | null
+          content_sha256?: string | null
+          created_at?: string
+          document_type?: string
+          id?: string
+          retrieval_status?: string
+          retrieval_url?: string | null
+          retrieved_at?: string | null
+          rights_snapshot?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1000,6 +1197,14 @@ export type Database = {
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
         Returns: undefined
+      }
+      register_source_document: {
+        Args: {
+          _retrieval_url: string
+          _rights_snapshot: string
+          _source_id: string
+        }
+        Returns: string
       }
       start_study_session: { Args: { _topic_id: string }; Returns: Json }
       start_topic_evaluation: { Args: { _topic_id: string }; Returns: Json }
