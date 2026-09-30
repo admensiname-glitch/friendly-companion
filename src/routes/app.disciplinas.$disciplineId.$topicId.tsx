@@ -380,6 +380,95 @@ function ExerciseOptionItem({
   );
 }
 
+function StudySessionCard({ topicId }: { topicId: string }) {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const update = () => {
+      setSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    };
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+
+  const format = (value: number) =>
+    [Math.floor(value / 3600), Math.floor((value % 3600) / 60), value % 60]
+      .map((part) => String(part).padStart(2, "0"))
+      .join(":");
+
+  async function start() {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("start_study_session", {
+      _topic_id: topicId,
+    });
+    setLoading(false);
+    if (error || !data) {
+      console.error("[Ensina-me] Erro ao iniciar sessão:", error);
+      return;
+    }
+    const payload = data as { session_id?: string; started_at?: string };
+    if (!payload.session_id || !payload.started_at) return;
+    setSessionId(payload.session_id);
+    setStartedAt(new Date(payload.started_at).getTime());
+  }
+
+  async function finish() {
+    if (!sessionId) return;
+    setLoading(true);
+    const { data, error } = await supabase.rpc("finish_study_session", {
+      _session_id: sessionId,
+    });
+    setLoading(false);
+    if (error || !data) {
+      console.error("[Ensina-me] Erro ao finalizar sessão:", error);
+      return;
+    }
+    setSessionId(null);
+    setStartedAt(null);
+    setSeconds(Number((data as { duration_seconds?: number }).duration_seconds ?? seconds));
+  }
+
+  return (
+    <section aria-label="Sessão de estudo" className="mt-8 rounded-xl border border-[#E2E8F0] bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-[#0F172A]">Sessão de estudo</p>
+          <p className="mt-1 text-sm text-[#64748B]">
+            Estude com foco e registre seu tempo neste tópico.
+          </p>
+        </div>
+        {sessionId ? (
+          <button
+            type="button"
+            onClick={finish}
+            disabled={loading}
+            className="rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2 text-sm font-semibold text-[#0242D7]"
+          >
+            {loading ? "Salvando..." : "Encerrar sessão"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={start}
+            disabled={loading}
+            className="rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0038B8]"
+          >
+            {loading ? "Iniciando..." : "Começar sessão"}
+          </button>
+        )}
+      </div>
+      <div className="mt-4 text-3xl font-bold tracking-tight text-[#0F172A]">
+        {format(seconds)}
+      </div>
+    </section>
+  );
+}
+
 // ─── Exercise question ────────────────────────────────────────────────────────
 
 function ExerciseQuestionItem({
@@ -1270,6 +1359,8 @@ function TopicDetailPage() {
           {sections.map((section) => (
             <MaterialSectionItem key={section.id} section={section} />
           ))}
+
+          <StudySessionCard topicId={topicId} />
 
           <section
             aria-label="Progresso dos exercícios"
