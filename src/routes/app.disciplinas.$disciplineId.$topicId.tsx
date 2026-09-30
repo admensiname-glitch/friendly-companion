@@ -94,6 +94,15 @@ interface Exercise {
   questions?: ExerciseQuestion[];
 }
 
+interface ExerciseAnswerInsert {
+  user_id: string;
+  question_id: string;
+  selected_option_id: string | null;
+  open_text: string | null;
+  is_correct: boolean | null;
+  feedback: string | null;
+}
+
 // ─── Normalization ─────────────────────────────────────────────────────────────
 
 function normalize(str: string): string {
