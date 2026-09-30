@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -175,9 +175,10 @@ function CatalogPage() {
         ) : (
           <div className="mt-8 space-y-3">
             {topics.map((topic) => (
-              <a
+              <Link
                 key={topic.id}
-                href={`/app/disciplinas/${selectedDiscipline.id}/${topic.id}`}
+                to="/app/disciplinas/$disciplineId/$topicId"
+                params={{ disciplineId: selectedDiscipline.id, topicId: topic.id }}
                 className="block rounded-xl border border-[#E2E8F0] bg-white p-5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
               >
                 <p className="font-semibold text-[#0F172A]">{topic.name}</p>
@@ -187,7 +188,7 @@ function CatalogPage() {
                 <span className="mt-3 inline-block text-sm font-semibold text-[#0242D7]">
                   Estudar tópico →
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
         )}
