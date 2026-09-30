@@ -908,10 +908,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_publication: {
+        Args: { _entity_id: string; _entity_type: string; _published: boolean }
+        Returns: Json
+      }
       auth_role: { Args: never; Returns: string }
       finalize_topic_evaluation: {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
+      }
+      get_admin_content_overview: {
+        Args: never
+        Returns: {
+          entity_id: string
+          entity_type: string
+          name: string
+          parent_name: string
+          published: boolean
+          updated_at: string
+        }[]
       }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_student_dashboard_topics: {
