@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -104,12 +104,11 @@ function CatalogPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-3 md:grid-cols-2">
-          {disciplines.map((discipline) => (
-            <Link
+          {filteredDisciplines.map((discipline) => (
+            <a
               key={discipline.id}
-              to="/app/catalogo/$disciplineId"
-              params={{ disciplineId: discipline.id }}
-              className="rounded-xl border border-[#E2E8F0] bg-white p-6 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+              href={`/app/catalogo/${discipline.id}`}
+              className="block rounded-xl border border-[#E2E8F0] bg-white p-6 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
             >
               <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">{discipline.course_name}</p>
               <h2 className="mt-2 text-lg font-semibold text-[#0F172A]">{discipline.name}</h2>
@@ -117,7 +116,7 @@ function CatalogPage() {
                 <p className="mt-2 text-sm leading-6 text-[#64748B]">{discipline.description}</p>
               )}
               <span className="mt-4 inline-block text-sm font-semibold text-[#0242D7]">Explorar →</span>
-            </Link>
+            </a>
           ))}
         </div>
       )}
