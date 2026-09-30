@@ -23,6 +23,18 @@ interface User {
   user_metadata?: { full_name?: string; name?: string };
 }
 
+interface DashboardTopic {
+  discipline_id: string;
+  discipline_name: string;
+  topic_id: string;
+  topic_name: string;
+  topic_description: string | null;
+  progress: number;
+  best_score: number | null;
+  status: string;
+  review_count: number;
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -86,6 +98,7 @@ function AppDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
+  const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -114,6 +127,13 @@ function AppDashboard() {
 
       if (discData && discData.length > 0) {
         setDisciplines(discData as StudentDiscipline[]);
+      }
+
+      const { data: topicProgressData, error: topicProgressError } =
+        await supabase.rpc("get_student_dashboard_topics");
+
+      if (!topicProgressError) {
+        setTopicsProgress((topicProgressData ?? []) as DashboardTopic[]);
       }
 
       setLoading(false);
@@ -212,6 +232,81 @@ function AppDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Continue studying ── */}
+      {!loading && topicsProgress.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#64748B]">
+            Continue estudando
+          </h2>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {topicsProgress
+              .filter((topic) => topic.status !== "completed" || topic.progress < 100)
+              .slice(0, 2)
+              .map((topic) => (
+                <Link
+                  key={topic.topic_id}
+                  to="/app/disciplinas/$disciplineId/$topicId"
+                  params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }}
+                  className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-6 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0242D7]">
+                    {topic.discipline_name}
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold text-[#0F172A]">
+                    {topic.topic_name}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[#475569]">
+                    {topic.review_count > 0
+                      ? topic.review_count + " ponto" + (topic.review_count === 1 ? "" : "s") + " aguardando revisão."
+                      : topic.progress > 0
+                        ? topic.progress + "% concluído."
+                        : "Comece este tópico para construir sua base."}
+                  </p>
+                  <span className="mt-5 inline-flex rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white">
+                    Continuar
+                  </span>
+                </Link>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Progress overview ── */}
+      {!loading && topicsProgress.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#64748B]">
+            Seu progresso
+          </h2>
+          <div className="mt-4 space-y-3">
+            {topicsProgress.map((topic) => (
+              <Link
+                key={topic.topic_id}
+                to="/app/disciplinas/$disciplineId/$topicId"
+                params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }}
+                className="block rounded-xl border border-[#E2E8F0] bg-white p-5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#64748B]">{topic.discipline_name}</p>
+                    <p className="mt-1 font-medium text-[#0F172A]">{topic.topic_name}</p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold text-[#0242D7]">
+                    {topic.progress}%
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                  <div
+                    className="h-full rounded-full bg-[#0242D7]"
+                    style={{ width: topic.progress + "%" }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Disciplines ── */}
       <div className="mt-8">
