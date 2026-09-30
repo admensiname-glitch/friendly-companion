@@ -467,6 +467,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [loading, setLoading] = useState(false);
   const [opened, setOpened] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [recommendedAction, setRecommendedAction] = useState<"simplify" | "practice" | "review" | "explore" | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
   const quickPrompts = [
@@ -532,6 +533,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     setLoading(true);
     setInput("");
     setErrorMessage(null);
+    setRecommendedAction(null);
 
     const localId = "local-" + Date.now();
     setMessages((current) => [
@@ -575,6 +577,14 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     }
 
     setConversationId(data.conversation_id ?? conversationId);
+    setRecommendedAction(
+      data.learning_action === "simplify" ||
+      data.learning_action === "practice" ||
+      data.learning_action === "review" ||
+      data.learning_action === "explore"
+        ? data.learning_action
+        : null,
+    );
     setMessages((current) => [
       ...current,
       {
@@ -659,6 +669,43 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
             </div>
 
             <div className="border-t border-[#E2E8F0] p-4">
+              {recommendedAction && (
+                <div className="mb-3 rounded-lg border border-[#DBEAFE] bg-[#F8FAFC] px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0242D7]">
+                    Próximo passo
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-[#475569]">
+                      {recommendedAction === "simplify"
+                        ? "Vamos reconstruir esse conceito de um jeito mais simples."
+                        : recommendedAction === "practice"
+                          ? "Agora vale testar se você realmente consegue aplicar a ideia."
+                          : recommendedAction === "review"
+                            ? "Uma revisão rápida pode consolidar o que você acabou de estudar."
+                            : "Continue explorando o tópico e conectando os conceitos."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void sendMessage(
+                          recommendedAction === "simplify"
+                            ? "Explique novamente de forma mais simples e use um exemplo correto."
+                            : recommendedAction === "practice"
+                              ? "Faça uma questão de nível intermediário e espere minha resposta antes de corrigir."
+                              : recommendedAction === "review"
+                                ? "Faça uma revisão rápida dos conceitos essenciais deste tópico."
+                                : "Faça uma pergunta orientadora que me ajude a aprofundar este tópico.",
+                        )
+                      }
+                      disabled={loading}
+                      className="rounded-md border border-[#BFDBFE] bg-white px-3 py-1.5 text-xs font-semibold text-[#0242D7] hover:bg-[#EFF6FF] disabled:opacity-50"
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-3 flex flex-wrap gap-2" aria-label="Atalhos do Tutor">
                 {quickPrompts.map((prompt) => (
                   <button
