@@ -1370,26 +1370,29 @@ function TopicDetailPage() {
       {/* ── Not found ── */}
       {!loading && !error && notFound && <NotFound />}
 
-      {/* ── Topic found but no material ── */}
-      {!loading && !error && !notFound && !material && <ContentPlaceholder />}
-
-      {/* ── Topic found with material ── */}
-      {!loading && !error && !notFound && material && (
+      {/* ── Topic learning content ── */}
+      {!loading && !error && !notFound && (
         <div className="mt-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-[#0F172A]">
-              {material.title}
-            </h2>
-            {material.introduction && (
-              <div className="mt-4 text-base leading-7 text-[#334155]">
-                {renderParagraphs(material.introduction)}
+          {material ? (
+            <>
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-[#0F172A]">
+                  {material.title}
+                </h2>
+                {material.introduction && (
+                  <div className="mt-4 text-base leading-7 text-[#334155]">
+                    {renderParagraphs(material.introduction)}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {sections.map((section) => (
-            <MaterialSectionItem key={section.id} section={section} />
-          ))}
+              {sections.map((section) => (
+                <MaterialSectionItem key={section.id} section={section} />
+              ))}
+            </>
+          ) : (
+            <ContentPlaceholder />
+          )}
 
           <StudySessionCard topicId={topicId} />
 
