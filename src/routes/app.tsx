@@ -58,6 +58,27 @@ function AppLayout() {
             Ensina-me
           </Link>
 
+          <nav aria-label="Navegação principal" className="hidden items-center gap-1 sm:flex">
+            <Link
+              to="/app/dashboard"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
+            >
+              Início
+            </Link>
+            <Link
+              to="/app/disciplinas"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
+            >
+              Minhas disciplinas
+            </Link>
+            <Link
+              to="/app/catalogo"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
+            >
+              Catálogo
+            </Link>
+          </nav>
+
           <div className="flex items-center gap-3">
             {logoutError && (
               <span
