@@ -214,7 +214,7 @@ function ReviewPage() {
             />
           ))}
         </div>
-      ) : grouped.length === 0 ? (
+      ) : grouped.length === 0 && microReviews.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
           <p className="font-semibold text-[#0F172A]">Nenhuma revisão pendente.</p>
           <p className="mt-2 text-sm text-[#64748B]">
@@ -275,14 +275,6 @@ function ReviewPage() {
                       <p className="mt-2 text-xs text-[#64748B]">
                         {item.review_status === "reviewed"
                           ? item.correct_count + " acerto" + (item.correct_count === 1 ? "" : "s") + " após a dificuldade · continue praticando."
-                          : "Pendência identificada · revise antes de avançar."}
-                      </p>
-                      <p className="mt-2 text-xs text-[#64748B]">
-                        {item.review_status === "reviewed"
-                          ? String(item.correct_count) +
-                            " acerto" +
-                            (item.correct_count === 1 ? "" : "s") +
-                            " após a dificuldade · continue praticando."
                           : "Pendência identificada · revise antes de avançar."}
                       </p>
                     </div>
