@@ -20,6 +20,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminContentRouteImport } from './routes/admin.conteudo'
 import { Route as AdminAtivarRouteImport } from './routes/admin-ativar'
 
 const IndexRoute = IndexRouteImport.update({
@@ -90,11 +91,16 @@ const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
-  children: () => [AdminDashboardRoute, AdminAtivarRoute],
+  children: () => [AdminDashboardRoute, AdminContentRoute, AdminAtivarRoute],
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContentRoute = AdminContentRouteImport.update({
+  id: '/admin/conteudo',
+  path: '/conteudo',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAtivarRoute = AdminAtivarRouteImport.update({
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/conteudo': typeof AdminContentRoute
   '/admin-ativar': typeof AdminAtivarRoute
 }
 
@@ -137,6 +144,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/admin': typeof AdminRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/conteudo': typeof AdminContentRoute
   '/admin-ativar': typeof AdminAtivarRoute
 }
 
@@ -241,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/conteudo': {
+      id: '/admin/conteudo'
+      path: '/conteudo'
+      fullPath: '/admin/conteudo'
+      preLoaderRoute: typeof AdminContentRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin-ativar': {
