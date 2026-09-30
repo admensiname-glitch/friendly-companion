@@ -580,19 +580,30 @@ function TopicDetailPage() {
   const [sections, setSections] = useState<MaterialSection[]>([]);
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exerciseProgress, setExerciseProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
   const handleAnswerRevealed = useCallback(
     async (questionId: string, selectedOptionId: string | null, openText: string | null) => {
-      const { error: answerError } = await supabase.rpc("submit_application_answer", {
+      const { data, error: answerError } = await supabase.rpc("submit_application_answer", {
         _question_id: questionId,
         _selected_option_id: selectedOptionId,
         _open_text: openText,
       });
       if (answerError) {
         console.error("[Ensina-me] Erro ao salvar resposta:", answerError);
+        return;
+      }
+
+      const result =
+        typeof data === "object" && data !== null
+          ? (data as { exercises_completed?: number })
+          : null;
+
+      if (typeof result?.exercises_completed === "number") {
+        setExerciseProgress(result.exercises_completed);
       }
     },
     [],
@@ -810,18 +821,15 @@ function TopicDetailPage() {
 
         setExercises(enrichedExercises);
 
-        // Load existing progress to know which exercises have been answered
+        // Load persisted progress for this topic.
         const { data: progressData } = await supabase
           .from("student_topic_progress")
-          .select("id, exercises_completed")
+          .select("exercises_completed")
           .eq("user_id", userId)
           .eq("topic_id", topicId)
           .maybeSingle();
 
-        if (progressData) {
-          // We don't track individual exercises in progress yet,
-          // so we start fresh for tracking new answers
-        }
+        setExerciseProgress(progressData?.exercises_completed ?? 0);
       }
 
       setLoading(false);
@@ -912,6 +920,14 @@ function TopicDetailPage() {
           {sections.map((section) => (
             <MaterialSectionItem key={section.id} section={section} />
           ))}
+
+          <section
+            aria-label="Progresso dos exercícios"
+            className="mt-8 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#475569]"
+          >
+            <span className="font-medium text-[#0F172A]">Progresso:</span>{" "}
+            {exerciseProgress} de {exercises.length} exercícios respondidos
+          </section>
 
           <ExerciseSection
             exercises={exercises}
