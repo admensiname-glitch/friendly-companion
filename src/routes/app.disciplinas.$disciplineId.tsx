@@ -27,6 +27,14 @@ interface Topic {
   position: number;
 }
 
+interface TopicLearningState {
+  topic_id: string;
+  progress: number;
+  best_score: number | null;
+  status: string;
+  review_count: number;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function normalize(str: string): string {
@@ -128,7 +136,15 @@ function CatalogNotLinked() {
 
 // ─── Topics list ───────────────────────────────────────────────────────────────
 
-function TopicsList({ topics, disciplineId }: { topics: Topic[]; disciplineId: string }) {
+function TopicsList({
+  topics,
+  disciplineId,
+  learningState,
+}: {
+  topics: Topic[];
+  disciplineId: string;
+  learningState: Record<string, TopicLearningState>;
+}) {
   if (topics.length === 0) {
     return (
       <div className="mt-6 rounded-md border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-6 text-center text-sm text-[#64748B]">
@@ -138,22 +154,76 @@ function TopicsList({ topics, disciplineId }: { topics: Topic[]; disciplineId: s
   }
 
   return (
-    <div className="mt-6 space-y-3">
-      <h2 className="text-sm font-semibold text-[#0F172A]">Tópicos</h2>
-      <div className="space-y-2">
-        {topics.map((topic) => (
-          <Link
-            key={topic.id}
-            to="/app/disciplinas/$disciplineId/$topicId"
-            params={{ disciplineId, topicId: topic.id }}
-            className="block rounded-lg border border-[#E2E8F0] bg-white p-4 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-          >
-            <p className="font-medium text-[#0F172A]">{topic.name}</p>
-            {topic.description && (
-              <p className="mt-1 text-sm text-[#64748B]">{topic.description}</p>
-            )}
-          </Link>
-        ))}
+    <div className="mt-8 space-y-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[#64748B]">
+          Tópicos de aprendizagem
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-[#64748B]">
+          Avance pelo conteúdo na ordem que fizer mais sentido para sua aprendizagem.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {topics.map((topic) => {
+          const state = learningState[topic.id];
+          const progress = state?.progress ?? 0;
+          const statusLabel =
+            state?.review_count && state.review_count > 0
+              ? "Revisão recomendada"
+              : state?.best_score !== null && state?.best_score !== undefined
+                ? "Avaliação registrada"
+                : state?.status === "in_progress"
+                  ? "Em andamento"
+                  : progress >= 100
+                    ? "Concluído"
+                    : "Não iniciado";
+
+          return (
+            <Link
+              key={topic.id}
+              to="/app/disciplinas/$disciplineId/$topicId"
+              params={{ disciplineId, topicId: topic.id }}
+              className="block rounded-xl border border-[#E2E8F0] bg-white p-5 transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#0F172A]">{topic.name}</p>
+                  {topic.description && (
+                    <p className="mt-1 text-sm leading-6 text-[#64748B]">{topic.description}</p>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-full bg-[#F8FAFC] px-2.5 py-1 text-xs font-medium text-[#475569]">
+                  {statusLabel}
+                </span>
+              </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
+                  <div
+                    className="h-full rounded-full bg-[#0242D7]"
+                    style={{ width: progress + "%" }}
+                  />
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-[#0242D7]">
+                  {progress}%
+                </span>
+              </div>
+
+              {state?.best_score !== null && state?.best_score !== undefined && (
+                <p className="mt-3 text-xs text-[#64748B]">
+                  Melhor avaliação: {state.best_score}%
+                </p>
+              )}
+
+              {state?.review_count ? (
+                <p className="mt-2 text-xs font-medium text-[#D97706]">
+                  {state.review_count} ponto{state.review_count === 1 ? "" : "s"} aguardando revisão.
+                </p>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -198,6 +268,7 @@ function DisciplineDetailPage() {
   const [studentDisc, setStudentDisc] = useState<StudentDiscipline | null>(null);
   const [officialDiscName, setOfficialDiscName] = useState<string | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [learningState, setLearningState] = useState<Record<string, TopicLearningState>>({});
   const [catalogLinked, setCatalogLinked] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -210,6 +281,7 @@ function DisciplineDetailPage() {
       setError(false);
       setCatalogLinked(null);
       setTopics([]);
+      setLearningState({});
       setOfficialDiscName(null);
 
       const { data: sessionData } = await supabase.auth.getSession();
@@ -298,7 +370,19 @@ function DisciplineDetailPage() {
         return;
       }
 
-      setTopics((topicsData as Topic[]) ?? []);
+      const loadedTopics = (topicsData as Topic[]) ?? [];
+      setTopics(loadedTopics);
+
+      const { data: dashboardTopics } = await supabase.rpc("get_student_dashboard_topics");
+      const stateMap: Record<string, TopicLearningState> = {};
+
+      for (const row of (dashboardTopics ?? []) as TopicLearningState[]) {
+        if (loadedTopics.some((topic) => topic.id === row.topic_id)) {
+          stateMap[row.topic_id] = row;
+        }
+      }
+
+      setLearningState(stateMap);
       setLoading(false);
     };
 
@@ -358,8 +442,11 @@ function DisciplineDetailPage() {
 
           {catalogLinked === true && (
             <>
-              <TopicsList topics={topics} disciplineId={disciplineId} />
-              <ContentPlaceholder />
+              <TopicsList
+                topics={topics}
+                disciplineId={disciplineId}
+                learningState={learningState}
+              />
             </>
           )}
 
