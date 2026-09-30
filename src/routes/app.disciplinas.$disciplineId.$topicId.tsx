@@ -409,6 +409,15 @@ interface TutorMicroResult {
   explanation: string;
   attempted: number | null;
   correct: number | null;
+  accuracy: number | null;
+  consecutive_correct: number;
+  consecutive_incorrect: number;
+  next_difficulty: "introductory" | "intermediate" | "advanced";
+  mastery_level: "emerging" | "consolidating" | "proficient" | "mastered";
+  next_review_at: string | null;
+  next_action: "simplify" | "practice" | "review" | "explore" | null;
+  next_message: string | null;
+  next_micro_assessment: TutorMicroAssessment | null;
 }
 
 function renderTutorInline(text: string): React.ReactNode {
@@ -507,6 +516,11 @@ function TutorMicroAssessmentCard({
       return;
     }
 
+    const nextAssessment =
+      data.next_micro_assessment && typeof data.next_micro_assessment === "object"
+        ? (data.next_micro_assessment as TutorMicroAssessment)
+        : null;
+
     const nextResult: TutorMicroResult = {
       is_correct: Boolean(data.is_correct),
       selected_option_index: Number(data.selected_option_index),
@@ -514,6 +528,30 @@ function TutorMicroAssessmentCard({
       explanation: String(data.explanation),
       attempted: data.attempted == null ? null : Number(data.attempted),
       correct: data.correct == null ? null : Number(data.correct),
+      accuracy: data.accuracy == null ? null : Number(data.accuracy),
+      consecutive_correct: Number(data.consecutive_correct ?? 0),
+      consecutive_incorrect: Number(data.consecutive_incorrect ?? 0),
+      next_difficulty:
+        data.next_difficulty === "introductory" ||
+        data.next_difficulty === "advanced"
+          ? data.next_difficulty
+          : "intermediate",
+      mastery_level:
+        data.mastery_level === "mastered" ||
+        data.mastery_level === "proficient" ||
+        data.mastery_level === "consolidating"
+          ? data.mastery_level
+          : "emerging",
+      next_review_at: typeof data.next_review_at === "string" ? data.next_review_at : null,
+      next_action:
+        data.next_action === "simplify" ||
+        data.next_action === "practice" ||
+        data.next_action === "review" ||
+        data.next_action === "explore"
+          ? data.next_action
+          : null,
+      next_message: typeof data.next_message === "string" ? data.next_message : null,
+      next_micro_assessment: nextAssessment,
     };
 
     setResult(nextResult);
@@ -614,9 +652,38 @@ function TutorMicroAssessmentCard({
           </p>
           {result.attempted !== null && result.correct !== null && (
             <p className="mt-3 text-xs font-medium opacity-80">
-              Seu desempenho nas microavaliações deste tópico: {result.correct}/{result.attempted}.
+              Seu desempenho nas microavaliações deste tópico: {result.correct}/{result.attempted}
+              {result.accuracy !== null ? " · " + result.accuracy + "% de aproveitamento" : ""}.
             </p>
           )}
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
+            <span>
+              Sequência:{" "}
+              <strong className="text-[#334155]">
+                {result.is_correct
+                  ? result.consecutive_correct + " acerto" + (result.consecutive_correct === 1 ? "" : "s")
+                  : result.consecutive_incorrect + " erro" + (result.consecutive_incorrect === 1 ? "" : "s")}
+              </strong>
+            </span>
+            <span>
+              Próxima dificuldade:{" "}
+              <strong className="text-[#334155]">
+                {result.next_difficulty === "introductory"
+                  ? "inicial"
+                  : result.next_difficulty === "intermediate"
+                    ? "intermediária"
+                    : "avançada"}
+              </strong>
+            </span>
+            {result.next_review_at && (
+              <span>
+                Revisão prevista:{" "}
+                <strong className="text-[#334155]">
+                  {new Date(result.next_review_at).toLocaleDateString("pt-BR")}
+                </strong>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -868,11 +935,27 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
               {microAssessment && (
                 <TutorMicroAssessmentCard
+                  key={microAssessment.id}
                   assessment={microAssessment}
                   onAnswered={(result) => {
-                    setRecommendedAction(
-                      result.is_correct ? "review" : "simplify",
-                    );
+                    if (result.next_message) {
+                      setMessages((current) => [
+                        ...current,
+                        {
+                          id: "adaptive-" + Date.now(),
+                          role: "assistant",
+                          content: result.next_message!,
+                        },
+                      ]);
+                    }
+
+                    if (result.next_micro_assessment) {
+                      setMicroAssessment(result.next_micro_assessment);
+                      setRecommendedAction(null);
+                    } else {
+                      setMicroAssessment(null);
+                      setRecommendedAction(result.next_action);
+                    }
                   }}
                 />
               )}
