@@ -719,12 +719,39 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
+  const [existingAnswerCount, setExistingAnswerCount] = useState(0);
   const [shuffledOrders, setShuffledOrders] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (!exercise?.questions?.length) return;
 
     void (async () => {
+      const { data: inProgress } = await supabase
+        .from("evaluation_attempts")
+        .select("id, total_questions")
+        .eq("exercise_id", exercise.id)
+        .eq("status", "in_progress")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (inProgress) {
+        const { data: existingAnswers } = await supabase
+          .from("exercise_answers")
+          .select("question_id, selected_option_id")
+          .eq("evaluation_attempt_id", inProgress.id);
+
+        const restored: Record<string, string> = {};
+        for (const answer of existingAnswers ?? []) {
+          if (answer.selected_option_id) restored[answer.question_id] = answer.selected_option_id;
+        }
+
+        setAttemptId(inProgress.id);
+        setAnswers(restored);
+        setExistingAnswerCount(existingAnswers?.length ?? 0);
+        setStarted(true);
+      }
+
       const { data } = await supabase
         .from("evaluation_attempts")
         .select("id, score, correct_answers, total_questions")
@@ -734,7 +761,7 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
         .limit(1)
         .maybeSingle();
 
-      if (data && data.score !== null) {
+      if (data && data.score !== null && !inProgress) {
         const score = Number(data.score);
         const band =
           score < 40
@@ -797,6 +824,7 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
     if (!payload.attempt_id) return;
     setAttemptId(payload.attempt_id);
     setAnswers({});
+    setExistingAnswerCount(0);
     setResult(null);
     setStarted(true);
   }
@@ -885,6 +913,9 @@ function EvaluationSection({ exercise }: { exercise: Exercise | null }) {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[#475569]">
                   <strong className="text-[#0F172A]">{Object.keys(answers).length}</strong> de {questions.length} respondidas
+                  {existingAnswerCount > 0 && (
+                    <span className="ml-2 text-[#64748B]">· tentativa retomada</span>
+                  )}
                 </p>
                 <button
                   type="button"
