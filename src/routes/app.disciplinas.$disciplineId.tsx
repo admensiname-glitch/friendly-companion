@@ -134,12 +134,10 @@ function CatalogNotLinked() {
 
 function TopicsList({
   topics,
-  disciplineId,
   officialDisciplineId,
   learningState,
 }: {
   topics: Topic[];
-  disciplineId: string;
   officialDisciplineId: string;
   learningState: Record<string, TopicLearningState>;
 }) {
@@ -461,7 +459,6 @@ function DisciplineDetailPage() {
             <>
               <TopicsList
                 topics={topics}
-                disciplineId={disciplineId}
                 officialDisciplineId={officialDiscId ?? disciplineId}
                 learningState={learningState}
               />
