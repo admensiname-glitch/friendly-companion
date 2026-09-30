@@ -199,8 +199,9 @@ Deno.serve(async (req: Request) => {
       .eq("review_status", "pending")
       .order("count", { ascending: false });
 
-    const openAIKey = Deno.env.get("OPENAI_API_KEY");
+    const openAIKey = Deno.env.get("OPENAI_API_KEY")?.trim();
     if (!openAIKey) {
+      console.warn("[Ensina-me] ai-tutor: OPENAI_API_KEY ausente no ambiente da Edge Function.");
       return json(
         {
           error:
@@ -332,9 +333,27 @@ Deno.serve(async (req: Request) => {
     const payload = await openAIResponse.json();
 
     if (!openAIResponse.ok) {
+      const providerError = isRecord(payload) && isRecord(payload.error)
+        ? typeof payload.error.message === "string"
+          ? payload.error.message
+          : "erro não especificado"
+        : "erro não especificado";
+      const requestId = openAIResponse.headers.get("x-request-id");
+      console.error(
+        "[Ensina-me] ai-tutor: OpenAI respondeu com erro",
+        JSON.stringify({ status: openAIResponse.status, request_id: requestId, message: providerError }),
+      );
+
+      const userFacingError =
+        openAIResponse.status === 401 || openAIResponse.status === 403
+          ? "A credencial do tutor não foi aceita pelo provedor de IA. Verifique a configuração do OPENAI_API_KEY no Supabase."
+          : openAIResponse.status === 429
+            ? "O provedor de IA está temporariamente limitando as solicitações. Tente novamente em instantes."
+            : "O tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+
       return json(
         {
-          error: "O tutor de IA não conseguiu gerar a resposta.",
+          error: userFacingError,
           conversation_id: conversationId,
         },
         502,
