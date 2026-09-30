@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/app/catalogo")({
 
 function CatalogPage() {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +42,25 @@ function CatalogPage() {
     })();
   }, []);
 
+  const filteredDisciplines = useMemo(() => {
+    const normalizedQuery = query
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "");
+
+    if (!normalizedQuery) return disciplines;
+
+    return disciplines.filter((discipline) => {
+      const haystack = (discipline.name + " " + (discipline.course_name ?? ""))
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "");
+
+      return haystack.includes(normalizedQuery);
+    });
+  }, [disciplines, query]);
+
   return (
     <section aria-labelledby="catalog-title">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
@@ -53,6 +73,20 @@ function CatalogPage() {
         Explore conteúdos publicados pelo Ensina-me, mesmo que eles ainda não façam parte das suas disciplinas atuais.
       </p>
 
+      <div className="mt-6 max-w-xl">
+        <label htmlFor="catalog-search" className="text-sm font-medium text-[#334155]">
+          Buscar disciplina
+        </label>
+        <input
+          id="catalog-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Ex.: alfabetização, didática..."
+          className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#334155] outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/20"
+        />
+      </div>
+
       {loading ? (
         <div className="mt-8 grid gap-3 md:grid-cols-2">
           {[1, 2, 3, 4].map((item) => (
@@ -62,6 +96,11 @@ function CatalogPage() {
       ) : disciplines.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
           <p className="font-semibold text-[#0F172A]">Nenhuma disciplina publicada ainda.</p>
+        </div>
+      ) : filteredDisciplines.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
+          <p className="font-semibold text-[#0F172A]">Nenhuma disciplina encontrada.</p>
+          <p className="mt-2 text-sm text-[#64748B]">Tente outro termo de busca.</p>
         </div>
       ) : (
         <div className="mt-8 grid gap-3 md:grid-cols-2">
