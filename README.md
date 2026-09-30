@@ -27,3 +27,6 @@ cd friendly-companion
 bun install
 bun run dev
 ```
+
+
+<!-- CI: verified learning-platform surface -->
