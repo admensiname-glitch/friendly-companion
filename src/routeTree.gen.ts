@@ -22,6 +22,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminContentRouteImport } from './routes/admin.conteudo'
+import { Route as AdminFontesRouteImport } from './routes/admin.fontes'
 import { Route as AdminAtivarRouteImport } from './routes/admin-ativar'
 
 const IndexRoute = IndexRouteImport.update({
@@ -98,7 +99,7 @@ const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
-  children: () => [AdminDashboardRoute, AdminContentRoute],
+  children: () => [AdminDashboardRoute, AdminContentRoute, AdminFontesRoute],
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
@@ -108,6 +109,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminContentRoute = AdminContentRouteImport.update({
   id: '/admin/conteudo',
   path: '/conteudo',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFontesRoute = AdminFontesRouteImport.update({
+  id: '/admin/fontes',
+  path: '/fontes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAtivarRoute = AdminAtivarRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/conteudo': typeof AdminContentRoute
+  '/admin/fontes': typeof AdminFontesRoute
   '/admin-ativar': typeof AdminAtivarRoute
 }
 
@@ -264,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/conteudo'
       fullPath: '/admin/conteudo'
       preLoaderRoute: typeof AdminContentRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/fontes': {
+      id: '/admin/fontes'
+      path: '/fontes'
+      fullPath: '/admin/fontes'
+      preLoaderRoute: typeof AdminFontesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin-ativar': {
