@@ -394,6 +394,23 @@ interface TutorMessage {
   content: string;
 }
 
+interface TutorMicroAssessment {
+  id: string;
+  question: string;
+  options: string[];
+  difficulty: "introductory" | "intermediate" | "advanced";
+  concept_tags: string[];
+}
+
+interface TutorMicroResult {
+  is_correct: boolean;
+  selected_option_index: number;
+  correct_option_index: number;
+  explanation: string;
+  attempted: number | null;
+  correct: number | null;
+}
+
 function renderTutorInline(text: string): React.ReactNode {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
