@@ -44,6 +44,10 @@ interface StudyRecommendation {
   message: string;
 }
 
+interface TodayStudy {
+  minutes: number;
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -109,6 +113,7 @@ function AppDashboard() {
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
   const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
+  const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -151,6 +156,13 @@ function AppDashboard() {
 
       if (!recommendationError && recommendationData) {
         setRecommendation(recommendationData as StudyRecommendation);
+      }
+
+      const { data: todayStudyData, error: todayStudyError } =
+        await supabase.rpc("get_student_today_study");
+
+      if (!todayStudyError && todayStudyData) {
+        setTodayStudy(todayStudyData as TodayStudy);
       }
 
       setLoading(false);
@@ -249,6 +261,39 @@ function AppDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Daily study ── */}
+      {!loading && todayStudy && (
+        <div className="mt-8 rounded-2xl border border-[#E2E8F0] bg-white p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B]">
+                Estudo de hoje
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#0F172A]">
+                {todayStudy.minutes} min
+              </h2>
+              <p className="mt-1 text-sm text-[#64748B]">
+                {studyTimeLabel ? "Meta diária: " + studyTimeLabel : "Continue construindo seu ritmo."}
+              </p>
+            </div>
+            {profile?.daily_study_minutes && (
+              <div className="w-full max-w-xs">
+                <div className="flex justify-between text-xs text-[#64748B]">
+                  <span>Meta</span>
+                  <span>{Math.min(100, Math.round((todayStudy.minutes / profile.daily_study_minutes) * 100))}%</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                  <div
+                    className="h-full rounded-full bg-[#0242D7]"
+                    style={{ width: Math.min(100, Math.round((todayStudy.minutes / profile.daily_study_minutes) * 100)) + "%" }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Today's focus ── */}
       {!loading && recommendation?.topic_id && recommendation.discipline_id && (
