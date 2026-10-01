@@ -259,12 +259,20 @@ function ContentPlaceholder() {
 
 function MaterialSectionItem({
   section,
+  index,
+  total,
   completed,
   onComplete,
+  onPrevious,
+  onNext,
 }: {
   section: MaterialSection;
+  index: number;
+  total: number;
   completed: boolean;
   onComplete: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   const labels: Record<MaterialSection["section_type"], string> = {
     concept: "Ideia central",
@@ -274,38 +282,54 @@ function MaterialSectionItem({
     common_mistakes: "Atenção",
     review: "Revisão rápida",
   };
-  const initiallyExpanded = section.position <= 7 || section.section_type === "review";
-  const [expanded, setExpanded] = useState(initiallyExpanded);
 
   return (
-    <section
+    <article
       aria-labelledby={`section-${section.id}`}
-      className={`scroll-mt-20 mt-6 rounded-2xl border border-[#E7ECF3] bg-white p-4 sm:mt-8 sm:p-6 transition-colors ${
-        completed ? "border-[#BBF7D0]" : "border-[#E2E8F0]"
-      }`}
+      className="rounded-[22px] border border-[#DCE5EE] bg-[#F8FAFC] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-7 dark:border-[#2B3A4F] dark:bg-[#111C2A]"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex items-start gap-4">
+        <div
+          aria-hidden="true"
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+            completed
+              ? "bg-[#E8F7EE] text-[#166534] dark:bg-[#123025] dark:text-[#8CD7B0]"
+              : "bg-[#EAF1FC] text-[#0242D7] dark:bg-[#172B48] dark:text-[#7DB0FF]"
+          }`}
+        >
+          {completed ? "✓" : index + 1}
+        </div>
+
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
             {labels[section.section_type]}
           </p>
           <h3
             id={`section-${section.id}`}
-            className="mt-2 text-[20px] font-bold tracking-[-0.025em] text-[#172334]"
+            className="mt-2 text-[22px] font-bold leading-tight tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[26px]"
           >
             {section.title}
           </h3>
+          <p className="mt-2 text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
+            Parte {index + 1} de {total}
+            {completed ? " · já estudada" : ""}
+          </p>
         </div>
+      </div>
 
-        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className="mt-6 max-w-3xl space-y-4 text-[15px] leading-7 text-[#465468] dark:text-[#C1CCDA]">
+        {renderParagraphs(section.content)}
+      </div>
+
+      <div className="mt-7 border-t border-[#E2E8F0] pt-5 dark:border-[#2B3A4F]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-            aria-controls={`section-content-${section.id}`}
-            className="min-h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-semibold sm:w-auto sm:rounded-full sm:py-1.5 text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+            onClick={onPrevious}
+            disabled={index === 0}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64748B] hover:bg-[#EDF2F7] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#A8B6C7] dark:hover:bg-[#1B2638]"
           >
-            {expanded ? "Recolher" : "Ler conteúdo"}
+            ← Anterior
           </button>
 
           <button
@@ -315,24 +339,30 @@ function MaterialSectionItem({
             aria-pressed={completed}
             className={
               completed
-                ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
-                : "shrink-0 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+                ? "rounded-lg border border-[#BBE4CA] bg-[#EEF9F1] px-4 py-2 text-sm font-bold text-[#166534] dark:border-[#2D6750] dark:bg-[#122B21] dark:text-[#8CD7B0]"
+                : "rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] transition-colors hover:bg-[#0038B8]"
             }
           >
-            {completed ? "Estudado ✓" : "Marcar como estudado"}
+            {completed ? "Parte estudada ✓" : "Marcar como estudada"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={index === total - 1}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#EAF1FC] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#7DB0FF] dark:hover:bg-[#172B48]"
+          >
+            Próxima →
           </button>
         </div>
-      </div>
 
-      {expanded && (
-        <div
-          id={`section-content-${section.id}`}
-          className="mt-4 max-w-3xl space-y-3 text-[15px] leading-7 text-[#465468]"
-        >
-          {renderParagraphs(section.content)}
-        </div>
-      )}
-    </section>
+        {index === total - 1 && (
+          <p className="mt-4 text-center text-xs leading-5 text-[#7A8796] dark:text-[#8797AA]">
+            Ao terminar esta parte, avance para a prática para testar o que você entendeu.
+          </p>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -1737,35 +1767,41 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   return (
-    <section aria-labelledby="review-heading" className="mt-12">
-      <div className="border-t border-[#E2E8F0] pt-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#D97706]">
-          Próxima revisão
+    <section aria-labelledby="review-heading" className="mt-14">
+      <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+          3 · Revisar
         </p>
-        <h2 id="review-heading" className="mt-2 text-2xl font-semibold text-[#0F172A]">
-          Pontos que merecem atenção
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
-          O Ensina-me identificou estes temas a partir das suas respostas. Eles entram como prioridade para revisão.
-        </p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="review-heading" className="text-2xl font-semibold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]">
+              Pontos que pedem outra passagem
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] dark:text-[#9AA9BA]">
+              Estes conceitos apareceram como dificuldade nas suas respostas e podem ganhar uma revisão antes da próxima avaliação.
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
+            {difficulties.length} {difficulties.length === 1 ? "ponto" : "pontos"}
+          </span>
+        </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 divide-y divide-[#E2E8F0] border-y border-[#E2E8F0] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
           {difficulties.map((difficulty) => (
-            <div
-              key={difficulty.difficulty_tag}
-              className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-medium text-[#0F172A]">{label(difficulty.difficulty_tag)}</p>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#92400E]">
-                  {difficulty.count} {difficulty.count === 1 ? "registro" : "registros"}
-                </span>
+            <div key={difficulty.difficulty_tag} className="flex flex-wrap items-center justify-between gap-3 py-4">
+              <div>
+                <p className="font-semibold text-[#1F2D40] dark:text-[#E7EDF5]">
+                  {label(difficulty.difficulty_tag)}
+                </p>
+                <p className="mt-1 text-sm text-[#718093] dark:text-[#9AA9BA]">
+                  {difficulty.review_status === "reviewed"
+                    ? "Você já retomou este ponto. Continue praticando para consolidar."
+                    : "Retome o conceito e tente novamente antes de seguir para uma nova avaliação."}
+                </p>
               </div>
-              <p className="mt-2 text-sm text-[#64748B]">
-                {difficulty.review_status === "reviewed"
-                  ? "Você já acertou uma vez. Continue praticando para consolidar."
-                  : "Retome o conceito e pratique novamente antes de uma nova avaliação."}
-              </p>
+              <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
+                {difficulty.count} {difficulty.count === 1 ? "registro" : "registros"}
+              </span>
             </div>
           ))}
         </div>
@@ -2159,6 +2195,7 @@ function TopicDetailPage() {
   const [disciplineName, setDisciplineName] = useState<string | null>(null);
   const [material, setMaterial] = useState<Material | null>(null);
   const [sections, setSections] = useState<MaterialSection[]>([]);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [completedSectionIds, setCompletedSectionIds] = useState<string[]>([]);
   const [contentProgress, setContentProgress] = useState({ completed: 0, total: 0 });
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
@@ -2241,6 +2278,10 @@ function TopicDetailPage() {
           total: result.total_sections ?? sections.length,
         });
       }
+
+      setActiveSectionIndex((current) =>
+        Math.min(current + 1, Math.max(0, sections.length - 1)),
+      );
     },
     [completedSectionIds, sections.length],
   );
@@ -2254,6 +2295,7 @@ function TopicDetailPage() {
       setDisciplineName(null);
       setMaterial(null);
       setSections([]);
+      setActiveSectionIndex(0);
       setCompletedSectionIds([]);
       setContentProgress({ completed: 0, total: 0 });
       setCitations([]);
@@ -2389,7 +2431,16 @@ function TopicDetailPage() {
           );
 
         const completedIds = (sectionProgressData ?? []).map((row) => row.section_id);
+        const firstIncompleteIndex = loadedSections.findIndex(
+          (section) => !completedIds.includes(section.id),
+        );
+
         setCompletedSectionIds(completedIds);
+        setActiveSectionIndex(
+          firstIncompleteIndex >= 0
+            ? firstIncompleteIndex
+            : Math.max(0, loadedSections.length - 1),
+        );
         setContentProgress({
           completed: completedIds.length,
           total: loadedSections.length,
@@ -2565,91 +2616,84 @@ function TopicDetailPage() {
 
   return (
     <section aria-labelledby="topic-title">
-      {/* ── Breadcrumb ── */}
-      <nav
-        aria-label="Navegação"
-        className="mobile-scroll-x -mx-1 flex flex-nowrap items-center gap-2 overflow-x-auto px-1 pb-1 text-sm text-[#64748B]"
-      >
-        <Link
-          to="/app/dashboard"
-          className="shrink-0 whitespace-nowrap hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-        >
-          Dashboard
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to="/app/disciplinas"
-          className="hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
-        >
-          Disciplinas
-        </Link>
-        <span aria-hidden="true">/</span>
+      {/* ── Topic header ── */}
+      <div className="border-b border-[#D8E1EA] pb-7 dark:border-[#2B3A4F]">
         <Link
           to="/app/disciplinas/$disciplineId"
           params={{ disciplineId }}
-          className="hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#617083] hover:text-[#0242D7] dark:text-[#9AA9BA] dark:hover:text-[#7DB0FF]"
         >
-          {disciplineName ?? "Disciplina"}
+          ← {disciplineName ?? "Voltar para a disciplina"}
         </Link>
-        <span aria-hidden="true">/</span>
-        <span className="shrink-0 whitespace-nowrap text-[#0F172A]" aria-current="page">
-          {topic?.name ?? "Tópico"}
-        </span>
-      </nav>
 
-      {/* ── Topic header ── */}
-      <div className="mt-5 rounded-[20px] bg-[#F0F5FF] p-5 sm:mt-6 sm:rounded-[22px] sm:p-7">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">
+        <div className="mt-7 max-w-4xl">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0242D7] dark:text-[#7DB0FF]">
             Tópico de estudo
           </p>
-          <p className="mt-1 text-xs font-semibold text-[#6B7A8E]">
-            {disciplineName ?? "Disciplina"}
-          </p>
+          <h1
+            id="topic-title"
+            className="mt-3 text-[32px] font-bold leading-[1.05] tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[46px]"
+          >
+            {topic?.name ?? "Carregando..."}
+          </h1>
+          {topic?.description && (
+            <p className="mt-4 max-w-3xl text-[15px] leading-7 text-[#617083] dark:text-[#A7B5C5]">
+              {topic.description}
+            </p>
+          )}
         </div>
-        <h1
-          id="topic-title"
-          className="mt-3 text-[28px] font-bold leading-[1.08] tracking-[-0.045em] text-[#172334] sm:text-[38px]"
-        >
-          {topic?.name ?? "Carregando..."}
-        </h1>
-        {topic?.description && (
-          <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#617083]">
-            {topic.description}
-          </p>
+
+        {!loading && !error && !notFound && (
+          <div className="mt-7 max-w-4xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+              <p className="font-bold uppercase tracking-[0.14em] text-[#8A95A3] dark:text-[#7F90A3]">
+                Seu percurso
+              </p>
+              {contentProgress.total > 0 && (
+                <p className="font-semibold text-[#64748B] dark:text-[#9AA9BA]">
+                  {contentProgress.completed} de {contentProgress.total} partes estudadas
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 grid gap-0 sm:grid-cols-4">
+              {[
+                { number: "1", label: "Compreender" },
+                { number: "2", label: "Praticar" },
+                { number: "3", label: "Revisar" },
+                { number: "4", label: "Verificar" },
+              ].map((step, index) => (
+                <div
+                  key={step.number}
+                  className={`relative flex items-center gap-3 border-t py-3 sm:block sm:border-t-2 sm:pb-0 ${
+                    index === 0
+                      ? "border-[#0242D7] dark:border-[#6EA6FF]"
+                      : "border-[#DCE5EE] dark:border-[#2B3A4F]"
+                  }`}
+                >
+                  <span
+                    className={`text-xs font-bold ${
+                      index === 0
+                        ? "text-[#0242D7] dark:text-[#7DB0FF]"
+                        : "text-[#8A95A3] dark:text-[#7F90A3]"
+                    }`}
+                  >
+                    {step.number}
+                  </span>
+                  <span className="text-sm font-semibold text-[#334155] dark:text-[#C4CFDC]">
+                    {step.label}
+                  </span>
+                  {index < 3 && (
+                    <span className="hidden sm:block sm:absolute sm:right-4 sm:top-2.5 text-[10px] font-semibold text-[#A0AAB7] dark:text-[#67788E]">
+                      →
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
-
-      {/* ── Study map ── */}
-      {!loading && !error && !notFound && sections.length > 0 && (
-        <nav
-          aria-label="Mapa do estudo"
-          className="surface-card mt-4 rounded-2xl p-4 sm:mt-5 sm:p-5"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A95A3]">Percurso</p><p className="mt-1 text-sm font-bold text-[#243245]">Mapa do estudo</p></div>
-            <span className="text-xs text-[#64748B]">
-              {contentProgress.completed}/{contentProgress.total} partes estudadas
-            </span>
-          </div>
-          <div className="mobile-scroll-x mt-3 flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
-            {sections.map((section) => (
-              <a
-                key={section.id}
-                href={`#section-${section.id}`}
-                className={
-                  completedSectionIds.includes(section.id)
-                    ? "shrink-0 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
-                    : "rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-xs font-medium text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
-                }
-              >
-                {completedSectionIds.includes(section.id) ? "✓ " : ""}
-                {section.title}
-              </a>
-            ))}
-          </div>
-        </nav>
-      )}
 
       {/* ── Loading ── */}
       {loading && <TopicSkeleton />}
@@ -2662,82 +2706,167 @@ function TopicDetailPage() {
 
       {/* ── Topic learning content ── */}
       {!loading && !error && !notFound && (
-        <div className="mt-7">
+        <div className="mt-8">
           {material ? (
-            <>
-              <div className="mb-5 px-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8B96A5]">Conteúdo principal</p>
-                <h2 className="mt-1 text-2xl font-bold tracking-[-0.035em] text-[#172334] sm:text-[28px]">
-                  {material.title}
-                </h2>
-                {material.introduction && (
-                  <div className="mt-4 text-base leading-7 text-[#334155]">
-                    {renderParagraphs(material.introduction)}
+            <section id="conteudo" aria-labelledby="guided-study-heading">
+              <div className="max-w-4xl">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+                  1 · Compreender
+                </p>
+                <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2
+                      id="guided-study-heading"
+                      className="text-2xl font-semibold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[30px]"
+                    >
+                      Estudo guiado
+                    </h2>
+                    {material.introduction && (
+                      <div className="mt-3 max-w-3xl text-base leading-7 text-[#526174] dark:text-[#B3C0CF]">
+                        {renderParagraphs(material.introduction)}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              <div
-                className="muted-panel mb-5 rounded-2xl p-4 sm:p-5"
-                aria-label="Progresso do conteúdo"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                  <span className="font-semibold text-[#0F172A]">
-                    Progresso do conteúdo
-                  </span>
-                  <span className="text-[#64748B]">
-                    {contentProgress.completed} de {contentProgress.total} partes estudadas
-                  </span>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
-                  <div
-                    className="h-full rounded-full bg-[#16A34A] transition-all"
-                    style={{
-                      width:
-                        (contentProgress.total > 0
-                          ? Math.round(
-                              (contentProgress.completed / contentProgress.total) * 100,
-                            )
-                          : 0) + "%",
-                    }}
-                  />
+                  <a
+                    href="#pratica"
+                    className="text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
+                  >
+                    Ir para a prática ↓
+                  </a>
                 </div>
               </div>
 
-              {sections.map((section) => (
-                <MaterialSectionItem
-                  key={section.id}
-                  section={section}
-                  completed={completedSectionIds.includes(section.id)}
-                  onComplete={() => void markSectionComplete(section.id)}
-                />
-              ))}
-            </>
+              <div className="mt-7 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+                <nav aria-label="Partes do estudo" className="lg:sticky lg:top-6">
+                  <div className="rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 dark:border-[#2B3A4F] dark:bg-[#151F2D]">
+                    {sections.map((section, sectionIndex) => {
+                      const isActive = sectionIndex === activeSectionIndex;
+                      const isCompleted = completedSectionIds.includes(section.id);
+
+                      return (
+                        <button
+                          key={section.id}
+                          type="button"
+                          onClick={() => setActiveSectionIndex(sectionIndex)}
+                          aria-current={isActive ? "step" : undefined}
+                          className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
+                            isActive
+                              ? "bg-white text-[#172334] shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:bg-[#1B2638] dark:text-[#E7EDF5]"
+                              : "text-[#667487] hover:bg-white/80 dark:text-[#9EAEBD] dark:hover:bg-[#1B2638]"
+                          }`}
+                        >
+                          <span
+                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                              isCompleted
+                                ? "bg-[#E8F7EE] text-[#166534] dark:bg-[#123025] dark:text-[#8CD7B0]"
+                                : isActive
+                                  ? "bg-[#EAF1FC] text-[#0242D7] dark:bg-[#172B48] dark:text-[#7DB0FF]"
+                                  : "bg-[#E5EAF0] text-[#718093] dark:bg-[#263449] dark:text-[#92A2B4]"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : sectionIndex + 1}
+                          </span>
+                          <span className="min-w-0">
+                            <span className={`block text-sm font-semibold leading-5 ${
+                              isActive ? "text-[#172334] dark:text-[#E7EDF5]" : ""
+                            }`}>
+                              {section.title}
+                            </span>
+                            <span className="mt-0.5 block text-[11px] leading-4 text-[#8793A0] dark:text-[#7F90A3]">
+                              {isCompleted ? "Estudada" : isActive ? "Agora" : "Próxima parte"}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+
+                <div id="estudo-guiado">
+                  {sections[activeSectionIndex] && (
+                    <MaterialSectionItem
+                      section={sections[activeSectionIndex]}
+                      index={activeSectionIndex}
+                      total={sections.length}
+                      completed={completedSectionIds.includes(sections[activeSectionIndex].id)}
+                      onComplete={() => void markSectionComplete(sections[activeSectionIndex].id)}
+                      onPrevious={() =>
+                        setActiveSectionIndex((current) => Math.max(0, current - 1))
+                      }
+                      onNext={() =>
+                        setActiveSectionIndex((current) =>
+                          Math.min(current + 1, sections.length - 1),
+                        )
+                      }
+                    />
+                  )}
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-[#8793A0] dark:text-[#7F90A3]">
+                    <span>
+                      {contentProgress.completed === contentProgress.total
+                        ? "Conteúdo concluído."
+                        : `${Math.round(
+                            (contentProgress.completed / Math.max(1, contentProgress.total)) * 100,
+                          )}% do conteúdo estudado`}
+                    </span>
+                    {contentProgress.completed === contentProgress.total && (
+                      <a
+                        href="#pratica"
+                        className="font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
+                      >
+                        Começar prática →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
           ) : (
             <ContentPlaceholder />
           )}
 
-          <StudySessionCard topicId={topicId} />
+          <div className="mt-12">
+            <StudySessionCard topicId={topicId} />
+          </div>
 
-          <section
-            aria-label="Progresso dos exercícios"
-            className="mt-8 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#475569]"
-          >
-            <span className="font-medium text-[#0F172A]">Progresso:</span>{" "}
-            {exerciseProgress} de {exercises.length} exercícios respondidos
+          <section id="pratica" aria-labelledby="practice-heading" className="mt-14">
+            <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+                2 · Praticar
+              </p>
+              <h2 id="practice-heading" className="sr-only">
+                Prática guiada
+              </h2>
+
+              <div className="mb-5 flex items-center justify-between gap-3 text-xs text-[#7A8796] dark:text-[#8797AA]">
+                <span>
+                  {exerciseProgress} de {exercises.length} exercícios respondidos
+                </span>
+                {exercises.length > 0 && (
+                  <span>
+                    {Math.round((exerciseProgress / Math.max(1, exercises.length)) * 100)}% da prática registrada
+                  </span>
+                )}
+              </div>
+
+              <ExerciseSection
+                exercises={exercises}
+                onAnswerRevealed={handleAnswerRevealed}
+              />
+            </div>
           </section>
 
-          <ExerciseSection
-            exercises={exercises}
-            onAnswerRevealed={handleAnswerRevealed}
-          />
+          <ReviewSection difficulties={difficulties} />
+
+          <section id="avaliacao">
+            <EvaluationSection
+              topicId={topicId}
+              onDifficultyUpdate={refreshDifficulties}
+            />
+          </section>
 
           <SourcesSection citations={citations} />
-          <ReviewSection difficulties={difficulties} />
-          <EvaluationSection
-            topicId={topicId}
-            onDifficultyUpdate={refreshDifficulties}
-          />
+
           <TutorSection topicId={topicId} topicName={topic?.name ?? "este tópico"} />
         </div>
       )}
