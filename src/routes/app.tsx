@@ -2,6 +2,7 @@ import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/
 import { useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/app")({
   ssr: false,
@@ -85,8 +86,8 @@ function AppLayout() {
     <div className={isDark ? "dark min-h-screen bg-[#0D1422] text-[#E7EDF5]" : "min-h-screen bg-[#EAF0F6] text-[#0F172A]"}>
       <aside className={isDark ? "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#27364A] bg-[#111A2A] lg:flex" : "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#F3F6FA] lg:flex"}>
         <div className="flex h-[72px] items-center px-7">
-          <Link to="/app/dashboard" className="text-[22px] font-bold tracking-[-0.04em] text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4">
-            Ensina-me
+          <Link to="/app/dashboard" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#111A2A]" aria-label="Ensina-me, início">
+            <BrandLogo tone={isDark ? "light" : "blue"} />
           </Link>
         </div>
 
@@ -134,7 +135,7 @@ function AppLayout() {
 
       <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#101827]/95 backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 backdrop-blur lg:ml-[248px]"}>
         <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
-          <Link to="/app/dashboard" className="text-xl font-bold tracking-[-0.04em] text-[#0242D7] lg:hidden">Ensina-me</Link>
+          <Link to="/app/dashboard" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#101827] lg:hidden" aria-label="Ensina-me, início"><BrandLogo compact tone={isDark ? "light" : "blue"} /></Link>
           <div className="hidden lg:block">
             <p className="text-[11px] font-medium text-[#98A3B1]">Seu espaço de aprendizagem</p>
             <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
