@@ -53,7 +53,7 @@ function MetricCard({
   icon, label, value, detail,
 }: { icon: "book" | "clock" | "target" | "chart"; label: string; value: string | number; detail?: string }) {
   return (
-    <div className="surface-card rounded-2xl p-5">
+    <div className="surface-card rounded-2xl p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F0F5FF] text-[#0242D7]">
           <Icon name={icon} className="h-[18px] w-[18px]" />
@@ -80,7 +80,7 @@ function ContinueCard({ topic }: { topic: DashboardTopic }) {
     <Link
       to="/app/disciplinas/$disciplineId/$topicId"
       params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }}
-      className="surface-card surface-card-hover group block rounded-2xl p-5 focus-visible:outline-none"
+      className="surface-card surface-card-hover group block rounded-2xl p-4 focus-visible:outline-none sm:p-5"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
@@ -188,7 +188,7 @@ function AppDashboard() {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0242D7]">Visão geral</p>
-          <h1 id="app-dashboard-title" className="mt-2 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[36px]">
+          <h1 id="app-dashboard-title" className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] sm:text-[36px]">
             Olá, {firstName}
           </h1>
           <p className="mt-2 text-[15px] leading-6 text-[#687688]">Vamos descobrir o que faz mais sentido estudar agora.</p>
@@ -202,11 +202,11 @@ function AppDashboard() {
       </div>
 
       <div className="mt-7 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.8fr)]">
-        <div className="rounded-[22px] bg-[#0242D7] p-6 text-white shadow-[0_14px_38px_rgba(2,66,215,0.16)] sm:p-7">
+        <div className="rounded-[20px] bg-[#0242D7] p-5 text-white shadow-[0_14px_38px_rgba(2,66,215,0.16)] sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className="max-w-2xl">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Foco de hoje</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[28px]">
+              <h2 className="mt-2 text-xl font-bold leading-6 tracking-[-0.035em] sm:text-[28px] sm:leading-8">
                 {recommendation?.topic_name ?? (activeTopics[0]?.topic_name ?? "Seu próximo passo")}
               </h2>
               <p className="mt-1 text-sm font-medium text-white/75">
@@ -239,7 +239,7 @@ function AppDashboard() {
           )}
         </div>
 
-        <div className="surface-card rounded-[22px] p-6">
+        <div className="surface-card rounded-[20px] p-5 sm:rounded-[22px] sm:p-6">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F0F5FF] text-[#0242D7]">
               <Icon name="clock" className="h-5 w-5" />
@@ -274,7 +274,7 @@ function AppDashboard() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard icon="book" label="Tópicos" value={topicsProgress.length} detail={`${completionAverage}% de progresso médio`} />
         <MetricCard icon="target" label="Revisões" value={topicsProgress.reduce((sum, topic) => sum + topic.review_count, 0)} detail="Pontos identificados pelo seu estudo" />
         <MetricCard icon="chart" label="Melhor resultado" value={topicsProgress.filter(t => t.best_score !== null).length ? Math.max(...topicsProgress.filter(t => t.best_score !== null).map(t => t.best_score as number)) + "%" : "—"} detail="Entre suas avaliações concluídas" />
