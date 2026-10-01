@@ -993,9 +993,26 @@ function Onboarding() {
   function goNext() {
     saveProfile();
 
-    if (step === "institution") setStep("disciplines");
-    else if (step === "disciplines") setStep("exams");
-    else if (step === "exams") setStep("final");
+    if (step === "institution") {
+      const selectedCourse = courseOptions.some(
+        (option) => normalize(option.name) === normalize(course),
+      );
+
+      if (!selectedCourse) {
+        setMessage("Selecione um curso disponível para continuar.");
+        setStatus("error");
+        return;
+      }
+
+      setMessage("");
+      setStep("disciplines");
+    } else if (step === "disciplines") {
+      setMessage("");
+      setStep("exams");
+    } else if (step === "exams") {
+      setMessage("");
+      setStep("final");
+    }
   }
 
   function goBack() {
