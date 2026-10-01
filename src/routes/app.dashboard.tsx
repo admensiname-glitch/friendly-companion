@@ -27,7 +27,7 @@ interface StudyRecommendation {
   discipline_id?: string;
   topic_name?: string;
   discipline_name?: string;
-  reason: "review" | "continue" | "start" | "none";
+  reason: "assessment" | "review" | "continue" | "start" | "none";
   message: string;
 }
 interface TodayStudy { minutes: number; }
@@ -215,7 +215,15 @@ function AppDashboard() {
         <div className="grid lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="p-5 sm:p-7">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#7DB0FF]">
-              Próximo passo
+              {recommendation?.reason === "assessment"
+                ? "Preparação para avaliação"
+                : recommendation?.reason === "review"
+                  ? "Revisão necessária"
+                  : recommendation?.reason === "continue"
+                    ? "Continue de onde parou"
+                    : recommendation?.reason === "start"
+                      ? "Próximo tópico"
+                      : "Próximo passo"}
             </p>
             <h2
               id="today-heading"
