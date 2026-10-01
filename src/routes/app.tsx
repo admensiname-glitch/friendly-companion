@@ -13,7 +13,7 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun";
+type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun" | "user";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -141,6 +141,14 @@ function AppLayout() {
             <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Link
+              to="/app/perfil"
+              aria-label="Abrir meu perfil"
+              title="Meu perfil"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DCE4ED] bg-white text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF]"
+            >
+              <Icon name="user" className="h-[17px] w-[17px]" />
+            </Link>
             <button
               type="button"
               onClick={toggleTheme}
