@@ -149,23 +149,20 @@ function InstitutionStep({
       <legend className="sr-only">Informações acadêmicas</legend>
 
       <div>
-        <label htmlFor="course" className="text-sm font-medium text-[#0F172A]">
-          Qual é o seu curso?
-        </label>
-        <input
-          id="course"
-          type="text"
-          placeholder="Ex.: Pedagogia, Direito, Enfermagem..."
-          value={course}
-          onChange={(e) => onCourseChange(e.target.value)}
-          className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
-        />
-        <p className="mt-1.5 text-xs text-[#64748B]">
-          Isso ajuda o Ensina-me a organizar seu percurso.
-        </p>
-      </div>
-
-      <div>
+        <label htmlFor="course" className="text-sm font-medium text-[#0F172A]">Qual é o seu curso?</label>
+        <input id="course" type="search" list="course-options" autoComplete="off" placeholder="Busque seu curso..." value={course} onChange={(e) => onCourseChange(e.target.value)}
+          className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]" />
+        <datalist id="course-options">
+          {courseOptions.map((option) => <option key={option.id} value={option.name} />)}
+        </datalist>
+        {course.trim() && !courseOptions.some((option) => normalize(option.name) === normalize(course)) && (
+          <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#0242D7]" role="status">
+            Esse curso ainda não está disponível. Em breve <BrandMark className="h-5 w-6" />
+          </p>
+        )}
+        {courseLoading && <p className="mt-1.5 text-xs text-[#64748B]">Carregando cursos...</p>}
+        {!courseLoading && courseOptions.length > 0 && !course.trim() && <p className="mt-1.5 text-xs text-[#64748B]">Busque entre os cursos disponíveis no Ensina-me.</p>}
+      </div>      <div>
         <label
           htmlFor="institution"
           className="text-sm font-medium text-[#0F172A]"
