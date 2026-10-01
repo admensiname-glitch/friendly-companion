@@ -92,7 +92,7 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <aside className={isDark ? "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#27364A] bg-[#111A2A] lg:flex" : "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#F3F6FA] lg:flex"}>
+      <aside className={isDark ? "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#27364A] bg-[#101A29] lg:flex" : "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#E9EEF4] lg:flex"}>
         <div className="flex h-[72px] items-center px-7">
           <Link to="/app/dashboard" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#111A2A]" aria-label="Ensina-me, início">
             <BrandLogo tone={isDark ? "light" : "blue"} />
@@ -151,7 +151,7 @@ function AppLayout() {
         </div>
       </aside>
 
-      <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#101827]/95 shadow-[0_1px_0_rgba(15,23,42,0.06)] backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur lg:ml-[248px]"}>
+      <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#0D1624]/96 shadow-[0_1px_0_rgba(15,23,42,0.06)] backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F1F4F8]/96 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur lg:ml-[248px]"}>
         <div className="flex h-[64px] items-center justify-between gap-2 px-3 sm:h-[72px] sm:gap-3 sm:px-6 lg:px-9">
           <Link to="/app/dashboard" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#101827] lg:hidden" aria-label="Ensina-me, início"><BrandLogo compact tone={isDark ? "light" : "blue"} /></Link>
           <div className="hidden lg:block">
@@ -196,7 +196,7 @@ function AppLayout() {
         </div>
       </main>
 
-      <nav aria-label="Navegação móvel" className={isDark ? "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#111A2A]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden" : "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden"}>
+      <nav aria-label="Navegação móvel" className={isDark ? "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#0F1826]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden" : "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#EEF2F6]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden"}>
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-0.5">
           {navigation.map((item) => (
             <Link
