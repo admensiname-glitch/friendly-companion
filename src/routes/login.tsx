@@ -197,7 +197,7 @@ function Login() {
     setStatus("loading");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: sessionData, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: currentPassword,
       });
@@ -211,9 +211,17 @@ function Login() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from("student_profiles")
+        .select("onboarding_completed")
+        .eq("user_id", sessionData.user.id)
+        .maybeSingle();
+
       setMessage("Login realizado com sucesso. Abrindo sua área...");
       setStatus("success");
-      await navigate({ to: "/app/dashboard" });
+      await navigate({
+        to: profile?.onboarding_completed ? "/app/dashboard" : "/onboarding",
+      });
     } catch (caughtError) {
       setMessage(
         caughtError instanceof Error
