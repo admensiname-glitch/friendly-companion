@@ -1520,7 +1520,11 @@ function EvaluationSection({
       setAnswers({});
       setResult(null);
       setStarted(loadedQuestions.length === 10);
-    } else if (state.status === "completed" && state.attempt_id) {
+    } else if (
+      state.status === "completed" &&
+      state.attempt_id &&
+      Number(state.total_questions ?? 0) === 10
+    ) {
       const score = Number(state.score ?? 0);
       const band =
         score < 40
