@@ -763,7 +763,229 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     };
 
     window.addEventListener("resize", handleResize);
-    const renderMessages = () => (
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  function startTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    dragStateRef.current = {
+      active: true,
+      offsetX: event.clientX - tutorPosition.x,
+      offsetY: event.clientY - tutorPosition.y,
+      moved: false,
+    };
+    setIsDraggingTutor(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveTutor(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!dragStateRef.current.active || typeof window === "undefined") return;
+
+    const nextX = Math.min(
+      Math.max(12, event.clientX - dragStateRef.current.offsetX),
+      Math.max(12, window.innerWidth - 64),
+    );
+    const nextY = Math.min(
+      Math.max(12, event.clientY - dragStateRef.current.offsetY),
+      Math.max(12, window.innerHeight - 72),
+    );
+
+    if (
+      Math.abs(nextX - tutorPosition.x) > 4 ||
+      Math.abs(nextY - tutorPosition.y) > 4
+    ) {
+      dragStateRef.current.moved = true;
+    }
+
+    setTutorPosition({ x: nextX, y: nextY });
+  }
+
+  function finishTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!dragStateRef.current.active) return;
+
+    dragStateRef.current.active = false;
+    setIsDraggingTutor(false);
+
+    if (dragStateRef.current.moved) {
+      try {
+        window.localStorage.setItem(
+          "ensina-me-tutor-position",
+          JSON.stringify(tutorPosition),
+        );
+      } catch {
+        // Position persistence is optional.
+      }
+    }
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may already be released.
+    }
+  }
+
+  const quickPrompts = [
+    {
+      label: "Explique mais simples",
+      message: `Explique este tópico de forma mais simples, como se eu estivesse vendo o assunto pela primeira vez. Preserve a precisão acadêmica.`,
+    },
+    {
+      label: "Dê um exemplo",
+      message: `Dê um exemplo prático deste tópico e explique por que o exemplo está correto.`,
+    },
+    {
+      label: "Teste meu conhecimento",
+      message: `Faça uma questão de nível intermediário sobre este tópico. Não mostre a resposta ainda; espere eu tentar.`,
+    },
+    {
+      label: "Compare conceitos",
+      message: `Compare os conceitos mais importantes deste tópico em uma explicação curta e clara, destacando as diferenças essenciais.`,
+    },
+  ];
+
+  useEffect(() => {
+    void (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) return;
+
+      const { data: conversation } = await supabase
+        .from("ai_conversations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("topic_id", topicId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!conversation) return;
+
+      setConversationId(conversation.id);
+
+      const { data: history } = await supabase
+        .from("ai_messages")
+        .select("id, role, content")
+        .eq("conversation_id", conversation.id)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(30);
+
+      setMessages((history ?? []) as TutorMessage[]);
+
+      const { data: pendingAssessment } = await supabase
+        .from("ai_micro_assessments")
+        .select("id, question_text, options, difficulty, concept_tags")
+        .eq("user_id", userId)
+        .eq("topic_id", topicId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingAssessment) {
+        setMicroAssessment({
+          id: pendingAssessment.id,
+          question: pendingAssessment.question_text,
+          options: Array.isArray(pendingAssessment.options)
+            ? pendingAssessment.options.filter((value): value is string => typeof value === "string")
+            : [],
+          difficulty:
+            pendingAssessment.difficulty === "introductory" ||
+            pendingAssessment.difficulty === "advanced"
+              ? pendingAssessment.difficulty
+              : "intermediate",
+          concept_tags: Array.isArray(pendingAssessment.concept_tags)
+            ? pendingAssessment.concept_tags
+            : [],
+        });
+      }
+    })();
+  }, [topicId]);
+
+  useEffect(() => {
+    if (opened) {
+      messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [messages, loading, opened]);
+
+  async function sendMessage(prefilledMessage?: string) {
+    const message = (prefilledMessage ?? input).trim();
+    if (!message || loading) return;
+
+    setLoading(true);
+    setInput("");
+    setErrorMessage(null);
+    setRecommendedAction(null);
+
+    const localId = "local-" + Date.now();
+    setMessages((current) => [
+      ...current,
+      { id: localId, role: "user", content: message },
+    ]);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        topic_id: topicId,
+        conversation_id: conversationId,
+        message,
+      },
+    });
+
+    setLoading(false);
+
+    if (error || !data?.message) {
+      let messageText = data?.error;
+
+      if (!messageText && error) {
+        try {
+          const response = (error as { context?: Response }).context;
+          if (response) {
+            const payload = (await response.clone().json()) as { error?: string };
+            messageText = payload.error;
+          }
+        } catch {
+          // Keep the generic message below when the function error has no JSON body.
+        }
+      }
+
+      setMessages((current) =>
+        current.filter((item) => item.id !== localId),
+      );
+      setInput(message);
+      setErrorMessage(
+        messageText ?? "Não foi possível responder agora. Tente novamente.",
+      );
+      return;
+    }
+
+    setConversationId(data.conversation_id ?? conversationId);
+    if (data.micro_assessment) {
+      setMicroAssessment({
+        id: data.micro_assessment.id,
+        question: data.micro_assessment.question,
+        options: data.micro_assessment.options,
+        difficulty: data.micro_assessment.difficulty,
+        concept_tags: data.micro_assessment.concept_tags,
+      });
+    }
+    setRecommendedAction(
+      data.learning_action === "simplify" ||
+      data.learning_action === "practice" ||
+      data.learning_action === "review" ||
+      data.learning_action === "explore"
+        ? data.learning_action
+        : null,
+    );
+    setMessages((current) => [
+      ...current,
+      {
+        id: "assistant-" + Date.now(),
+        role: "assistant",
+        content: data.message,
+      },
+    ]);
+  }
+
+  const renderMessages = () => (
     <div
       className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5"
       aria-live="polite"
@@ -780,9 +1002,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
       {messages.length === 0 && (
         <div className="rounded-xl bg-[#F1F5F9] p-4 text-sm leading-6 text-[#475569] dark:bg-[#1B2638] dark:text-[#B5C2D0]">
-          <strong className="text-[#172334] dark:text-[#E7EDF5]">
-            {topicName}
-          </strong>
+          <strong className="text-[#172334] dark:text-[#E7EDF5]">{topicName}</strong>
           <br />
           Comece com uma dúvida, peça uma explicação mais simples ou peça um exemplo.
         </div>
@@ -993,7 +1213,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
             className="h-5 w-5"
           >
             <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-            <path d="m19 4 .7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />
+            <path d="m19 4 .7 2 2 .7-.7 2-2 .7-.7-2-2-.7 2-.7z" />
           </svg>
         </button>
 
@@ -1021,16 +1241,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
                   className="flex h-9 w-9 items-center justify-center rounded-lg text-[#718093] hover:bg-[#F1F5F9] dark:text-[#9AA9BA] dark:hover:bg-[#1B2638]"
                   aria-label="Fechar Tutor"
                 >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                     <path d="m6 6 12 12" />
                     <path d="m18 6-12 12" />
                   </svg>
