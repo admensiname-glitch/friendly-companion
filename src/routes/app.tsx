@@ -133,8 +133,8 @@ function AppLayout() {
         </div>
       </aside>
 
-      <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#101827]/95 backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 backdrop-blur lg:ml-[248px]"}>
-        <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
+      <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#101827]/95 shadow-[0_1px_0_rgba(15,23,42,0.06)] backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur lg:ml-[248px]"}>
+        <div className="flex h-[64px] items-center justify-between gap-2 px-3 sm:h-[72px] sm:gap-3 sm:px-6 lg:px-9">
           <Link to="/app/dashboard" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#101827] lg:hidden" aria-label="Ensina-me, início"><BrandLogo compact tone={isDark ? "light" : "blue"} /></Link>
           <div className="hidden lg:block">
             <p className="text-[11px] font-medium text-[#98A3B1]">Seu espaço de aprendizagem</p>
@@ -147,7 +147,7 @@ function AppLayout() {
               aria-pressed={isDark}
               aria-label={isDark ? "Ativar modo claro" : "Ativar modo noturno"}
               title={isDark ? "Modo claro" : "Modo noturno"}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#DCE4ED] bg-white px-3 text-sm font-semibold text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF]"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-[#DCE4ED] bg-white px-2.5 text-sm font-semibold text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF]"
             >
               <Icon name={isDark ? "sun" : "moon"} className="h-[17px] w-[17px]" />
               <span className="hidden sm:inline">{isDark ? "Modo claro" : "Modo noturno"}</span>
@@ -156,34 +156,34 @@ function AppLayout() {
               <Icon name="review" className="h-4 w-4" />
               Revisar
             </Link>
-            <Link to="/app/estude-agora" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(2,66,215,0.18)] transition-all hover:-translate-y-px hover:bg-[#0038B8] dark:shadow-[0_8px_24px_rgba(2,66,215,0.28)]">
+            <Link to="/app/estude-agora" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#0242D7] px-3 sm:h-auto sm:px-3.5 sm:py-2 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(2,66,215,0.18)] transition-all hover:-translate-y-px hover:bg-[#0038B8] dark:shadow-[0_8px_24px_rgba(2,66,215,0.28)]">
               <Icon name="spark" className="h-4 w-4" />
-              Estudar agora
+              <span className="hidden sm:inline">Estudar agora</span>
             </Link>
           </div>
         </div>
       </header>
 
       <main className="lg:ml-[248px]">
-        <div className="mx-auto w-full max-w-[1180px] px-4 py-7 pb-28 sm:px-6 lg:px-9 lg:py-9 lg:pb-12">
+        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-7 lg:px-9 lg:py-9 lg:pb-12">
           <Outlet />
         </div>
       </main>
 
-      <nav aria-label="Navegação móvel" className={isDark ? "fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#111A2A]/96 px-2 py-2 backdrop-blur lg:hidden" : "fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-2 py-2 backdrop-blur lg:hidden"}>
-        <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+      <nav aria-label="Navegação móvel" className={isDark ? "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#111A2A]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden" : "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden"}>
+        <div className="mx-auto grid max-w-xl grid-cols-5 gap-0.5">
           {navigation.map((item) => (
             <Link
               key={item.to}
               to={item.to}
               activeOptions={{ exact: item.to === "/app/dashboard" }}
-              activeProps={{ className: "flex min-h-[52px] flex-col items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7]" }}
-              inactiveProps={{ className: "flex min-h-[52px] flex-col items-center justify-center rounded-xl text-[#7A8796] transition-colors hover:bg-[#F8FAFC] hover:text-[#0242D7]" }}
+              activeProps={{ className: "touch-manipulation flex min-h-[50px] min-w-0 flex-col items-center justify-center rounded-xl bg-[#EEF4FF] px-1 text-[#0242D7]" }}
+              inactiveProps={{ className: "touch-manipulation flex min-h-[50px] min-w-0 flex-col items-center justify-center rounded-xl px-1 text-[#7A8796] transition-colors hover:bg-[#F8FAFC] hover:text-[#0242D7]" }}
             >
               {({ isActive }) => (
                 <>
                   <Icon name={item.icon} className={isActive ? "h-[19px] w-[19px] text-[#0242D7]" : "h-[19px] w-[19px]"} />
-                  <span className="mt-1 text-[10px] font-semibold leading-none">{item.label}</span>
+                  <span className="mt-1 max-w-full truncate text-[9px] font-semibold leading-none sm:text-[10px]">{item.label}</span>
                 </>
               )}
             </Link>
