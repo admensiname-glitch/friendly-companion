@@ -412,3 +412,38 @@
     background: #F1F5F9;
   }
 }
+
+@layer utilities {
+  .mobile-bottom-nav {
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-scroll-x {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .mobile-scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
