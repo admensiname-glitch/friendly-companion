@@ -280,7 +280,7 @@ function MaterialSectionItem({
   return (
     <section
       aria-labelledby={`section-${section.id}`}
-      className={`mt-8 border-l-2 pl-5 transition-colors sm:pl-6 ${
+      className={`mt-8 rounded-2xl border border-[#E7ECF3] bg-white p-5 sm:p-6 transition-colors ${
         completed ? "border-[#BBF7D0]" : "border-[#E2E8F0]"
       }`}
     >
@@ -291,7 +291,7 @@ function MaterialSectionItem({
           </p>
           <h3
             id={`section-${section.id}`}
-            className="mt-1 text-xl font-semibold text-[#0F172A]"
+            className="mt-2 text-[20px] font-bold tracking-[-0.025em] text-[#172334]"
           >
             {section.title}
           </h3>
@@ -327,7 +327,7 @@ function MaterialSectionItem({
       {expanded && (
         <div
           id={`section-content-${section.id}`}
-          className="mt-3 max-w-3xl space-y-2 text-base leading-7 text-[#334155]"
+          className="mt-4 max-w-3xl space-y-3 text-[15px] leading-7 text-[#465468]"
         >
           {renderParagraphs(section.content)}
         </div>
@@ -380,7 +380,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
           return (
             <div
               key={src.id}
-              className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4"
+              className="muted-panel rounded-2xl p-4 sm:p-5"
             >
               <p className="text-sm font-medium text-[#0F172A]">{src.title}</p>
               {authorsText && (
@@ -2408,19 +2408,23 @@ function TopicDetailPage() {
       </nav>
 
       {/* ── Topic header ── */}
-      <div className="mt-6">
-        <div className="flex items-center gap-2 text-sm text-[#64748B]">
+      <div className="mt-6 rounded-[22px] bg-[#F0F5FF] p-6 sm:p-7">
+        <div className="flex items-start justify-between gap-4">
           {disciplineName && (
             <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-medium text-[#0242D7]">
               {disciplineName}
             </span>
           )}
         </div>
-        <h1 id="topic-title" className="mt-2 text-3xl font-bold text-[#0F172A]">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">Tópico de estudo</p>
+          <p className="mt-1 text-xs font-semibold text-[#6B7A8E]">{disciplineName ?? "Disciplina"}</p>
+        </div>
+        <h1 id="topic-title" className="mt-3 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[38px]">
           {topic?.name ?? "Carregando..."}
         </h1>
         {topic?.description && (
-          <p className="mt-2 text-base leading-7 text-[#475569]">
+          <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#617083]">
             {topic.description}
           </p>
         )}
@@ -2430,10 +2434,10 @@ function TopicDetailPage() {
       {!loading && !error && !notFound && sections.length > 0 && (
         <nav
           aria-label="Mapa do estudo"
-          className="mt-6 rounded-xl border border-[#E2E8F0] bg-white p-4"
+          className="surface-card mt-5 rounded-2xl p-4 sm:p-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-[#0F172A]">Mapa do estudo</p>
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A95A3]">Percurso</p><p className="mt-1 text-sm font-bold text-[#243245]">Mapa do estudo</p></div>
             <span className="text-xs text-[#64748B]">
               {contentProgress.completed}/{contentProgress.total} partes estudadas
             </span>
@@ -2468,11 +2472,12 @@ function TopicDetailPage() {
 
       {/* ── Topic learning content ── */}
       {!loading && !error && !notFound && (
-        <div className="mt-8">
+        <div className="mt-7">
           {material ? (
             <>
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-[#0F172A]">
+              <div className="mb-5 px-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8B96A5]">Conteúdo principal</p>
+                <h2 className="mt-1 text-2xl font-bold tracking-[-0.035em] text-[#172334] sm:text-[28px]">
                   {material.title}
                 </h2>
                 {material.introduction && (
@@ -2483,7 +2488,7 @@ function TopicDetailPage() {
               </div>
 
               <div
-                className="mb-6 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"
+                className="muted-panel mb-5 rounded-2xl p-4 sm:p-5"
                 aria-label="Progresso do conteúdo"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
