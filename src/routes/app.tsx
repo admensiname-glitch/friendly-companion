@@ -12,7 +12,7 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark";
+type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -42,6 +42,19 @@ const navigation = [
 
 function AppLayout() {
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = window.localStorage.getItem("ensina-me-theme");
+    return saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  function toggleTheme() {
+    setIsDark((current) => {
+      const next = !current;
+      window.localStorage.setItem("ensina-me-theme", next ? "dark" : "light");
+      return next;
+    });
+  }
   const logoutPending = useRef(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -69,8 +82,8 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EAF0F6] text-[#0F172A]">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#F3F6FA] lg:flex">
+    <div className={isDark ? "dark min-h-screen bg-[#0D1422] text-[#E7EDF5]" : "min-h-screen bg-[#EAF0F6] text-[#0F172A]"}>
+      <aside className={isDark ? "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#27364A] bg-[#111A2A] lg:flex" : "fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#F3F6FA] lg:flex"}>
         <div className="flex h-[72px] items-center px-7">
           <Link to="/app/dashboard" className="text-[22px] font-bold tracking-[-0.04em] text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4">
             Ensina-me
@@ -119,7 +132,7 @@ function AppLayout() {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 backdrop-blur lg:ml-[248px]">
+      <header className={isDark ? "sticky top-0 z-30 border-b border-[#27364A] bg-[#101827]/95 backdrop-blur lg:ml-[248px]" : "sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 backdrop-blur lg:ml-[248px]"}>
         <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
           <Link to="/app/dashboard" className="text-xl font-bold tracking-[-0.04em] text-[#0242D7] lg:hidden">Ensina-me</Link>
           <div className="hidden lg:block">
@@ -127,11 +140,22 @@ function AppLayout() {
             <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Link to="/app/revisao" className="hidden items-center gap-2 rounded-xl border border-[#E1E7EF] bg-white px-3.5 py-2 text-sm font-semibold text-[#556273] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] sm:flex">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-pressed={isDark}
+              aria-label={isDark ? "Ativar modo claro" : "Ativar modo noturno"}
+              title={isDark ? "Modo claro" : "Modo noturno"}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#DCE4ED] bg-white px-3 text-sm font-semibold text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF]"
+            >
+              <Icon name={isDark ? "sun" : "moon"} className="h-[17px] w-[17px]" />
+              <span className="hidden sm:inline">{isDark ? "Modo claro" : "Modo noturno"}</span>
+            </button>
+            <Link to="/app/revisao" className="hidden items-center gap-2 rounded-xl border border-[#E1E7EF] bg-white px-3.5 py-2 text-sm font-semibold text-[#556273] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#B7C3D1] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF] sm:flex">
               <Icon name="review" className="h-4 w-4" />
               Revisar
             </Link>
-            <Link to="/app/estude-agora" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(2,66,215,0.18)] transition-all hover:-translate-y-px hover:bg-[#0038B8]">
+            <Link to="/app/estude-agora" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(2,66,215,0.18)] transition-all hover:-translate-y-px hover:bg-[#0038B8] dark:shadow-[0_8px_24px_rgba(2,66,215,0.28)]">
               <Icon name="spark" className="h-4 w-4" />
               Estudar agora
             </Link>
@@ -145,7 +169,7 @@ function AppLayout() {
         </div>
       </main>
 
-      <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-2 py-2 backdrop-blur lg:hidden">
+      <nav aria-label="Navegação móvel" className={isDark ? "fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#111A2A]/96 px-2 py-2 backdrop-blur lg:hidden" : "fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-2 py-2 backdrop-blur lg:hidden"}>
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
           {navigation.map((item) => (
             <Link
