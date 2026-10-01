@@ -7,13 +7,38 @@ export const Route = createFileRoute("/app")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
-
-    if (!data.session) {
-      throw redirect({ to: "/login" });
-    }
+    if (!data.session) throw redirect({ to: "/login" });
   },
   component: AppLayout,
 });
+
+type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark";
+
+function Icon({ name, className = "" }: { name: IconName; className?: string }) {
+  const paths: Record<IconName, React.ReactNode> = {
+    home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9" /><path d="M9 20v-6h6v6" /></>,
+    book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16" /><path d="M8 7h8" /></>,
+    library: <><path d="M4 19V5" /><path d="M8 19V5" /><path d="M12 19V5" /><path d="M16 19V5" /><path d="M20 19V5" /></>,
+    review: <><path d="M4 6h16" /><path d="M4 12h11" /><path d="M4 18h8" /><path d="m17 15 2 2 3-4" /></>,
+    chart: <><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 3-4 3 2 5-6" /></>,
+    logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 4v16" /></>,
+    spark: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="m19 4 .7 2 2 .7-.2.7-2 .7-.7 2-.7-2-2-.7 2-.7z" /></>,
+  };
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {paths[name]}
+    </svg>
+  );
+}
+
+const navigation = [
+  { to: "/app/dashboard" as const, label: "Início", icon: "home" as const },
+  { to: "/app/disciplinas" as const, label: "Disciplinas", icon: "book" as const },
+  { to: "/app/catalogo" as const, label: "Catálogo", icon: "library" as const },
+  { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
+  { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
+];
 
 function AppLayout() {
   const navigate = useNavigate();
@@ -23,21 +48,18 @@ function AppLayout() {
 
   async function handleLogout() {
     if (logoutPending.current || isLoggingOut) return;
-
     logoutPending.current = true;
     setIsLoggingOut(true);
     setLogoutError(null);
 
     try {
       const { error } = await supabase.auth.signOut();
-
       if (error) {
         setLogoutError("Não foi possível sair. Tente novamente.");
         setIsLoggingOut(false);
         logoutPending.current = false;
         return;
       }
-
       await navigate({ to: "/login" });
     } catch {
       setLogoutError("Não foi possível sair. Tente novamente.");
@@ -47,102 +69,98 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <header className="border-b border-[#E2E8F0] bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-8">
-          <Link
-            to="/app/dashboard"
-            className="text-xl font-bold tracking-[-0.03em] text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
-            aria-label="Ensina-me, área do aluno"
-          >
+    <div className="min-h-screen bg-[#F6F8FC] text-[#0F172A]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#E7ECF3] bg-white lg:flex">
+        <div className="flex h-[72px] items-center px-7">
+          <Link to="/app/dashboard" className="text-[22px] font-bold tracking-[-0.04em] text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4">
             Ensina-me
           </Link>
+        </div>
 
-          <nav aria-label="Navegação principal" className="hidden items-center gap-1 sm:flex">
-            <Link
-              to="/app/dashboard"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
-            >
-              Início
-            </Link>
-            <Link
-              to="/app/disciplinas"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
-            >
-              Minhas disciplinas
-            </Link>
-            <Link
-              to="/app/catalogo"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
-            >
-              Catálogo
-            </Link>
-            <Link
-              to="/app/revisao"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#D97706]"
-            >
-              Revisão
-            </Link>
-            <Link
-              to="/app/desempenho"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0242D7]"
-            >
-              Desempenho
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {logoutError && (
-              <span
-                className="text-sm text-[#DC2626]"
-                role="alert"
+        <div className="px-4 pt-4">
+          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#A0AAB8]">Navegar</p>
+          <nav aria-label="Navegação principal" className="mt-2 space-y-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.to === "/app/dashboard" }}
+                activeProps={{ className: "group flex min-h-11 items-center gap-3 rounded-xl bg-[#EEF4FF] px-3 text-sm font-semibold text-[#0242D7]" }}
+                inactiveProps={{ className: "group flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#596778] transition-colors hover:bg-[#F8FAFC] hover:text-[#172334]" }}
               >
-                {logoutError}
-              </span>
-            )}
+                {({ isActive }) => (
+                  <>
+                    <span className={isActive ? "flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[#0242D7] shadow-sm" : "flex h-8 w-8 items-center justify-center rounded-lg text-[#8793A1]"}>
+                      <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                    </span>
+                    <span>{item.label}</span>
+                  </>
+                )}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              aria-label="Sair da área do aluno"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F172A] transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+        <div className="mt-auto px-4 pb-5">
+          {logoutError && <p className="mb-3 rounded-lg bg-[#FEF2F2] px-3 py-2 text-xs leading-5 text-[#B91C1C]" role="alert">{logoutError}</p>}
+          <div className="rounded-2xl border border-[#E7ECF3] bg-[#FAFBFD] p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0242D7] text-[10px] font-bold text-white">EM</div>
+              <div>
+                <p className="text-xs font-semibold text-[#0F172A]">Área do aluno</p>
+                <p className="mt-0.5 text-[11px] text-[#8B96A5]">Seu espaço de estudo</p>
+              </div>
+            </div>
+            <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#6B7787] transition-colors hover:bg-white hover:text-[#0F172A] disabled:opacity-60">
+              <Icon name="logout" className="h-4 w-4" />
               {isLoggingOut ? "Saindo..." : "Sair da área"}
             </button>
           </div>
         </div>
+      </aside>
+
+      <header className="sticky top-0 z-30 border-b border-[#E7ECF3] bg-white/95 backdrop-blur lg:ml-[248px]">
+        <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
+          <Link to="/app/dashboard" className="text-xl font-bold tracking-[-0.04em] text-[#0242D7] lg:hidden">Ensina-me</Link>
+          <div className="hidden lg:block">
+            <p className="text-[11px] font-medium text-[#98A3B1]">Seu espaço de aprendizagem</p>
+            <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Link to="/app/revisao" className="hidden items-center gap-2 rounded-xl border border-[#E1E7EF] bg-white px-3.5 py-2 text-sm font-semibold text-[#556273] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] sm:flex">
+              <Icon name="review" className="h-4 w-4" />
+              Revisar
+            </Link>
+            <Link to="/app/estude-agora" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(2,66,215,0.18)] transition-all hover:-translate-y-px hover:bg-[#0038B8]">
+              <Icon name="spark" className="h-4 w-4" />
+              Estudar agora
+            </Link>
+          </div>
+        </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-6 py-10 pb-28 lg:px-8 lg:py-14 lg:pb-14">
-        <Outlet />
+      <main className="lg:ml-[248px]">
+        <div className="mx-auto w-full max-w-[1180px] px-4 py-7 pb-28 sm:px-6 lg:px-9 lg:py-9 lg:pb-12">
+          <Outlet />
+        </div>
       </main>
 
-      <nav
-        aria-label="Navegação móvel"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E2E8F0] bg-white/95 px-2 py-2 backdrop-blur sm:hidden"
-      >
+      <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-white/96 px-2 py-2 backdrop-blur lg:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
-          {[
-            { to: "/app/dashboard" as const, label: "Início" },
-            { to: "/app/disciplinas" as const, label: "Disciplinas" },
-            { to: "/app/catalogo" as const, label: "Catálogo" },
-            { to: "/app/revisao" as const, label: "Revisão" },
-            { to: "/app/desempenho" as const, label: "Desempenho" },
-          ].map((item) => (
+          {navigation.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              activeProps={{
-                className:
-                  "flex min-h-12 items-center justify-center rounded-lg bg-[#EFF6FF] px-1 text-center text-[11px] font-semibold text-[#0242D7]",
-              }}
-              inactiveProps={{
-                className:
-                  "flex min-h-12 items-center justify-center rounded-lg px-1 text-center text-[11px] font-medium text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0242D7]",
-              }}
+              activeOptions={{ exact: item.to === "/app/dashboard" }}
+              activeProps={{ className: "flex min-h-[52px] flex-col items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7]" }}
+              inactiveProps={{ className: "flex min-h-[52px] flex-col items-center justify-center rounded-xl text-[#7A8796] transition-colors hover:bg-[#F8FAFC] hover:text-[#0242D7]" }}
             >
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <Icon name={item.icon} className={isActive ? "h-[19px] w-[19px] text-[#0242D7]" : "h-[19px] w-[19px]"} />
+                  <span className="mt-1 text-[10px] font-semibold leading-none">{item.label}</span>
+                </>
+              )}
             </Link>
           ))}
         </div>
