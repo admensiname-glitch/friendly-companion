@@ -7,8 +7,10 @@ interface Recommendation {
   discipline_id?: string | null;
   topic_name?: string | null;
   discipline_name?: string | null;
-  reason?: "review" | "continue" | "start" | "none";
+  reason?: "assessment" | "review" | "continue" | "start" | "none";
   message?: string | null;
+  exam_date?: string | null;
+  exam_type?: string | null;
 }
 interface TodayStudy { minutes: number; }
 
@@ -24,6 +26,7 @@ function Icon({ name, className = "" }: { name: "spark" | "arrow" | "review"; cl
 }
 
 function reasonLabel(reason: Recommendation["reason"]) {
+  if (reason === "assessment") return "Preparação para avaliação";
   if (reason === "review") return "Uma revisão ficou pronta";
   if (reason === "continue") return "Continue de onde parou";
   if (reason === "start") return "Um novo tópico espera por você";
@@ -100,6 +103,11 @@ function StudyNowPage() {
             <p className="mt-5 text-sm font-semibold text-[#5D6D80] dark:text-[#AAB9CB]">
               {recommendation?.discipline_name}
             </p>
+            {recommendation?.reason === "assessment" && recommendation.exam_date && (
+              <p className="mt-2 text-xs font-bold text-[#718096] dark:text-[#96A6B8]">
+                {recommendation.exam_type ?? "Avaliação"} · {new Date(recommendation.exam_date + "T12:00:00").toLocaleDateString("pt-BR")}
+              </p>
+            )}
             <h2 className="mt-1 text-[26px] font-bold tracking-[-0.04em] text-[#172334] dark:text-[#F0F5FA] sm:text-[32px]">
               {recommendation?.topic_name}
             </h2>
