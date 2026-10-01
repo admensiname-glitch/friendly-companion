@@ -62,6 +62,21 @@ interface MaterialCitation {
   source?: Source;
 }
 
+interface TopicVideo {
+  id: string;
+  topic_id: string;
+  source_id: string | null;
+  title: string;
+  description: string | null;
+  video_url: string;
+  embed_url: string;
+  platform: "youtube";
+  channel_name: string | null;
+  duration_label: string | null;
+  position: number;
+  published: boolean;
+}
+
 interface ExerciseOption {
   id: string;
   content: string;
@@ -363,6 +378,138 @@ function MaterialSectionItem({
         )}
       </div>
     </article>
+  );
+}
+
+// ─── Complementary videos ────────────────────────────────────────────────────
+
+function TopicVideoSection({ videos }: { videos: TopicVideo[] }) {
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+  if (videos.length === 0) return null;
+
+  return (
+    <section
+      id="videos"
+      aria-labelledby="videos-heading"
+      className="mt-9 border-y border-[#E2E8F0] py-7 dark:border-[#2B3A4F]"
+    >
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+          Material complementar
+        </p>
+        <h3
+          id="videos-heading"
+          className="mt-1 text-xl font-bold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]"
+        >
+          Vídeos para visualizar a ideia
+        </h3>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">
+          Selecionados para complementar o estudo. Você assiste sem sair do Ensina-me.
+        </p>
+      </div>
+
+      <div className="mt-6 space-y-5">
+        {videos.map((video) => {
+          const isActive = activeVideoId === video.id;
+
+          return (
+            <article
+              key={video.id}
+              className="overflow-hidden rounded-2xl border border-[#DCE5EE] bg-[#F8FAFC] dark:border-[#2B3A4F] dark:bg-[#111C2A]"
+            >
+              <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                <div className="bg-[#E9EEF4] dark:bg-[#0D1624]">
+                  {isActive ? (
+                    <div className="aspect-video">
+                      <iframe
+                        className="h-full w-full"
+                        src={video.embed_url + "?rel=0&modestbranding=1"}
+                        title={video.title}
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveVideoId(video.id)}
+                      className="group flex aspect-video w-full items-center justify-center p-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0242D7]"
+                      aria-label={"Reproduzir: " + video.title}
+                    >
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0242D7] text-white shadow-[0_10px_24px_rgba(2,66,215,0.22)] transition-transform group-hover:scale-105">
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          className="ml-1 h-7 w-7"
+                          fill="currentColor"
+                        >
+                          <path d="M8 5.5v13a1 1 0 0 0 1.53.85l9.5-6.5a1 1 0 0 0 0-1.7l-9.5-6.5A1 1 0 0 0 8 5.5Z" />
+                        </svg>
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col justify-between border-t border-[#DCE5EE] p-5 dark:border-[#2B3A4F] sm:p-6 lg:border-l lg:border-t-0">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold uppercase tracking-[0.13em] text-[#7A8796] dark:text-[#8793A0]">
+                      <span>Vídeo {video.position}</span>
+                      {video.channel_name && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{video.channel_name}</span>
+                        </>
+                      )}
+                    </div>
+                    <h4 className="mt-3 text-lg font-bold leading-snug tracking-[-0.02em] text-[#172334] dark:text-[#E7EDF5]">
+                      {video.title}
+                    </h4>
+                    {video.description && (
+                      <p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">
+                        {video.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    {!isActive && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveVideoId(video.id)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                      >
+                        Assistir agora
+                      </button>
+                    )}
+
+                    {isActive && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveVideoId(null)}
+                        className="inline-flex items-center rounded-lg border border-[#DCE5EE] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#C5D0DE]"
+                      >
+                        Fechar vídeo
+                      </button>
+                    )}
+
+                    <a
+                      href={video.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
+                    >
+                      Ver no YouTube ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -2226,6 +2373,7 @@ function TopicDetailPage() {
   const [completedSectionIds, setCompletedSectionIds] = useState<string[]>([]);
   const [contentProgress, setContentProgress] = useState({ completed: 0, total: 0 });
   const [citations, setCitations] = useState<MaterialCitation[]>([]);
+  const [videos, setVideos] = useState<TopicVideo[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [evaluation, setEvaluation] = useState<Exercise | null>(null);
   const [difficulties, setDifficulties] = useState<TopicDifficulty[]>([]);
@@ -2424,6 +2572,17 @@ function TopicDetailPage() {
       }
 
       setTopic(topicData as TopicDetail);
+
+      const { data: videosData } = await supabase
+        .from("topic_videos")
+        .select(
+          "id, topic_id, source_id, title, description, video_url, embed_url, platform, channel_name, duration_label, position, published",
+        )
+        .eq("topic_id", (topicData as TopicDetail).id)
+        .eq("published", true)
+        .order("position", { ascending: true });
+
+      setVideos((videosData ?? []) as TopicVideo[]);
 
       // Step 5: Fetch published material
       const { data: materialData } = await supabase
@@ -2780,6 +2939,8 @@ function TopicDetailPage() {
                   </a>
                 </div>
               </div>
+
+              <TopicVideoSection videos={videos} />
 
               <div className="mt-7 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
                 <nav aria-label="Partes do estudo" className="lg:sticky lg:top-6">
