@@ -867,17 +867,22 @@ Deno.serve(async (req: Request) => {
         return json({ error: "A avaliação foi criada sem identificador." }, 500);
       }
 
+      const safeCreatedQuestions =
+        isRecord(created) && Array.isArray(created.questions)
+          ? created.questions
+          : null;
+
+      if (!safeCreatedQuestions || safeCreatedQuestions.length !== 10) {
+        return json(
+          { error: "A avaliação foi criada sem carregar as 10 questões." },
+          500,
+        );
+      }
+
       return json({
         attempt_id: createdAttemptId,
         total_questions: 10,
-        questions: questions.map((question, index) => ({
-          id: createdAttemptId + "-" + (index + 1),
-          position: index + 1,
-          question_text: question.question_text,
-          options: question.options,
-          difficulty: question.difficulty,
-          concept_tags: question.concept_tags,
-        })),
+        questions: safeCreatedQuestions,
       });
     }
 
