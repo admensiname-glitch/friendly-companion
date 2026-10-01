@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -18,7 +19,7 @@ function Index(){
   return <main className="min-h-screen bg-[#EDF2F7] text-[#172334]">
     <header className="border-b border-[#DCE4ED] bg-[#F4F7FA]/95 backdrop-blur">
       <div className="mx-auto flex h-[72px] w-full max-w-[1180px] items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="text-[22px] font-bold tracking-[-0.045em] text-[#0242D7]">Ensina-me</Link>
+        <Link to="/" aria-label="Ensina-me, página inicial" className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"><BrandLogo /></Link>
         <nav aria-label="Navegação principal" className="flex items-center gap-1.5">
           <Link to="/login" className="rounded-xl px-3.5 py-2 text-sm font-semibold text-[#556273] hover:bg-[#F4F7FB] hover:text-[#172334]">Entrar</Link>
           <Link to="/cadastro" className="rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(2,66,215,0.16)] hover:bg-[#0038B8]">Criar conta</Link>
@@ -94,7 +95,7 @@ function Index(){
 
     <footer className="border-t border-[#DCE4ED] bg-[#F4F7FA]">
       <div className="mx-auto flex max-w-[1180px] flex-col gap-2 px-4 py-7 text-xs text-[#8A95A3] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <span>Ensina-me</span><span>Aprendizagem com clareza.</span>
+        <BrandLogo compact /><span>Aprendizagem com clareza.</span>
       </div>
     </footer>
   </main>;
