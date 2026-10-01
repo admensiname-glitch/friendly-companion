@@ -1428,6 +1428,7 @@ interface FormalEvaluationQuestion {
   position: number;
   question_text: string;
   options: string[];
+  option_order?: number[];
   difficulty?: "introductory" | "intermediate" | "advanced";
   concept_tags?: string[];
 }
@@ -1448,6 +1449,20 @@ function shuffle<T>(items: T[]): T[] {
     [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
   }
   return next;
+}
+
+function prepareQuestionPresentation(
+  sourceQuestions: FormalEvaluationQuestion[],
+): FormalEvaluationQuestion[] {
+  return shuffle(
+    sourceQuestions.map((question) => ({
+      ...question,
+      option_order: shuffle(question.options.map((_, optionIndex) => optionIndex)),
+    })),
+  ).map((question, index) => ({
+    ...question,
+    position: index + 1,
+  }));
 }
 
 function EvaluationSection({
@@ -1541,20 +1556,6 @@ function EvaluationSection({
   useEffect(() => {
     void loadState();
   }, [loadState]);
-
-  function prepareQuestionPresentation(
-    sourceQuestions: FormalEvaluationQuestion[],
-  ): FormalEvaluationQuestion[] {
-    return shuffle(
-      sourceQuestions.map((question) => ({
-        ...question,
-        options: shuffle(question.options),
-      })),
-    ).map((question, index) => ({
-      ...question,
-      position: index + 1,
-    }));
-  }
 
   async function startEvaluation() {
     if (loading) return;
@@ -1707,25 +1708,31 @@ function EvaluationSection({
                   </p>
 
                   <div className="mt-4 space-y-2">
-                    {question.options.map((option, optionIndex) => (
-                      <button
-                        key={optionIndex}
-                        type="button"
-                        onClick={() =>
-                          setAnswers((previous) => ({
-                            ...previous,
-                            [question.id]: optionIndex,
-                          }))
-                        }
-                        className={
-                          selected === optionIndex
-                            ? "w-full rounded-lg border border-[#0242D7] bg-[#EFF6FF] px-4 py-3 text-left text-sm text-[#0242D7]"
-                            : "w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#CBD5E1]"
-                        }
-                      >
-                        {String.fromCharCode(65 + optionIndex)}. {option}
-                      </button>
-                    ))}
+                    {(question.option_order ?? question.options.map((_, index) => index)).map(
+                      (sourceOptionIndex, displayIndex) => {
+                        const option = question.options[sourceOptionIndex];
+                        const selected = answers[question.id];
+                        return (
+                          <button
+                            key={sourceOptionIndex}
+                            type="button"
+                            onClick={() =>
+                              setAnswers((previous) => ({
+                                ...previous,
+                                [question.id]: sourceOptionIndex,
+                              }))
+                            }
+                            className={
+                              selected === sourceOptionIndex
+                                ? "w-full rounded-lg border border-[#0242D7] bg-[#EFF6FF] px-4 py-3 text-left text-sm text-[#0242D7]"
+                                : "w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#CBD5E1]"
+                            }
+                          >
+                            {String.fromCharCode(65 + displayIndex)}. {option}
+                          </button>
+                        );
+                      },
+                    )}
                   </div>
                 </div>
               );
