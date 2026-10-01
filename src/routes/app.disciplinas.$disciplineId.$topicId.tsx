@@ -2097,10 +2097,11 @@ function EvaluationSection({
       setAnswers({});
       setResult(null);
       setStarted(false);
+      onCompletedChange(false);
     }
 
     setLoading(false);
-  }, [topicId]);
+  }, [topicId, onCompletedChange]);
 
   useEffect(() => {
     void loadState();
@@ -2113,6 +2114,7 @@ function EvaluationSection({
     setGenerationError(null);
     setResult(null);
     setStarted(false);
+    onCompletedChange(false);
     setAnswers({});
     setQuestions([]);
 
@@ -2193,6 +2195,7 @@ function EvaluationSection({
     setAnswers({});
     setStarted(false);
     setResult(data as FormalEvaluationResult);
+    onCompletedChange(true);
     await onDifficultyUpdate();
   }
 
@@ -2377,7 +2380,8 @@ function TopicDetailPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [evaluation, setEvaluation] = useState<Exercise | null>(null);
   const [difficulties, setDifficulties] = useState<TopicDifficulty[]>([]);
-  const [exerciseProgress, setExerciseProgress] = useState(0);
+  const [applicationProgress, setApplicationProgress] = useState({ answered: 0, total: 0 });
+  const [evaluationCompleted, setEvaluationCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
@@ -2416,7 +2420,10 @@ function TopicDetailPage() {
           : null;
 
       if (typeof result?.exercises_completed === "number") {
-        setExerciseProgress(result.exercises_completed);
+        setApplicationProgress({
+          answered: Number(result.answered_questions ?? 0),
+          total: Number(result.total_questions ?? 0),
+        });
       }
 
       await refreshDifficulties();
@@ -2477,6 +2484,8 @@ function TopicDetailPage() {
       setExercises([]);
       setEvaluation(null);
       setDifficulties([]);
+      setApplicationProgress({ answered: 0, total: 0 });
+      setEvaluationCompleted(false);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -2783,16 +2792,24 @@ function TopicDetailPage() {
 
         setExercises(enrichedExercises);
 
-        // Load persisted progress for this topic.
-        const { data: progressData } = await supabase
-          .from("student_topic_progress")
-          .select("exercises_completed")
-          .eq("user_id", userId)
-          .eq("topic_id", topicId)
-          .maybeSingle();
-
-        setExerciseProgress(progressData?.exercises_completed ?? 0);
       }
+
+      // Practice progress is question-based, not exercise-row based.
+      const { data: applicationProgressData } = await supabase.rpc(
+        "get_student_topic_application_progress",
+        { _topic_id: topicId },
+      );
+      const applicationProgressRow = Array.isArray(applicationProgressData)
+        ? applicationProgressData[0] as {
+            answered_questions?: number;
+            total_questions?: number;
+          } | undefined
+        : undefined;
+
+      setApplicationProgress({
+        answered: Number(applicationProgressRow?.answered_questions ?? 0),
+        total: Number(applicationProgressRow?.total_questions ?? 0),
+      });
 
       setLoading(false);
     };
@@ -2847,14 +2864,24 @@ function TopicDetailPage() {
                 const contentDone =
                   contentProgress.total > 0 &&
                   contentProgress.completed >= contentProgress.total;
-                const practiceStarted = exerciseProgress > 0;
+                const practiceDone =
+                  applicationProgress.total > 0 &&
+                  applicationProgress.answered >= applicationProgress.total;
                 const reviewNeeded = difficulties.length > 0;
-                const activeStep = !contentDone ? 0 : !practiceStarted ? 1 : reviewNeeded ? 2 : 3;
+                const activeStep = !contentDone
+                  ? 0
+                  : !practiceDone
+                    ? 1
+                    : reviewNeeded
+                      ? 2
+                      : !evaluationCompleted
+                        ? 3
+                        : 3;
                 const steps = [
                   { number: "1", label: "Compreender", done: contentDone, href: "#conteudo" },
-                  { number: "2", label: "Praticar", done: practiceStarted, href: "#pratica" },
-                  { number: "3", label: "Revisar", done: !reviewNeeded && practiceStarted, href: "#revisao" },
-                  { number: "4", label: "Verificar", done: false, href: "#avaliacao" },
+                  { number: "2", label: "Praticar", done: practiceDone, href: "#pratica" },
+                  { number: "3", label: "Revisar", done: practiceDone && !reviewNeeded, href: "#revisao" },
+                  { number: "4", label: "Verificar", done: evaluationCompleted, href: "#avaliacao" },
                 ];
 
                 return steps.map((step, index) => {
@@ -3063,11 +3090,11 @@ function TopicDetailPage() {
 
               <div className="mb-5 flex items-center justify-between gap-3 text-xs text-[#7A8796] dark:text-[#8797AA]">
                 <span>
-                  {exerciseProgress} de {exercises.length} exercícios respondidos
+                  {applicationProgress.answered} de {applicationProgress.total} questões respondidas
                 </span>
                 {exercises.length > 0 && (
                   <span>
-                    {Math.round((exerciseProgress / Math.max(1, exercises.length)) * 100)}% da prática registrada
+                    {applicationProgress.total > 0 ? Math.round((applicationProgress.answered / applicationProgress.total) * 100) : 0}% da prática registrada
                   </span>
                 )}
               </div>
@@ -3085,8 +3112,51 @@ function TopicDetailPage() {
             <EvaluationSection
               topicId={topicId}
               onDifficultyUpdate={refreshDifficulties}
+              onCompletedChange={setEvaluationCompleted}
             />
           </section>
+
+          {evaluationCompleted && (
+            <section
+              aria-labelledby="topic-completion-heading"
+              className="mt-10 rounded-2xl border border-[#BFDBFE] bg-[#F8FBFF] p-6 dark:border-[#2E4563] dark:bg-[#142238]"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+                Próximo passo
+              </p>
+              <h2
+                id="topic-completion-heading"
+                className="mt-2 text-xl font-bold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]"
+              >
+                {difficulties.length > 0
+                  ? "O tópico foi verificado, mas alguns pontos ainda pedem revisão."
+                  : "Você fechou o ciclo deste tópico."
+                }
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5F7187] dark:text-[#B3C0CF]">
+                {difficulties.length > 0
+                  ? "Retome os pontos sinalizados antes de seguir. Depois, o Ensina-me recalcula seu próximo passo."
+                  : "Compreender, praticar, revisar e verificar faz parte do percurso. Agora você pode seguir para o próximo passo indicado pelo seu histórico."
+                }
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {difficulties.length > 0 && (
+                  <a
+                    href="#revisao"
+                    className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                  >
+                    Revisar agora
+                  </a>
+                )}
+                <Link
+                  to="/app/estude-agora"
+                  className="inline-flex items-center rounded-lg border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-bold text-[#0242D7] hover:bg-[#EFF6FF] dark:border-[#3B5574] dark:bg-[#172B48] dark:text-[#7DB0FF] dark:hover:bg-[#213652]"
+                >
+                  Ver próximo passo →
+                </Link>
+              </div>
+            </section>
+          )}
 
           <SourcesSection citations={citations} />
 
