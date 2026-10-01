@@ -2409,12 +2409,18 @@ function TopicDetailPage() {
 
       {/* ── Topic header ── */}
       <div className="mt-6 rounded-[22px] bg-[#F0F5FF] p-6 sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">Tópico de estudo</p>
-          <p className="mt-1 text-xs font-semibold text-[#6B7A8E]">{disciplineName ?? "Disciplina"}</p>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">
+            Tópico de estudo
+          </p>
+          <p className="mt-1 text-xs font-semibold text-[#6B7A8E]">
+            {disciplineName ?? "Disciplina"}
+          </p>
         </div>
-        <h1 id="topic-title" className="mt-3 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[38px]">
+        <h1
+          id="topic-title"
+          className="mt-3 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[38px]"
+        >
           {topic?.name ?? "Carregando..."}
         </h1>
         {topic?.description && (
