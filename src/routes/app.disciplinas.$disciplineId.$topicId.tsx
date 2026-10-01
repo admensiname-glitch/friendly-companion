@@ -2184,6 +2184,7 @@ function EvaluationSection({
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+// Guided topic flow: understand → practice → review → verify.
 
 export const Route = createFileRoute("/app/disciplinas/$disciplineId/$topicId")({
   component: TopicDetailPage,
