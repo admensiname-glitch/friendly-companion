@@ -46,7 +46,6 @@ function Index(){
             Já tenho conta
           </Link>
         </div>
-        <p className="mt-4 text-xs text-[#8490A0]">Começando com Pedagogia no MVP.</p>
       </div>
 
       <div className="rounded-[26px] border border-[#E2E8F1] bg-white p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
