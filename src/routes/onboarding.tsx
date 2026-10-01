@@ -123,7 +123,6 @@ interface InstitutionStepProps {
 
 function InstitutionStep({
   course,
-  course,
   institution,
   semester,
   onCourseChange,
