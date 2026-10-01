@@ -2416,14 +2416,19 @@ function TopicDetailPage() {
 
       const result =
         typeof data === "object" && data !== null
-          ? (data as { exercises_completed?: number })
+          ? (data as {
+              exercises_completed?: number;
+              answered_questions?: number;
+              total_questions?: number;
+              progress?: number;
+            })
           : null;
 
-      if (typeof result?.exercises_completed === "number") {
-        setApplicationProgress({
-          answered: Number(result.answered_questions ?? 0),
-          total: Number(result.total_questions ?? 0),
-        });
+      if (result?.answered_questions != null || result?.total_questions != null) {
+        setApplicationProgress((current) => ({
+          answered: Number(result.answered_questions ?? current.answered),
+          total: Number(result.total_questions ?? current.total),
+        }));
       }
 
       await refreshDifficulties();
