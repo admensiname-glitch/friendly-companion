@@ -34,10 +34,10 @@ function DisciplineCard({ discipline, index }: { discipline: StudentDiscipline; 
     <Link
       to="/app/disciplinas/$disciplineId"
       params={{ disciplineId: discipline.id }}
-      className="surface-card surface-card-hover group rounded-2xl p-5 focus-visible:outline-none sm:p-6"
+      className="surface-card surface-card-hover group rounded-2xl p-4 focus-visible:outline-none sm:p-6"
     >
       <div className="flex items-start gap-4">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${accents[index % accents.length]}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${accents[index % accents.length]}`}>
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -46,7 +46,7 @@ function DisciplineCard({ discipline, index }: { discipline: StudentDiscipline; 
         </div>
         <span className="mt-1 text-[#A0AAB7] transition-transform group-hover:translate-x-0.5 group-hover:text-[#0242D7]">→</span>
       </div>
-      <div className="mt-5 flex items-center justify-between border-t border-[#EDF1F5] pt-4">
+      <div className="mt-4 flex items-center justify-between border-t border-[#EDF1F5] pt-4">
         <span className="text-xs font-semibold text-[#8792A0]">Conteúdo disponível</span>
         <span className="text-xs font-bold text-[#0242D7]">Entrar</span>
       </div>
