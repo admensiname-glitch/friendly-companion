@@ -976,6 +976,7 @@ export type Database = {
       }
       student_profiles: {
         Row: {
+          course_id: string | null
           created_at: string
           daily_study_minutes: number | null
           difficulties: string[] | null
@@ -987,17 +988,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          created_at?: string
-          daily_study_minutes?: number | null
-          difficulties?: string[] | null
-          id?: string
-          institution?: string | null
-          onboarding_completed?: boolean
-          semester?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
+          course_id?: string | null
           created_at?: string
           daily_study_minutes?: number | null
           difficulties?: string[] | null
@@ -1008,7 +999,27 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          daily_study_minutes?: number | null
+          difficulties?: string[] | null
+          id?: string
+          institution?: string | null
+          onboarding_completed?: boolean
+          semester?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_profiles_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_topic_difficulties: {
         Row: {
