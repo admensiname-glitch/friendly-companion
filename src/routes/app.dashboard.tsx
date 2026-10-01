@@ -131,7 +131,10 @@ function AppDashboard() {
   useEffect(() => {
     const loadData = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      if (!sessionData.session) {
+        setLoading(false);
+        return;
+      }
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
