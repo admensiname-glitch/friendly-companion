@@ -211,10 +211,16 @@ function Login() {
         return;
       }
 
+      if (!sessionData.session) {
+        setStatus("error");
+        setMessage("Não foi possível abrir sua sessão. Tente entrar novamente.");
+        return;
+      }
+
       const { data: profile } = await supabase
         .from("student_profiles")
         .select("onboarding_completed")
-        .eq("user_id", sessionData.user.id)
+        .eq("user_id", sessionData.session.user.id)
         .maybeSingle();
 
       setMessage("Login realizado com sucesso. Abrindo sua área...");
