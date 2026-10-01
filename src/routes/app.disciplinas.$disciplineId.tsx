@@ -76,11 +76,80 @@ function DisciplineDetailPage(){
 
       let official:OfficialDiscipline;
       if(studentDiscData){
-        const student=studentDiscData as StudentDiscipline;setStudentDisc(student);
-        const {data:aliasData}=await supabase.from("discipline_aliases").select("discipline_id").eq("normalized_alias",normalize(student.discipline_name));
-        if(!aliasData||aliasData.length!==1){setLoading(false);return;}
-        const {data:officialData}=await supabase.from("disciplines").select("id,name").eq("id",aliasData[0].discipline_id).eq("published",true).maybeSingle();
-        if(!officialData){setLoading(false);return;}
+        const student=studentDiscData as StudentDiscipline;
+        setStudentDisc(student);
+
+        const {data:profileData,error:profileError}=await supabase
+          .from("student_profiles")
+          .select("course_id")
+          .eq("user_id",userId)
+          .maybeSingle();
+
+        if(profileError){
+          setError(true);
+          setLoading(false);
+          return;
+        }
+
+        let officialData:null|{id:string;name:string}=null;
+
+        if(profileData?.course_id){
+          const {data:directData,error:directError}=await supabase
+            .from("disciplines")
+            .select("id,name")
+            .eq("course_id",profileData.course_id)
+            .eq("name",student.discipline_name)
+            .eq("published",true)
+            .maybeSingle();
+
+          if(directError){
+            setError(true);
+            setLoading(false);
+            return;
+          }
+          officialData=directData;
+        }
+
+        if(!officialData){
+          const {data:aliasData,error:aliasError}=await supabase
+            .from("discipline_aliases")
+            .select("discipline_id")
+            .eq("normalized_alias",normalize(student.discipline_name));
+
+          if(aliasError){
+            setError(true);
+            setLoading(false);
+            return;
+          }
+
+          if(!aliasData || aliasData.length!==1){
+            setNotFound(true);
+            setLoading(false);
+            return;
+          }
+
+          const {data:resolvedData,error:resolvedError}=await supabase
+            .from("disciplines")
+            .select("id,name")
+            .eq("id",aliasData[0].discipline_id)
+            .eq("published",true)
+            .maybeSingle();
+
+          if(resolvedError){
+            setError(true);
+            setLoading(false);
+            return;
+          }
+
+          officialData=resolvedData;
+        }
+
+        if(!officialData){
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
         official=officialData as OfficialDiscipline;
       }else{
         const {data:officialData}=await supabase.from("disciplines").select("id,name").eq("id",disciplineId).eq("published",true).maybeSingle();
