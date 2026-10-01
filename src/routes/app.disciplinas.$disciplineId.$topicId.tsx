@@ -719,6 +719,106 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [recommendedAction, setRecommendedAction] = useState<"simplify" | "practice" | "review" | "explore" | null>(null);
   const [microAssessment, setMicroAssessment] = useState<TutorMicroAssessment | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef({ active: false, offsetX: 0, offsetY: 0, moved: false });
+  const [tutorPosition, setTutorPosition] = useState({ x: 16, y: 0 });
+  const [isDraggingTutor, setIsDraggingTutor] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const maxX = Math.max(12, window.innerWidth - 64);
+    const maxY = Math.max(12, window.innerHeight - 72);
+    const fallback = { x: Math.max(12, window.innerWidth - 72), y: Math.max(12, window.innerHeight - 116) };
+
+    try {
+      const saved = window.localStorage.getItem("ensina-me-tutor-position");
+      if (saved) {
+        const parsed = JSON.parse(saved) as { x?: unknown; y?: unknown };
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          setTutorPosition({
+            x: Math.min(maxX, Math.max(12, parsed.x)),
+            y: Math.min(maxY, Math.max(12, parsed.y)),
+          });
+          return;
+        }
+      }
+    } catch {
+      // Use the default position when a saved position cannot be read.
+    }
+
+    setTutorPosition(fallback);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      setTutorPosition((current) => ({
+        x: Math.min(Math.max(12, current.x), Math.max(12, window.innerWidth - 64)),
+        y: Math.min(Math.max(12, current.y), Math.max(12, window.innerHeight - 72)),
+      }));
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  function moveTutor(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!dragStateRef.current.active || typeof window === "undefined") return;
+
+    const nextX = Math.min(
+      Math.max(12, event.clientX - dragStateRef.current.offsetX),
+      Math.max(12, window.innerWidth - 64),
+    );
+    const nextY = Math.min(
+      Math.max(12, event.clientY - dragStateRef.current.offsetY),
+      Math.max(12, window.innerHeight - 72),
+    );
+
+    if (
+      Math.abs(nextX - tutorPosition.x) > 4 ||
+      Math.abs(nextY - tutorPosition.y) > 4
+    ) {
+      dragStateRef.current.moved = true;
+    }
+
+    setTutorPosition({ x: nextX, y: nextY });
+  }
+
+  function finishTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!dragStateRef.current.active) return;
+
+    dragStateRef.current.active = false;
+    setIsDraggingTutor(false);
+
+    if (dragStateRef.current.moved) {
+      try {
+        window.localStorage.setItem(
+          "ensina-me-tutor-position",
+          JSON.stringify(tutorPosition),
+        );
+      } catch {
+        // Position persistence is optional.
+      }
+    }
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may already be released.
+    }
+  }
+
+  function startTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
+    dragStateRef.current = {
+      active: true,
+      offsetX: event.clientX - tutorPosition.x,
+      offsetY: event.clientY - tutorPosition.y,
+      moved: false,
+    };
+    setIsDraggingTutor(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
 
   const quickPrompts = [
     {
@@ -774,236 +874,268 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
         .eq("user_id", userId)
         .eq("topic_id", topicId)
         .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+         const renderMessages = () => (
+    <div
+      className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5"
+      aria-live="polite"
+      aria-busy={loading}
+    >
+      {errorMessage && (
+        <div
+          role="alert"
+          className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm leading-6 text-[#991B1B] dark:border-[#71333A] dark:bg-[#321A1F] dark:text-[#FCA5A5]"
+        >
+          {errorMessage}
+        </div>
+      )}
 
-      if (pendingAssessment) {
-        setMicroAssessment({
-          id: pendingAssessment.id,
-          question: pendingAssessment.question_text,
-          options: Array.isArray(pendingAssessment.options)
-            ? pendingAssessment.options.filter((value): value is string => typeof value === "string")
-            : [],
-          difficulty:
-            pendingAssessment.difficulty === "introductory" ||
-            pendingAssessment.difficulty === "advanced"
-              ? pendingAssessment.difficulty
-              : "intermediate",
-          concept_tags: Array.isArray(pendingAssessment.concept_tags)
-            ? pendingAssessment.concept_tags
-            : [],
-        });
-      }
-    })();
-  }, [topicId]);
+      {messages.length === 0 && (
+        <div className="rounded-xl bg-[#F1F5F9] p-4 text-sm leading-6 text-[#475569] dark:bg-[#1B2638] dark:text-[#B5C2D0]">
+          <strong className="text-[#172334] dark:text-[#E7EDF5]">{topicName}</strong>
+          <br />
+          Comece com uma dúvida, peça uma explicação mais simples ou peça um exemplo.
+        </div>
+      )}
 
-  useEffect(() => {
-    if (opened) {
-      messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [messages, loading, opened]);
-
-  async function sendMessage(prefilledMessage?: string) {
-    const message = (prefilledMessage ?? input).trim();
-    if (!message || loading) return;
-
-    setLoading(true);
-    setInput("");
-    setErrorMessage(null);
-    setRecommendedAction(null);
-
-    const localId = "local-" + Date.now();
-    setMessages((current) => [
-      ...current,
-      { id: localId, role: "user", content: message },
-    ]);
-
-    const { data, error } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        topic_id: topicId,
-        conversation_id: conversationId,
-        message,
-      },
-    });
-
-    setLoading(false);
-
-    if (error || !data?.message) {
-      let messageText = data?.error;
-
-      if (!messageText && error) {
-        try {
-          const response = (error as { context?: Response }).context;
-          if (response) {
-            const payload = (await response.clone().json()) as { error?: string };
-            messageText = payload.error;
+      {messages.map((message) => (
+        <div
+          key={message.id}
+          className={
+            message.role === "user"
+              ? "ml-auto max-w-[85%] rounded-xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white"
+              : "max-w-[90%] rounded-xl bg-[#F1F5F9] px-4 py-3 text-sm leading-6 text-[#334155] dark:bg-[#1B2638] dark:text-[#D5DFEA]"
           }
-        } catch {
-          // Keep the generic message below when the function error has no JSON body.
-        }
-      }
+        >
+          {message.role === "assistant" ? (
+            <div className="space-y-1">{renderTutorContent(message.content)}</div>
+          ) : (
+            message.content
+          )}
+        </div>
+      ))}
 
-      setMessages((current) =>
-        current.filter((item) => item.id !== localId),
-      );
-      setInput(message);
-      setErrorMessage(
-        messageText ?? "Não foi possível responder agora. Tente novamente.",
-      );
-      return;
-    }
+      {loading && (
+        <div className="max-w-[90%] rounded-xl bg-[#F1F5F9] px-4 py-3 text-sm text-[#64748B] dark:bg-[#1B2638] dark:text-[#9EAEBD]">
+          Pensando com base no tópico…
+        </div>
+      )}
 
-    setConversationId(data.conversation_id ?? conversationId);
-    if (data.micro_assessment) {
-      setMicroAssessment({
-        id: data.micro_assessment.id,
-        question: data.micro_assessment.question,
-        options: data.micro_assessment.options,
-        difficulty: data.micro_assessment.difficulty,
-        concept_tags: data.micro_assessment.concept_tags,
-      });
-    }
-    setRecommendedAction(
-      data.learning_action === "simplify" ||
-      data.learning_action === "practice" ||
-      data.learning_action === "review" ||
-      data.learning_action === "explore"
-        ? data.learning_action
-        : null,
-    );
-    setMessages((current) => [
-      ...current,
-      {
-        id: "assistant-" + Date.now(),
-        role: "assistant",
-        content: data.message,
-      },
-    ]);
-  }
+      {microAssessment && (
+        <TutorMicroAssessmentCard
+          key={microAssessment.id}
+          assessment={microAssessment}
+          onAnswered={(result) => {
+            if (result.next_message) {
+              setMessages((current) => [
+                ...current,
+                {
+                  id: "adaptive-" + Date.now(),
+                  role: "assistant",
+                  content: result.next_message!,
+                },
+              ]);
+            }
+
+            if (result.next_micro_assessment) {
+              setMicroAssessment(result.next_micro_assessment);
+              setRecommendedAction(null);
+            } else {
+              setMicroAssessment(null);
+              setRecommendedAction(result.next_action);
+            }
+          }}
+        />
+      )}
+
+      <div ref={messageEndRef} aria-hidden="true" />
+    </div>
+  );
+
+  const renderComposer = () => (
+    <div className="border-t border-[#E2E8F0] p-3 dark:border-[#2B3A4F] sm:p-4">
+      {recommendedAction && (
+        <div className="mb-3 rounded-xl border border-[#DBEAFE] bg-[#F8FAFC] px-4 py-3 dark:border-[#314B6B] dark:bg-[#172335]">
+          <p className="text-xs font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
+            Próximo passo
+          </p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-[#475569] dark:text-[#B7C4D2]">
+              {recommendedAction === "simplify"
+                ? "Vamos reconstruir esse conceito de um jeito mais simples."
+                : recommendedAction === "practice"
+                  ? "Agora vale testar se você consegue aplicar a ideia."
+                  : recommendedAction === "review"
+                    ? "Uma revisão rápida pode consolidar o que você acabou de estudar."
+                    : "Continue explorando o tópico e conectando os conceitos."}
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                void sendMessage(
+                  recommendedAction === "simplify"
+                    ? "Explique novamente de forma mais simples e use um exemplo correto."
+                    : recommendedAction === "practice"
+                      ? "Faça uma questão de nível intermediário e espere minha resposta antes de corrigir."
+                      : recommendedAction === "review"
+                        ? "Faça uma revisão rápida dos conceitos essenciais deste tópico."
+                        : "Faça uma pergunta orientadora que me ajude a aprofundar este tópico.",
+                )
+              }
+              disabled={loading}
+              className="rounded-lg border border-[#BFDBFE] bg-white px-3 py-1.5 text-xs font-bold text-[#0242D7] hover:bg-[#EFF6FF] disabled:opacity-50 dark:border-[#3B5574] dark:bg-[#1C2A3D] dark:text-[#7DB0FF] dark:hover:bg-[#22344B]"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="Atalhos do Tutor">
+        {quickPrompts.map((prompt) => (
+          <button
+            key={prompt.label}
+            type="button"
+            onClick={() => void sendMessage(prompt.message)}
+            disabled={loading}
+            className="shrink-0 rounded-lg border border-[#D9E5F3] bg-[#F8FAFC] px-3 py-2 text-xs font-semibold text-[#0242D7] transition-colors hover:bg-[#EFF6FF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#31465F] dark:bg-[#172335] dark:text-[#7DB0FF] dark:hover:bg-[#22344B]"
+          >
+            {prompt.label}
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        aria-label="Mensagem para o tutor Ensina-me"
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            void sendMessage();
+          }
+        }}
+        rows={3}
+        maxLength={4000}
+        placeholder="Ex.: explique a diferença entre alfabetização e letramento."
+        className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#FBFCFE] px-4 py-3 text-sm text-[#334155] outline-none placeholder:text-[#9AA5B2] focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/20 dark:border-[#34485E] dark:bg-[#111C2A] dark:text-[#DCE5EE] dark:placeholder:text-[#75879B]"
+      />
+
+      <div className="mt-2 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => void sendMessage()}
+          disabled={loading || input.trim().length === 0}
+          className="rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-bold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "Enviando…" : "Enviar"}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <section aria-labelledby="tutor-heading" className="mt-12">
-      <div className="border-t border-[#E2E8F0] pt-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
-              Tutor Ensina-me
-            </p>
-            <h2 id="tutor-heading" className="mt-2 text-2xl font-semibold text-[#0F172A]">
-              Tire dúvidas sobre este tópico
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
-              O tutor usa o conteúdo deste tópico para explicar, fazer perguntas e ajudar você a raciocinar.
-            </p>
+    <>
+      <section aria-labelledby="tutor-heading" className="mt-12 hidden lg:block">
+        <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+                Tutor Ensina-me
+              </p>
+              <h2 id="tutor-heading" className="mt-2 text-2xl font-semibold text-[#0F172A] dark:text-[#E7EDF5]">
+                Tire dúvidas sobre este tópico
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] dark:text-[#9AA9BA]">
+                O tutor usa o conteúdo deste tópico para explicar, fazer perguntas e ajudar você a raciocinar.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpened((value) => !value)}
+              className="rounded-lg border border-[#D9E5F3] bg-[#F8FAFC] px-4 py-2 text-sm font-bold text-[#0242D7] dark:border-[#354B66] dark:bg-[#172335] dark:text-[#7DB0FF]"
+              aria-expanded={opened}
+            >
+              {opened ? "Fechar tutor" : "Abrir tutor"}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpened((value) => !value)}
-            className="rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2 text-sm font-semibold text-[#0242D7]"
-            aria-expanded={opened}
-          >
-            {opened ? "Fechar tutor" : "Abrir tutor"}
-          </button>
+
+          {opened && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] dark:border-[#2B3A4F] dark:bg-[#111C2A]">
+              <div className="flex max-h-[34rem] flex-col">
+                {renderMessages()}
+                {renderComposer()}
+              </div>
+            </div>
+          )}
         </div>
+      </section>
+
+      <div className="lg:hidden">
+        <button
+          type="button"
+          aria-label="Abrir Tutor Ensina-me"
+          aria-expanded={opened}
+          onClick={(event) => {
+            if (dragStateRef.current.moved) {
+              dragStateRef.current.moved = false;
+              event.preventDefault();
+              return;
+            }
+            setOpened(true);
+          }}
+          onPointerDown={startTutorPointer}
+          onPointerMove={moveTutor}
+          onPointerUp={finishTutorPointer}
+          onPointerCancel={finishTutorPointer}
+          className={`fixed z-50 flex h-12 w-12 touch-none select-none items-center justify-center rounded-full bg-[#0242D7] text-white shadow-[0_10px_28px_rgba(2,66,215,0.3)] transition-transform dark:bg-[#5D96F2] dark:text-[#091321] ${isDraggingTutor ? "scale-105" : "hover:scale-105"}`}
+          style={{ left: tutorPosition.x, top: tutorPosition.y }}
+          title="Arraste para reposicionar o Tutor"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+            <path d="m19 4 .7 2 2 .7-.7 2-2 .7-.7-2-2-.7 2-.7z" />
+          </svg>
+        </button>
 
         {opened && (
-          <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white">
-            <div
-              className="max-h-[28rem] space-y-4 overflow-y-auto p-5"
-              aria-live="polite"
-              aria-busy={loading}
-            >
-              {errorMessage && (
-                <div
-                  role="alert"
-                  className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm leading-6 text-[#991B1B]"
-                >
-                  {errorMessage}
-                </div>
-              )}
-
-              {messages.length === 0 && (
-                <div className="rounded-lg bg-[#F8FAFC] p-4 text-sm leading-6 text-[#475569]">
-                  <strong className="text-[#0F172A]">{topicName}</strong>
-                  <br />
-                  Comece com uma dúvida, peça uma explicação em linguagem mais simples ou peça um exemplo.
-                </div>
-              )}
-
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto max-w-[85%] rounded-xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white"
-                      : "max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#334155]"
-                  }
-                >
-                  {message.role === "assistant"
-                    ? <div className="space-y-1">{renderTutorContent(message.content)}</div>
-                    : message.content}
-                </div>
-              ))}
-
-              {loading && (
-                <div className="max-w-[90%] rounded-xl bg-[#F8FAFC] px-4 py-3 text-sm text-[#64748B]">
-                  Pensando com base no tópico…
-                </div>
-              )}
-
-              {microAssessment && (
-                <TutorMicroAssessmentCard
-                  key={microAssessment.id}
-                  assessment={microAssessment}
-                  onAnswered={(result) => {
-                    if (result.next_message) {
-                      setMessages((current) => [
-                        ...current,
-                        {
-                          id: "adaptive-" + Date.now(),
-                          role: "assistant",
-                          content: result.next_message!,
-                        },
-                      ]);
-                    }
-
-                    if (result.next_micro_assessment) {
-                      setMicroAssessment(result.next_micro_assessment);
-                      setRecommendedAction(null);
-                    } else {
-                      setMicroAssessment(null);
-                      setRecommendedAction(result.next_action);
-                    }
-                  }}
-                />
-              )}
-
-              <div ref={messageEndRef} aria-hidden="true" />
+          <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:border-[#304158] dark:bg-[#111C2A]">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3 dark:border-[#2B3A4F]">
+              <div>
+                <p className="text-xs font-bold text-[#0242D7] dark:text-[#7DB0FF]">Tutor Ensina-me</p>
+                <p className="mt-0.5 text-sm font-bold text-[#172334] dark:text-[#E7EDF5]">
+                  {topicName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpened(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#718093] hover:bg-[#F1F5F9] dark:text-[#9AA9BA] dark:hover:bg-[#1B2638]"
+                aria-label="Fechar Tutor"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="m6 6 12 12" />
+                  <path d="m18 6-12 12" />
+                </svg>
+              </button>
             </div>
+            <div className="flex max-h-[72vh] min-h-0 flex-col">
+              {renderMessages()}
+              {renderComposer()}
+            </div>
+          </div>
+        )}
 
-            <div className="border-t border-[#E2E8F0] p-4">
-              {recommendedAction && (
-                <div className="mb-3 rounded-lg border border-[#DBEAFE] bg-[#F8FAFC] px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0242D7]">
-                    Próximo passo
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-[#475569]">
-                      {recommendedAction === "simplify"
-                        ? "Vamos reconstruir esse conceito de um jeito mais simples."
-                        : recommendedAction === "practice"
-                          ? "Agora vale testar se você realmente consegue aplicar a ideia."
-                          : recommendedAction === "review"
-                            ? "Uma revisão rápida pode consolidar o que você acabou de estudar."
-                            : "Continue explorando o tópico e conectando os conceitos."}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void sendMessage(
-                          recommendedAction === "simplify"
-                            ? "Explique novamente de forma mais simples e use um exemplo correto."
+        {opened && (
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-[#0F172A]/15"
+            aria-label="Fechar Tutor"
+            onClick={() => setOpened(false)}
+          />
+        )}
+      </div>
+    </>
+  ); ? "Explique novamente de forma mais simples e use um exemplo correto."
                             : recommendedAction === "practice"
                               ? "Faça uma questão de nível intermediário e espere minha resposta antes de corrigir."
                               : recommendedAction === "review"
