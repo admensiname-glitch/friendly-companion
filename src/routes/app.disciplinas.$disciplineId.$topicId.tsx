@@ -1767,7 +1767,7 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   return (
-    <section aria-labelledby="review-heading" className="mt-14">
+    <section id="revisao" aria-labelledby="review-heading" className="mt-14">
       <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
           3 · Revisar
@@ -2168,14 +2168,32 @@ function EvaluationSection({
               Esse resultado fica registrado no seu progresso e poderá orientar as próximas revisões.
             </p>
 
-            <button
-              type="button"
-              onClick={() => void startEvaluation()}
-              disabled={loading}
-              className="mt-5 rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC] disabled:opacity-50"
-            >
-              {loading ? "Preparando nova tentativa..." : "Fazer nova tentativa"}
-            </button>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {result.band !== "mastered" && (
+                <a
+                  href="#revisao"
+                  className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-bold text-[#0242D7] ring-1 ring-inset ring-[#BFDBFE] hover:bg-[#F8FAFC]"
+                >
+                  Revisar pontos sinalizados
+                </a>
+              )}
+              {result.band === "mastered" && (
+                <Link
+                  to="/app/estude-agora"
+                  className="inline-flex items-center rounded-md bg-[#0242D7] px-4 py-2 text-sm font-bold text-white hover:bg-[#0038B8]"
+                >
+                  Próximo passo →
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => void startEvaluation()}
+                disabled={loading}
+                className="inline-flex items-center rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC] disabled:opacity-50"
+              >
+                {loading ? "Preparando nova tentativa..." : "Fazer nova tentativa"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -2657,39 +2675,57 @@ function TopicDetailPage() {
             </div>
 
             <div className="mt-3 grid gap-0 sm:grid-cols-4">
-              {[
-                { number: "1", label: "Compreender" },
-                { number: "2", label: "Praticar" },
-                { number: "3", label: "Revisar" },
-                { number: "4", label: "Verificar" },
-              ].map((step, index) => (
-                <div
-                  key={step.number}
-                  className={`relative flex items-center gap-3 border-t py-3 sm:block sm:border-t-2 sm:pb-0 ${
-                    index === 0
-                      ? "border-[#0242D7] dark:border-[#6EA6FF]"
-                      : "border-[#DCE5EE] dark:border-[#2B3A4F]"
-                  }`}
-                >
-                  <span
-                    className={`text-xs font-bold ${
-                      index === 0
-                        ? "text-[#0242D7] dark:text-[#7DB0FF]"
-                        : "text-[#8A95A3] dark:text-[#7F90A3]"
-                    }`}
-                  >
-                    {step.number}
-                  </span>
-                  <span className="text-sm font-semibold text-[#334155] dark:text-[#C4CFDC]">
-                    {step.label}
-                  </span>
-                  {index < 3 && (
-                    <span className="hidden sm:block sm:absolute sm:right-4 sm:top-2.5 text-[10px] font-semibold text-[#A0AAB7] dark:text-[#67788E]">
-                      →
-                    </span>
-                  )}
-                </div>
-              ))}
+              {(() => {
+                const contentDone =
+                  contentProgress.total > 0 &&
+                  contentProgress.completed >= contentProgress.total;
+                const practiceStarted = exerciseProgress > 0;
+                const reviewNeeded = difficulties.length > 0;
+                const activeStep = !contentDone ? 0 : !practiceStarted ? 1 : reviewNeeded ? 2 : 3;
+                const steps = [
+                  { number: "1", label: "Compreender", done: contentDone, href: "#conteudo" },
+                  { number: "2", label: "Praticar", done: practiceStarted, href: "#pratica" },
+                  { number: "3", label: "Revisar", done: !reviewNeeded && practiceStarted, href: "#revisao" },
+                  { number: "4", label: "Verificar", done: false, href: "#avaliacao" },
+                ];
+
+                return steps.map((step, index) => {
+                  const current = index === activeStep;
+                  return (
+                    <a
+                      key={step.number}
+                      href={step.href}
+                      className={`relative flex items-center gap-3 border-t py-3 transition-colors hover:border-[#0242D7] sm:block sm:border-t-2 sm:pb-0 ${
+                        current
+                          ? "border-[#0242D7] dark:border-[#6EA6FF]"
+                          : "border-[#DCE5EE] dark:border-[#2B3A4F]"
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-bold ${
+                          current || step.done
+                            ? "text-[#0242D7] dark:text-[#7DB0FF]"
+                            : "text-[#8A95A3] dark:text-[#7F90A3]"
+                        }`}
+                      >
+                        {step.done && !current ? "✓" : step.number}
+                      </span>
+                      <span className={`text-sm font-semibold ${
+                        current
+                          ? "text-[#172334] dark:text-[#E7EDF5]"
+                          : "text-[#334155] dark:text-[#C4CFDC]"
+                      }`}>
+                        {step.label}
+                      </span>
+                      {index < 3 && (
+                        <span className="hidden sm:block sm:absolute sm:right-4 sm:top-2.5 text-[10px] font-semibold text-[#A0AAB7] dark:text-[#67788E]">
+                          →
+                        </span>
+                      )}
+                    </a>
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
@@ -2801,22 +2837,39 @@ function TopicDetailPage() {
                     />
                   )}
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-[#8793A0] dark:text-[#7F90A3]">
-                    <span>
-                      {contentProgress.completed === contentProgress.total
-                        ? "Conteúdo concluído."
-                        : `${Math.round(
-                            (contentProgress.completed / Math.max(1, contentProgress.total)) * 100,
-                          )}% do conteúdo estudado`}
-                    </span>
-                    {contentProgress.completed === contentProgress.total && (
-                      <a
-                        href="#pratica"
-                        className="font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
-                      >
-                        Começar prática →
-                      </a>
-                    )}
+                  <div className="mt-5 flex flex-col gap-4 px-1">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#8793A0] dark:text-[#7F90A3]">
+                      <span>
+                        {contentProgress.completed === contentProgress.total
+                          ? "Compreensão concluída."
+                          : `${Math.round(
+                              (contentProgress.completed / Math.max(1, contentProgress.total)) * 100,
+                            )}% do conteúdo estudado`}
+                      </span>
+                      {contentProgress.completed !== contentProgress.total && (
+                        <span>
+                          Volte à parte atual quando quiser continuar.
+                        </span>
+                      )}
+                    </div>
+
+                    {contentProgress.total > 0 &&
+                      contentProgress.completed === contentProgress.total && (
+                        <div className="rounded-2xl border border-[#D5E1F2] bg-[#EFF5FF] px-5 py-4 dark:border-[#2E4563] dark:bg-[#142238]">
+                          <p className="text-sm font-bold text-[#172334] dark:text-[#E7EDF5]">
+                            Você terminou a compreensão deste tópico.
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-[#5F7187] dark:text-[#B3C0CF]">
+                            Agora tente recuperar e aplicar as ideias sem voltar imediatamente ao texto.
+                          </p>
+                          <a
+                            href="#pratica"
+                            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                          >
+                            Começar prática →
+                          </a>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
