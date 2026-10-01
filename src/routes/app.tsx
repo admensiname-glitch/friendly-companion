@@ -13,7 +13,7 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun" | "user";
+type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun" | "user" | "more" | "close";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -27,6 +27,8 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
     moon: <><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z" /></>,
     sun: <><circle cx="12" cy="12" r="3.5" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m4.93 19.07 1.41-1.41" /><path d="m17.66 6.34 1.41-1.41" /></>,
     user: <><path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" /></>,
+    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
+    close: <><path d="m6 6 12 12" /><path d="m18 6-12 12" /></>,
   };
 
   return (
@@ -64,6 +66,8 @@ function AppLayout() {
       return next;
     });
   }
+  const [mobileGuideOpen, setMobileGuideOpen] = useState(false);
+
   const logoutPending = useRef(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -159,6 +163,16 @@ function AppLayout() {
             <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMobileGuideOpen(true)}
+              aria-label="Abrir guia do aluno"
+              title="Guia do aluno"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4ED] bg-transparent text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF] lg:hidden"
+            >
+              <Icon name="more" className="h-[18px] w-[18px]" />
+            </button>
+            <div className="hidden items-center gap-2 lg:flex">
             <Link
               to="/app/perfil"
               aria-label="Abrir meu perfil"
@@ -178,6 +192,7 @@ function AppLayout() {
               <Icon name={isDark ? "sun" : "moon"} className="h-[17px] w-[17px]" />
               <span className="hidden sm:inline">{isDark ? "Modo claro" : "Modo noturno"}</span>
             </button>
+            </div>
             <Link to="/app/revisao" className="hidden items-center gap-2 rounded-xl border border-[#E1E7EF] bg-white px-3.5 py-2 text-sm font-semibold text-[#556273] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:bg-[#172033] dark:text-[#B7C3D1] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF] sm:flex">
               <Icon name="review" className="h-4 w-4" />
               Revisar
@@ -191,31 +206,91 @@ function AppLayout() {
       </header>
 
       <main className="lg:ml-[248px]">
-        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-7 lg:px-9 lg:py-9 lg:pb-12">
+        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-8 sm:px-6 sm:py-7 sm:pb-10 lg:px-9 lg:py-9 lg:pb-12">
           <Outlet />
         </div>
       </main>
 
-      <nav aria-label="Navegação móvel" className={isDark ? "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#27364A] bg-[#0F1826]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden" : "mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#EEF2F6]/96 px-1.5 pt-1.5 backdrop-blur lg:hidden"}>
-        <div className="mx-auto grid max-w-xl grid-cols-5 gap-0.5">
-          {navigation.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              activeOptions={{ exact: item.to === "/app/dashboard" }}
-              activeProps={{ className: "touch-manipulation flex min-h-[50px] min-w-0 flex-col items-center justify-center rounded-xl bg-[#EEF4FF] px-1 text-[#0242D7]" }}
-              inactiveProps={{ className: "touch-manipulation flex min-h-[50px] min-w-0 flex-col items-center justify-center rounded-xl px-1 text-[#7A8796] transition-colors hover:bg-[#F8FAFC] hover:text-[#0242D7]" }}
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon name={item.icon} className={isActive ? "h-[19px] w-[19px] text-[#0242D7]" : "h-[19px] w-[19px]"} />
-                  <span className="mt-1 max-w-full truncate text-[9px] font-semibold leading-none sm:text-[10px]">{item.label}</span>
-                </>
-              )}
-            </Link>
-          ))}
+      {mobileGuideOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#0F172A]/35 backdrop-blur-[2px]"
+            aria-label="Fechar guia do aluno"
+            onClick={() => setMobileGuideOpen(false)}
+          />
+          <aside
+            aria-label="Guia do aluno"
+            className={isDark
+              ? "absolute inset-y-0 right-0 flex w-[min(88vw,340px)] flex-col border-l border-[#2B3A4F] bg-[#111B2A] shadow-2xl"
+              : "absolute inset-y-0 right-0 flex w-[min(88vw,340px)] flex-col border-l border-[#DCE5EE] bg-[#F6F8FA] shadow-2xl"}
+          >
+            <div className="flex items-center justify-between border-b border-[#DCE5EE] px-5 py-4 dark:border-[#2B3A4F]">
+              <div>
+                <p className="text-xs font-semibold text-[#0242D7] dark:text-[#7DB0FF]">Ensina-me</p>
+                <h2 className="mt-1 text-lg font-bold text-[#172334] dark:text-[#E7EDF5]">Guia do aluno</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileGuideOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#718093] hover:bg-[#EAF0F5] dark:text-[#9AA9BA] dark:hover:bg-[#1B2638]"
+                aria-label="Fechar guia do aluno"
+              >
+                <Icon name="close" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-4 py-5" aria-label="Navegação móvel">
+              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A96A5] dark:text-[#74869A]">
+                Onde estudar
+              </p>
+              <div className="mt-2">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMobileGuideOpen(false)}
+                    activeOptions={{ exact: item.to === "/app/dashboard" }}
+                    activeProps={{ className: "flex min-h-12 items-center gap-3 rounded-xl bg-[#EAF1FC] px-3 text-sm font-bold text-[#0242D7] dark:bg-[#1A2A40] dark:text-[#7DB0FF]" }}
+                    inactiveProps={{ className: "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#536276] hover:bg-[#EAF0F5] dark:text-[#B5C2D0] dark:hover:bg-[#1B2638]" }}
+                  >
+                    <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-8 border-t border-[#E2E8EF] pt-5 dark:border-[#2B3A4F]">
+                <p className="px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A96A5] dark:text-[#74869A]">
+                  Conta
+                </p>
+                <Link
+                  to="/app/perfil"
+                  onClick={() => setMobileGuideOpen(false)}
+                  className="mt-2 flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#536276] hover:bg-[#EAF0F5] dark:text-[#B5C2D0] dark:hover:bg-[#1B2638]"
+                >
+                  <Icon name="user" className="h-[18px] w-[18px]" />
+                  Meu perfil
+                </Link>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="mt-1 flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#536276] hover:bg-[#EAF0F5] dark:text-[#B5C2D0] dark:hover:bg-[#1B2638]"
+                >
+                  <Icon name={isDark ? "sun" : "moon"} className="h-[18px] w-[18px]" />
+                  {isDark ? "Modo claro" : "Modo noturno"}
+                </button>
+              </div>
+            </nav>
+
+            <div className="border-t border-[#E2E8EF] p-4 dark:border-[#2B3A4F]">
+              <p className="px-2 text-xs leading-5 text-[#7A8796] dark:text-[#8797AA]">
+                Use o Tutor quando quiser uma explicação, um exemplo ou uma nova questão.
+              </p>
+            </div>
+          </aside>
         </div>
-      </nav>
+      )}
     </div>
   );
 }
