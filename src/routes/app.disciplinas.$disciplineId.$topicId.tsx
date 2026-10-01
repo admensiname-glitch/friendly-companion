@@ -720,7 +720,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [microAssessment, setMicroAssessment] = useState<TutorMicroAssessment | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef({ active: false, offsetX: 0, offsetY: 0, moved: false });
-  const [tutorPosition, setTutorPosition] = useState({ x: 16, y: 0 });
+  const [tutorPosition, setTutorPosition] = useState({ x: 16, y: 16 });
   const [isDraggingTutor, setIsDraggingTutor] = useState(false);
 
   useEffect(() => {
@@ -728,7 +728,10 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
     const maxX = Math.max(12, window.innerWidth - 64);
     const maxY = Math.max(12, window.innerHeight - 72);
-    const fallback = { x: Math.max(12, window.innerWidth - 72), y: Math.max(12, window.innerHeight - 116) };
+    const fallback = {
+      x: Math.max(12, window.innerWidth - 72),
+      y: Math.max(12, window.innerHeight - 116),
+    };
 
     try {
       const saved = window.localStorage.getItem("ensina-me-tutor-position");
@@ -760,121 +763,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  function moveTutor(event: React.PointerEvent<HTMLButtonElement>) {
-    if (!dragStateRef.current.active || typeof window === "undefined") return;
-
-    const nextX = Math.min(
-      Math.max(12, event.clientX - dragStateRef.current.offsetX),
-      Math.max(12, window.innerWidth - 64),
-    );
-    const nextY = Math.min(
-      Math.max(12, event.clientY - dragStateRef.current.offsetY),
-      Math.max(12, window.innerHeight - 72),
-    );
-
-    if (
-      Math.abs(nextX - tutorPosition.x) > 4 ||
-      Math.abs(nextY - tutorPosition.y) > 4
-    ) {
-      dragStateRef.current.moved = true;
-    }
-
-    setTutorPosition({ x: nextX, y: nextY });
-  }
-
-  function finishTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
-    if (!dragStateRef.current.active) return;
-
-    dragStateRef.current.active = false;
-    setIsDraggingTutor(false);
-
-    if (dragStateRef.current.moved) {
-      try {
-        window.localStorage.setItem(
-          "ensina-me-tutor-position",
-          JSON.stringify(tutorPosition),
-        );
-      } catch {
-        // Position persistence is optional.
-      }
-    }
-
-    try {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture may already be released.
-    }
-  }
-
-  function startTutorPointer(event: React.PointerEvent<HTMLButtonElement>) {
-    dragStateRef.current = {
-      active: true,
-      offsetX: event.clientX - tutorPosition.x,
-      offsetY: event.clientY - tutorPosition.y,
-      moved: false,
-    };
-    setIsDraggingTutor(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  const quickPrompts = [
-    {
-      label: "Explique mais simples",
-      message: `Explique este tópico de forma mais simples, como se eu estivesse vendo o assunto pela primeira vez. Preserve a precisão acadêmica.`,
-    },
-    {
-      label: "Dê um exemplo",
-      message: `Dê um exemplo prático deste tópico e explique por que o exemplo está correto.`,
-    },
-    {
-      label: "Teste meu conhecimento",
-      message: `Faça uma questão de nível intermediário sobre este tópico. Não mostre a resposta ainda; espere eu tentar.`,
-    },
-    {
-      label: "Compare conceitos",
-      message: `Compare os conceitos mais importantes deste tópico em uma explicação curta e clara, destacando as diferenças essenciais.`,
-    },
-  ];
-
-  useEffect(() => {
-    void (async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-      if (!userId) return;
-
-      const { data: conversation } = await supabase
-        .from("ai_conversations")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("topic_id", topicId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!conversation) return;
-
-      setConversationId(conversation.id);
-
-      const { data: history } = await supabase
-        .from("ai_messages")
-        .select("id, role, content")
-        .eq("conversation_id", conversation.id)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true })
-        .limit(30);
-
-      setMessages((history ?? []) as TutorMessage[]);
-
-      const { data: pendingAssessment } = await supabase
-        .from("ai_micro_assessments")
-        .select("id, question_text, options, difficulty, concept_tags")
-        .eq("user_id", userId)
-        .eq("topic_id", topicId)
-        .eq("status", "pending")
-         const renderMessages = () => (
+    const renderMessages = () => (
     <div
       className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5"
       aria-live="polite"
@@ -891,7 +780,9 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
       {messages.length === 0 && (
         <div className="rounded-xl bg-[#F1F5F9] p-4 text-sm leading-6 text-[#475569] dark:bg-[#1B2638] dark:text-[#B5C2D0]">
-          <strong className="text-[#172334] dark:text-[#E7EDF5]">{topicName}</strong>
+          <strong className="text-[#172334] dark:text-[#E7EDF5]">
+            {topicName}
+          </strong>
           <br />
           Comece com uma dúvida, peça uma explicação mais simples ou peça um exemplo.
         </div>
@@ -1091,52 +982,70 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
           style={{ left: tutorPosition.x, top: tutorPosition.y }}
           title="Arraste para reposicionar o Tutor"
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
             <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-            <path d="m19 4 .7 2 2 .7-.7 2-2 .7-.7-2-2-.7 2-.7z" />
+            <path d="m19 4 .7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />
           </svg>
         </button>
 
         {opened && (
-          <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:border-[#304158] dark:bg-[#111C2A]">
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3 dark:border-[#2B3A4F]">
-              <div>
-                <p className="text-xs font-bold text-[#0242D7] dark:text-[#7DB0FF]">Tutor Ensina-me</p>
-                <p className="mt-0.5 text-sm font-bold text-[#172334] dark:text-[#E7EDF5]">
-                  {topicName}
-                </p>
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-[#0F172A]/15"
+              aria-label="Fechar Tutor"
+              onClick={() => setOpened(false)}
+            />
+            <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:border-[#304158] dark:bg-[#111C2A]">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3 dark:border-[#2B3A4F]">
+                <div>
+                  <p className="text-xs font-bold text-[#0242D7] dark:text-[#7DB0FF]">
+                    Tutor Ensina-me
+                  </p>
+                  <p className="mt-0.5 text-sm font-bold text-[#172334] dark:text-[#E7EDF5]">
+                    {topicName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpened(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#718093] hover:bg-[#F1F5F9] dark:text-[#9AA9BA] dark:hover:bg-[#1B2638]"
+                  aria-label="Fechar Tutor"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="m6 6 12 12" />
+                    <path d="m18 6-12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpened(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#718093] hover:bg-[#F1F5F9] dark:text-[#9AA9BA] dark:hover:bg-[#1B2638]"
-                aria-label="Fechar Tutor"
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                  <path d="m6 6 12 12" />
-                  <path d="m18 6-12 12" />
-                </svg>
-              </button>
+              <div className="flex max-h-[72vh] min-h-0 flex-col">
+                {renderMessages()}
+                {renderComposer()}
+              </div>
             </div>
-            <div className="flex max-h-[72vh] min-h-0 flex-col">
-              {renderMessages()}
-              {renderComposer()}
-            </div>
-          </div>
-        )}
-
-        {opened && (
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-[#0F172A]/15"
-            aria-label="Fechar Tutor"
-            onClick={() => setOpened(false)}
-          />
+          </>
         )}
       </div>
     </>
   );
-
 }
 
 // ─── Exercise option ─────────────────────────────────────────────────────────
