@@ -7,6 +7,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo, BrandMark } from "@/components/brand-logo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,16 @@ interface ProfileData {
   semester: number | null;
   dailyStudyMinutes: number;
   difficulties: string;
+}
+
+interface CourseOption {
+  id: string;
+  name: string;
+}
+
+interface DisciplineOption {
+  id: string;
+  name: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -114,6 +125,8 @@ function StepIndicator({ current }: { current: Step }) {
 
 interface InstitutionStepProps {
   course: string;
+  courseOptions: CourseOption[];
+  courseLoading: boolean;
   institution: string;
   semester: number | null;
   onCourseChange: (v: string) => void;
@@ -123,6 +136,8 @@ interface InstitutionStepProps {
 
 function InstitutionStep({
   course,
+  courseOptions,
+  courseLoading,
   institution,
   semester,
   onCourseChange,
