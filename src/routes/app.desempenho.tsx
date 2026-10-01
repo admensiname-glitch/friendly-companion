@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +93,31 @@ function PerformancePage() {
               </div>
             ))}
           </div>
+
+          <section className="mt-8 rounded-[18px] border border-[#E4EAF1] bg-[#F8FAFC] p-5 dark:border-[#2B3A4F] dark:bg-[#111B2A]" aria-labelledby="reading-heading">
+            <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">Como ler seu progresso</p>
+            <h2 id="reading-heading" className="mt-1 text-lg font-bold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]">
+              {summary?.pending_review
+                ? "Há conteúdo que merece outra passagem."
+                : summary?.micro_accuracy != null && summary.micro_accuracy < 75
+                  ? "A prática ainda pode ficar mais firme."
+                  : "Seu histórico mostra avanço consistente."}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">
+              {summary?.pending_review
+                ? "Use a Revisão para retomar os pontos sinalizados pelo seu histórico antes de avançar para conteúdos novos."
+                : summary?.micro_accuracy != null && summary.micro_accuracy < 75
+                  ? "Questões de prática ajudam a transformar compreensão em domínio. Continue praticando e observe onde os erros se repetem."
+                  : "Continue alternando estudo, prática e revisão. O objetivo desta página é mostrar o percurso, não apenas um número."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {summary?.pending_review ? (
+                <Link to="/app/revisao" className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Abrir revisão</Link>
+              ) : (
+                <Link to="/app/estude-agora" className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Estudar agora</Link>
+              )}
+            </div>
+          </section>
 
           <section className="mt-10" aria-labelledby="practice-heading">
             <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">

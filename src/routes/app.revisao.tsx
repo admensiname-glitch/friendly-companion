@@ -249,6 +249,16 @@ function ReviewPage() {
                     : "Continue estudando. O próximo momento de revisão aparece quando fizer sentido para o seu aprendizado."}
               </p>
 
+              {dueMicro === 0 && grouped.length > 0 && (
+                <Link
+                  to="/app/estude-agora"
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]"
+                >
+                  Estudar agora
+                  <Icon name="spark" className="h-4 w-4" />
+                </Link>
+              )}
+
               {dueMicro > 0 && microReviews[0] && (
                 <Link
                   to="/app/disciplinas/$disciplineId/$topicId"
