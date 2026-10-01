@@ -20,6 +20,7 @@ interface ExamData {
 }
 
 interface ProfileData {
+  course: string;
   institution: string;
   semester: number | null;
   dailyStudyMinutes: number;
@@ -112,21 +113,43 @@ function StepIndicator({ current }: { current: Step }) {
 // ─── Step 1: Institution ──────────────────────────────────────────────────────
 
 interface InstitutionStepProps {
+  course: string;
   institution: string;
   semester: number | null;
+  onCourseChange: (v: string) => void;
   onInstitutionChange: (v: string) => void;
   onSemesterChange: (v: number | null) => void;
 }
 
 function InstitutionStep({
+  course,
+  course,
   institution,
   semester,
+  onCourseChange,
   onInstitutionChange,
   onSemesterChange,
 }: InstitutionStepProps) {
   return (
     <fieldset className="mt-8 space-y-6">
-      <legend className="sr-only">Informações da instituição</legend>
+      <legend className="sr-only">Informações acadêmicas</legend>
+
+      <div>
+        <label htmlFor="course" className="text-sm font-medium text-[#0F172A]">
+          Qual é o seu curso?
+        </label>
+        <input
+          id="course"
+          type="text"
+          placeholder="Ex.: Pedagogia, Direito, Enfermagem..."
+          value={course}
+          onChange={(e) => onCourseChange(e.target.value)}
+          className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+        />
+        <p className="mt-1.5 text-xs text-[#64748B]">
+          Isso ajuda o Ensina-me a organizar seu percurso.
+        </p>
+      </div>
 
       <div>
         <label
@@ -539,6 +562,15 @@ function ReviewSummary({ profile, disciplines, exams }: ReviewSummaryProps) {
       <dl className="space-y-4">
         <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
+            Curso
+          </dt>
+          <dd className="mt-1 text-sm text-[#0F172A]">
+            {profile.course || "Não informado"}
+          </dd>
+        </div>
+
+        <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#64748B]">
             Instituição
           </dt>
           <dd className="mt-1 text-sm text-[#0F172A]">
@@ -683,6 +715,7 @@ function Onboarding() {
   const stepIndex = steps.findIndex((s) => s.id === step);
 
   // ── Profile data ──
+  const [course, setCourse] = useState("");
   const [institution, setInstitution] = useState("");
   const [semester, setSemester] = useState<number | null>(null);
   const [dailyStudyMinutes, setDailyStudyMinutes] = useState(60);
@@ -733,11 +766,13 @@ function Onboarding() {
 
       const { data: discs } = await supabase
         .from("student_disciplines")
-        .select("discipline_name")
+        .select("discipline_name, course")
         .eq("user_id", userId);
 
       if (discs && discs.length > 0) {
         setDisciplines(discs.map((d) => d.discipline_name));
+        const existingCourse = discs.find((d) => typeof d.course === "string" && d.course.trim())?.course;
+        if (existingCourse) setCourse(existingCourse);
       }
 
       const { data: existingExams } = await supabase
@@ -826,7 +861,7 @@ function Onboarding() {
     const discRows = disciplines.map((name) => ({
       user_id: userId,
       discipline_name: name,
-      course: "Pedagogia",
+      course: course.trim() || "Não informado",
     }));
 
     const { error: insertError } = await supabase
@@ -1032,6 +1067,7 @@ function Onboarding() {
   const isLastStep = step === "final";
 
   const currentProfile: ProfileData = {
+    course,
     institution,
     semester,
     dailyStudyMinutes,
@@ -1089,8 +1125,14 @@ function Onboarding() {
 
           {step === "institution" && (
             <InstitutionStep
+              course={course}
               institution={institution}
               semester={semester}
+              onCourseChange={(v) => {
+                setCourse(v);
+                setStatus("idle");
+                saveProfile();
+              }}
               onInstitutionChange={(v) => {
                 setInstitution(v);
                 setStatus("idle");
