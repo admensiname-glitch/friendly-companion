@@ -78,7 +78,7 @@ function CatalogPage() {
         <button type="button" onClick={()=>setSelectedDiscipline(null)} className="inline-flex items-center gap-2 text-sm font-semibold text-[#667487] hover:text-[#0242D7]">
           <Icon name="back" className="h-4 w-4"/> Catálogo
         </button>
-        <div className="mt-6 rounded-[22px] bg-[#F0F5FF] p-6 sm:p-7">
+        <div className="mt-5 rounded-[20px] bg-[#F0F5FF] p-5 sm:mt-6 sm:rounded-[22px] sm:p-7">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#0242D7]">{selectedDiscipline.course_name}</p>
           <h1 id="catalog-discipline-title" className="mt-2 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[34px]">{selectedDiscipline.name}</h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-6 text-[#617083]">{selectedDiscipline.description ?? "Explore os tópicos publicados desta disciplina."}</p>
@@ -101,7 +101,7 @@ function CatalogPage() {
         ):(
           <div className="mt-4 space-y-3">
             {topics.map((topic,index)=>(
-              <Link key={topic.id} to="/app/disciplinas/$disciplineId/$topicId" params={{disciplineId:selectedDiscipline.id,topicId:topic.id}} className="surface-card surface-card-hover group flex items-center gap-4 rounded-2xl p-4 sm:p-5 focus-visible:outline-none">
+              <Link key={topic.id} to="/app/disciplinas/$disciplineId/$topicId" params={{disciplineId:selectedDiscipline.id,topicId:topic.id}} className="surface-card surface-card-hover group flex items-center gap-3 rounded-2xl p-4 sm:gap-4 sm:p-5 focus-visible:outline-none">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F7FA] text-xs font-bold text-[#7C8998]">{String(index+1).padStart(2,"0")}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-[#243245] sm:text-[15px]">{topic.name}</p>
@@ -127,7 +127,7 @@ function CatalogPage() {
         <span className="text-sm font-semibold text-[#7B8795]">{disciplines.length} disciplinas disponíveis</span>
       </div>
 
-      <label htmlFor="catalog-search" className="surface-card mt-7 flex max-w-2xl items-center gap-3 rounded-2xl px-4 py-3.5">
+      <label htmlFor="catalog-search" className="surface-card mt-6 flex w-full max-w-2xl items-center gap-3 rounded-2xl px-4 py-3.5 sm:mt-7">
         <Icon name="search" className="h-5 w-5 shrink-0 text-[#95A0AE]"/>
         <input id="catalog-search" type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar por disciplina ou curso..." className="min-w-0 flex-1 bg-transparent text-sm text-[#243245] outline-none placeholder:text-[#9AA5B2]"/>
       </label>
@@ -139,7 +139,7 @@ function CatalogPage() {
       ):(
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {filteredDisciplines.map((discipline,index)=>(
-            <button key={discipline.id} type="button" onClick={()=>setSelectedDiscipline(discipline)} className="surface-card surface-card-hover group w-full rounded-2xl p-5 text-left focus-visible:outline-none sm:p-6">
+            <button key={discipline.id} type="button" onClick={()=>setSelectedDiscipline(discipline)} className="surface-card surface-card-hover group w-full rounded-2xl p-4 text-left focus-visible:outline-none sm:p-6">
               <div className="flex items-start gap-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F5FF] text-[#0242D7]"><Icon name="book" className="h-[18px] w-[18px]"/></span>
                 <div className="min-w-0 flex-1">
