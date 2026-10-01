@@ -844,10 +844,22 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const { data: created, error: createError } = await supabase.rpc(
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+      if (!serviceRoleKey) {
+        console.error("[Ensina-me] ai-tutor: SUPABASE_SERVICE_ROLE_KEY ausente para operação interna.");
+        return json({ error: "O servidor não está configurado para preparar a avaliação." }, 503);
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceRoleKey,
+      );
+
+      const { data: created, error: createError } = await supabaseAdmin.rpc(
         "create_formal_evaluation_attempt",
         {
           _topic_id: topicId,
+          _user_id: userData.user.id,
           _questions: questions,
         },
       );
