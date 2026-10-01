@@ -1343,6 +1343,15 @@ function StudySessionCard({ topicId }: { topicId: string }) {
     return () => window.clearInterval(timer);
   }, [startedAt]);
 
+  // A session belongs to this study page. Leaving the topic should stop the clock
+  // so the daily study metric does not keep counting in the background.
+  useEffect(() => {
+    return () => {
+      if (!sessionId) return;
+      void supabase.rpc("finish_study_session", { _session_id: sessionId });
+    };
+  }, [sessionId]);
+
   const format = (value: number) =>
     [Math.floor(value / 3600), Math.floor((value % 3600) / 60), value % 60]
       .map((part) => String(part).padStart(2, "0"))
@@ -1386,7 +1395,7 @@ function StudySessionCard({ topicId }: { topicId: string }) {
         <div>
           <p className="text-sm font-semibold text-[#0F172A]">Sessão de estudo</p>
           <p className="mt-1 text-sm text-[#64748B]">
-            Estude com foco e registre seu tempo neste tópico.
+            Estude com foco e registre seu tempo neste tópico. Ao sair desta página, a sessão é encerrada automaticamente.
           </p>
         </div>
         {sessionId ? (
