@@ -190,6 +190,206 @@
 }
 
 @layer utilities {
+/* Dark mode — scoped to the student app */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.165 0.025 255);
+  --foreground: oklch(0.93 0.015 250);
+  --card: oklch(0.205 0.025 255);
+  --card-foreground: oklch(0.93 0.015 250);
+  --popover: oklch(0.205 0.025 255);
+  --popover-foreground: oklch(0.93 0.015 250);
+  --primary: oklch(0.61 0.19 255);
+  --primary-foreground: oklch(0.98 0.005 250);
+  --secondary: oklch(0.25 0.03 255);
+  --secondary-foreground: oklch(0.93 0.015 250);
+  --muted: oklch(0.25 0.03 255);
+  --muted-foreground: oklch(0.72 0.025 255);
+  --accent: oklch(0.25 0.03 255);
+  --accent-foreground: oklch(0.93 0.015 250);
+  --border: oklch(0.33 0.03 255);
+  --input: oklch(0.33 0.03 255);
+  --ring: oklch(0.65 0.17 255);
+}
+
+.dark .surface-card {
+  border-color: #27364A;
+  background: #141E2F;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+.dark .surface-card-hover:hover {
+  border-color: #3A5371;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dark .muted-panel {
+  border-color: #27364A;
+  background: #1B2638;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #718096;
+}
+
+.dark [class~="bg-white"] {
+  background-color: #172033 !important;
+}
+
+.dark [class*="bg-[#F0F5FF]"],
+.dark [class*="bg-[#EFF6FF]"],
+.dark [class*="bg-[#F8FAFC]"],
+.dark [class*="bg-[#F8FBFF]"] {
+  background-color: #152237 !important;
+}
+
+.dark [class*="bg-[#F1F4F8]"],
+.dark [class*="bg-[#F1F5F9]"],
+.dark [class*="bg-[#F3F5F8]"],
+.dark [class*="bg-[#F3F6FA]"],
+.dark [class*="bg-[#F4F7FB]"],
+.dark [class*="bg-[#F5F7FA]"],
+.dark [class*="bg-[#E9EEF5]"],
+.dark [class*="bg-[#E6EBF2]"],
+.dark [class*="bg-[#E2E8F0]"] {
+  background-color: #1B2638 !important;
+}
+
+.dark [class*="bg-[#FEF2F2]"] {
+  background-color: #321A1F !important;
+}
+
+.dark [class*="bg-[#FFF7E8]"],
+.dark [class*="bg-[#FFFBEB]"],
+.dark [class*="bg-[#FFFCF2]"] {
+  background-color: #332A16 !important;
+}
+
+.dark [class*="bg-[#F0FDF4]"],
+.dark [class*="bg-[#ECFDF3]"] {
+  background-color: #122B21 !important;
+}
+
+.dark [class*="text-[#0F172A]"],
+.dark [class*="text-[#172334]"],
+.dark [class*="text-[#1D2A3B]"],
+.dark [class*="text-[#243245]"],
+.dark [class*="text-[#253447]"],
+.dark [class*="text-[#263547]"],
+.dark [class*="text-[#273547]"],
+.dark [class*="text-[#334155]"],
+.dark [class*="text-[#344154]"],
+.dark [class*="text-[#445367]"],
+.dark [class*="text-[#465468]"],
+.dark [class*="text-[#475569]"],
+.dark [class*="text-[#516074]"],
+.dark [class*="text-[#556273]"],
+.dark [class*="text-[#596778]"],
+.dark [class*="text-[#617083]"],
+.dark [class*="text-[#637084]"],
+.dark [class*="text-[#64748B]"],
+.dark [class*="text-[#657385]"],
+.dark [class*="text-[#657487]"],
+.dark [class*="text-[#667487]"],
+.dark [class*="text-[#687688]"],
+.dark [class*="text-[#6B7A8E]"],
+.dark [class*="text-[#6C7888]"],
+.dark [class*="text-[#6F7C8C]"],
+.dark [class*="text-[#718093]"],
+.dark [class*="text-[#738093]"],
+.dark [class*="text-[#778495]"] {
+  color: #B7C4D3 !important;
+}
+
+.dark [class*="text-[#7A8796]"],
+.dark [class*="text-[#7B8795]"],
+.dark [class*="text-[#7B8796]"],
+.dark [class*="text-[#7C8998]"],
+.dark [class*="text-[#8490A0]"],
+.dark [class*="text-[#8792A0]"],
+.dark [class*="text-[#8793A0]"],
+.dark [class*="text-[#8A95A3]"],
+.dark [class*="text-[#8B96A5]"],
+.dark [class*="text-[#91A0AF]"],
+.dark [class*="text-[#94A3B8]"],
+.dark [class*="text-[#95A0AE]"],
+.dark [class*="text-[#96A0AD]"],
+.dark [class*="text-[#97A1AE]"],
+.dark [class*="text-[#9AA5B2]"],
+.dark [class*="text-[#A0AAB7]"] {
+  color: #8797AA !important;
+}
+
+.dark [class*="text-[#0242D7]"] {
+  color: #6EA6FF !important;
+}
+
+.dark [class*="text-[#991B1B]"] {
+  color: #FCA5A5 !important;
+}
+
+.dark [class*="text-[#92400E]"],
+.dark [class*="text-[#9A3412]"],
+.dark [class*="text-[#9A5C0A]"],
+.dark [class*="text-[#A15D0B]"],
+.dark [class*="text-[#B86B13]"],
+.dark [class*="text-[#D97706]"] {
+  color: #F6C66D !important;
+}
+
+.dark [class*="border-[#E7ECF3]"],
+.dark [class*="border-[#EDF1F5]"],
+.dark [class*="border-[#DCE5F0]"],
+.dark [class*="border-[#E2E8F0]"],
+.dark [class*="border-[#CBD5E1]"] {
+  border-color: #2B3A4F !important;
+}
+
+.dark [class*="border-[#C8D7EB]"],
+.dark [class*="border-[#C8D8EC]"],
+.dark [class*="border-[#D5E1F2]"],
+.dark [class*="border-[#DBEAFE]"],
+.dark [class*="border-[#BFDBFE]"] {
+  border-color: #35567C !important;
+}
+
+.dark [class*="border-[#FECACA]"] {
+  border-color: #71333A !important;
+}
+
+.dark [class*="border-[#FDE68A]"],
+.dark [class*="border-[#F1DD9C]"] {
+  border-color: #6B5728 !important;
+}
+
+.dark [class*="border-[#16A34A]"],
+.dark [class*="border-[#ECFDF3]"] {
+  border-color: #27634E !important;
+}
+
+.dark [class*="hover:bg-[#F8FAFC]"],
+.dark [class*="hover:bg-[#EFF6FF]"] {
+  background-color: #1E2B3E !important;
+}
+
+.dark [class*="hover:bg-[#0038B8]"] {
+  background-color: #1854C7 !important;
+}
+
+.dark [class*="hover:text-[#0242D7]"] {
+  color: #7DB0FF !important;
+}
+
+.dark [class*="ring-[#0242D7]"] {
+  --tw-ring-color: #6EA6FF !important;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
   .surface-card {
     border: 1px solid #E7ECF3;
     background: #FBFCFE;
