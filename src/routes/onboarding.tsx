@@ -1037,7 +1037,7 @@ function Onboarding() {
       }
 
       setSelectedCourseId(selectedCourse.id);
-      saveProfile(selectedCourse.id);
+      saveProfile({ courseId: selectedCourse.id });
       setMessage("");
       setStatus("saved");
       setStep("disciplines");
