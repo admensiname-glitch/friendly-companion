@@ -1135,70 +1135,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
         )}
       </div>
     </>
-  ); ? "Explique novamente de forma mais simples e use um exemplo correto."
-                            : recommendedAction === "practice"
-                              ? "Faça uma questão de nível intermediário e espere minha resposta antes de corrigir."
-                              : recommendedAction === "review"
-                                ? "Faça uma revisão rápida dos conceitos essenciais deste tópico."
-                                : "Faça uma pergunta orientadora que me ajude a aprofundar este tópico.",
-                        )
-                      }
-                      disabled={loading}
-                      className="rounded-md border border-[#BFDBFE] bg-white px-3 py-1.5 text-xs font-semibold text-[#0242D7] hover:bg-[#EFF6FF] disabled:opacity-50"
-                    >
-                      Continuar
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              <div className="mb-3 flex flex-wrap gap-2" aria-label="Atalhos do Tutor">
-                {quickPrompts.map((prompt) => (
-                  <button
-                    key={prompt.label}
-                    type="button"
-                    onClick={() => void sendMessage(prompt.message)}
-                    disabled={loading}
-                    className="rounded-full border border-[#BFDBFE] bg-[#F8FAFC] px-3 py-1.5 text-xs font-semibold text-[#0242D7] transition-colors hover:bg-[#EFF6FF] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {prompt.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                aria-label="Mensagem para o tutor Ensina-me"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void sendMessage();
-                  }
-                }}
-                rows={3}
-                maxLength={4000}
-                placeholder="Ex.: explique a diferença entre alfabetização e letramento."
-                className="w-full resize-none rounded-lg border border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/20"
-              />
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-[#94A3B8]">
-                  {input.length}/4000 · Enter envia · Shift+Enter cria uma nova linha
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void sendMessage()}
-                  disabled={loading || input.trim().length === 0}
-                  className="rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading ? "Enviando…" : "Enviar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
 }
 
 // ─── Exercise option ─────────────────────────────────────────────────────────
