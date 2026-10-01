@@ -53,7 +53,7 @@ interface TechnicalError {
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 const steps: { id: Step; label: string }[] = [
-  { id: "institution", label: "Instituição" },
+  { id: "institution", label: "Curso e instituição" },
   { id: "disciplines", label: "Disciplinas" },
   { id: "exams", label: "Avaliações" },
   { id: "final", label: "Disponibilidade" },
@@ -213,6 +213,8 @@ function InstitutionStep({
 
 interface DisciplinesStepProps {
   disciplines: string[];
+  disciplineOptions: DisciplineOption[];
+  disciplineLoading: boolean;
   newDiscipline: string;
   onAdd: (d: string) => void;
   onRemove: (d: string) => void;
@@ -221,15 +223,17 @@ interface DisciplinesStepProps {
 
 function DisciplinesStep({
   disciplines,
+  disciplineOptions,
+  disciplineLoading,
   newDiscipline,
   onAdd,
   onRemove,
   onNewChange,
 }: DisciplinesStepProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === "Enter" || e.key === ",") && newDiscipline.trim()) {
+    if (e.key === "Escape") {
       e.preventDefault();
-      onAdd(newDiscipline.trim());
+      onNewChange("");
     }
   };
 
@@ -238,36 +242,40 @@ function DisciplinesStep({
       <legend className="sr-only">Disciplinas do semestre</legend>
 
       <div>
-        <label
-          htmlFor="new-discipline"
-          className="text-sm font-medium text-[#0F172A]"
-        >
+        <label htmlFor="new-discipline" className="text-sm font-medium text-[#0F172A]">
           Quais disciplinas você está cursando?
         </label>
-        <p className="mt-1 text-xs text-[#64748B]">
-          Pressione Enter ou vírgula para adicionar cada disciplina.
-        </p>
-
-        <div className="mt-2 flex gap-2">
-          <input
-            id="new-discipline"
-            type="text"
-            placeholder="Ex.: Didática Geral"
-            value={newDiscipline}
-            onChange={(e) => onNewChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="h-11 flex-1 rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
-          />
+        <p className="mt-1 text-xs text-[#64748B]">Busque uma disciplina do curso selecionado.</p>
+        <input
+          id="new-discipline"
+          type="search"
+          list="discipline-options"
+          autoComplete="off"
+          placeholder="Busque uma disciplina..."
+          value={newDiscipline}
+          onChange={(e) => onNewChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE]"
+        />
+        <datalist id="discipline-options">
+          {disciplineOptions.map((option) => <option key={option.id} value={option.name} />)}
+        </datalist>
+        {newDiscipline.trim() && !disciplineOptions.some((option) => normalize(option.name) === normalize(newDiscipline)) && (
+          <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#0242D7]" role="status">
+            Essa disciplina ainda não está disponível. Em breve <BrandMark className="h-5 w-6" />
+          </p>
+        )}
+        {disciplineLoading && <p className="mt-1.5 text-xs text-[#64748B]">Carregando disciplinas...</p>}
+        {!disciplineLoading && disciplineOptions.length === 0 && <p className="mt-1.5 text-xs text-[#64748B]">Ainda não há disciplinas publicadas para este curso.</p>}
+        {disciplineOptions.some((option) => normalize(option.name) === normalize(newDiscipline)) && (
           <button
             type="button"
-            onClick={() => {
-              if (newDiscipline.trim()) onAdd(newDiscipline.trim());
-            }}
-            className="h-11 shrink-0 rounded-md bg-[#0242D7] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+            onClick={() => onAdd(disciplineOptions.find((option) => normalize(option.name) === normalize(newDiscipline))!.name)}
+            className="mt-3 h-10 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] sm:w-auto sm:px-5"
           >
-            Adicionar
+            Adicionar disciplina
           </button>
-        </div>
+        )}
       </div>
 
       {disciplines.length > 0 && (
@@ -1182,9 +1190,15 @@ function Onboarding() {
               semester={semester}
               onCourseChange={(v) => {
                 setCourse(v);
+                const match = courseOptions.find((option) => normalize(option.name) === normalize(v));
+                setSelectedCourseId(match?.id ?? null);
+                setDisciplines([]);
+                setNewDiscipline("");
                 setStatus("idle");
                 saveProfile();
               }}
+              courseOptions={courseOptions}
+              courseLoading={courseLoading}
               onInstitutionChange={(v) => {
                 setInstitution(v);
                 setStatus("idle");
@@ -1201,6 +1215,8 @@ function Onboarding() {
           {step === "disciplines" && (
             <DisciplinesStep
               disciplines={disciplines}
+              disciplineOptions={disciplineOptions}
+              disciplineLoading={disciplineLoading}
               newDiscipline={newDiscipline}
               onAdd={(d) => {
                 if (!disciplines.includes(d)) {
