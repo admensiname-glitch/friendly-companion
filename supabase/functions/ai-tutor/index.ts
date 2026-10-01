@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 type Body = {
-  action?: "chat" | "answer_microassessment";
+  action?: "chat" | "answer_microassessment" | "start_formal_evaluation";
   topic_id?: string;
   conversation_id?: string | null;
   message?: string;
@@ -30,6 +30,259 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+type GeneratedFormalEvaluationQuestion = {
+  question_text: string;
+  options: string[];
+  correct_option_index: number;
+  explanation: string;
+  difficulty: "introductory" | "intermediate" | "advanced";
+  concept_tags: string[];
+};
+
+function normalizeForComparison(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function uniqueNormalized(values: string[]): boolean {
+  return new Set(values.map(normalizeForComparison)).size === values.length;
+}
+
+async function generateFormalEvaluationQuestions(args: {
+  apiKey: string;
+  topicName: string;
+  topicDescription: string | null;
+  context: string;
+  previousAttempt: Array<{ question_text: string; options: string[] }>;
+  seed: string;
+}): Promise<GeneratedFormalEvaluationQuestion[] | null> {
+  const previousQuestions = args.previousAttempt
+    .map((item, index) =>
+      (index + 1) + ". " + item.question_text +
+      "\nAlternativas: " + item.options.join(" | ")
+    )
+    .join("\n");
+
+  const prompt =
+    "Você é um elaborador de avaliações formais do Ensina-me.\n\n" +
+    "OBJETIVO\n" +
+    "Crie exatamente 10 questões de múltipla escolha sobre o tópico informado. A avaliação deve verificar domínio acadêmico real do conteúdo, sem sair do escopo.\n\n" +
+    "REGRAS DE CONTEÚDO\n" +
+    "- Use prioritariamente e exclusivamente o contexto acadêmico fornecido.\n" +
+    "- Não invente autores, dados, definições ou conteúdos que não estejam sustentados pelo contexto.\n" +
+    "- As 10 questões devem cobrir aspectos diferentes do tópico e variar o formato cognitivo: compreensão, aplicação, comparação e análise.\n" +
+    "- Evite duas questões que cobrem essencialmente a mesma situação.\n" +
+    "- Cada questão deve ter exatamente 4 alternativas.\n" +
+    "- Exatamente uma alternativa deve estar correta.\n" +
+    "- As alternativas devem ser plausíveis e semanticamente distintas.\n" +
+    "- Não use pegadinhas artificiais.\n" +
+    "- A dificuldade deve variar entre introductory, intermediate e advanced.\n" +
+    "- concept_tags deve ter de 1 a 3 conceitos.\n" +
+    "- A explicação do gabarito deve ser curta, clara e baseada no contexto.\n\n" +
+    "DIVERSIDADE ENTRE TENTATIVAS\n" +
+    "- Esta é uma nova tentativa. Não repita as perguntas da tentativa anterior.\n" +
+    "- Não repita o mesmo enunciado com pequenas trocas de palavras. Mude o caso, situação, relação conceitual ou foco cognitivo.\n" +
+    "- Não repita a mesma alternativa correta com o mesmo texto da tentativa anterior. Reescreva as alternativas.\n" +
+    "- Considere o identificador aleatório da tentativa: " + args.seed + ". Use-o apenas como gatilho para variar os casos e a ordem conceitual.\n" +
+    (previousQuestions
+      ? "\nTENTATIVA ANTERIOR — NÃO REPETIR:\n" + previousQuestions
+      : "\nNão existe tentativa anterior. Crie a primeira avaliação.\n") +
+    "\n\nTÓPICO: " + args.topicName +
+    (args.topicDescription ? "\nDESCRIÇÃO: " + args.topicDescription : "") +
+    "\n\nCONTEXTO ACADÊMICO:\n" +
+    args.context;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + args.apiKey,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-oss-120b",
+          messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: "Gere agora as 10 questões da nova tentativa." },
+          ],
+          max_completion_tokens: 3600,
+          temperature: 0.35,
+          reasoning_effort: "medium",
+          include_reasoning: false,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "ensina_me_formal_evaluation",
+              strict: true,
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  questions: {
+                    type: "array",
+                    minItems: 10,
+                    maxItems: 10,
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        question_text: { type: "string" },
+                        options: {
+                          type: "array",
+                          minItems: 4,
+                          maxItems: 4,
+                          items: { type: "string" },
+                        },
+                        correct_option_index: {
+                          type: "integer",
+                          minimum: 0,
+                          maximum: 3,
+                        },
+                        explanation: { type: "string" },
+                        difficulty: {
+                          type: "string",
+                          enum: ["introductory", "intermediate", "advanced"],
+                        },
+                        concept_tags: {
+                          type: "array",
+                          minItems: 1,
+                          maxItems: 3,
+                          items: { type: "string" },
+                        },
+                      },
+                      required: [
+                        "question_text",
+                        "options",
+                        "correct_option_index",
+                        "explanation",
+                        "difficulty",
+                        "concept_tags",
+                      ],
+                    },
+                  },
+                },
+                required: ["questions"],
+              },
+            },
+          },
+        }),
+        signal: controller.signal,
+      },
+    );
+
+    const payload = await response.json();
+    if (!response.ok) {
+      console.warn("[Ensina-me] ai-tutor: falha ao gerar avaliação formal", response.status);
+      return null;
+    }
+
+    const raw = extractOutputText(payload);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { questions?: unknown };
+    if (!Array.isArray(parsed.questions) || parsed.questions.length !== 10) return null;
+
+    const questions: GeneratedFormalEvaluationQuestion[] = [];
+
+    for (const item of parsed.questions) {
+      if (!isRecord(item)) return null;
+      const questionText =
+        typeof item.question_text === "string" ? item.question_text.trim() : "";
+      const options = Array.isArray(item.options)
+        ? item.options
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.trim())
+        : [];
+      const correctIndex =
+        typeof item.correct_option_index === "number"
+          ? Math.trunc(item.correct_option_index)
+          : -1;
+      const explanation =
+        typeof item.explanation === "string" ? item.explanation.trim() : "";
+      const difficulty = item.difficulty;
+      const tags = Array.isArray(item.concept_tags)
+        ? item.concept_tags
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .slice(0, 3)
+        : [];
+
+      if (
+        !questionText ||
+        options.length !== 4 ||
+        !uniqueNormalized(options) ||
+        correctIndex < 0 ||
+        correctIndex > 3 ||
+        !explanation ||
+        (difficulty !== "introductory" &&
+          difficulty !== "intermediate" &&
+          difficulty !== "advanced") ||
+        tags.length === 0
+      ) {
+        return null;
+      }
+
+      questions.push({
+        question_text: questionText,
+        options,
+        correct_option_index: correctIndex,
+        explanation,
+        difficulty,
+        concept_tags: tags,
+      });
+    }
+
+    if (!uniqueNormalized(questions.map((question) => question.question_text))) {
+      return null;
+    }
+
+    if (args.previousAttempt.length > 0) {
+      const previousQuestionSet = new Set(
+        args.previousAttempt.map((item) => normalizeForComparison(item.question_text)),
+      );
+      const previousOptionSet = new Set(
+        args.previousAttempt.flatMap((item) =>
+          item.options.map((option) => normalizeForComparison(option)),
+        ),
+      );
+
+      if (
+        questions.some((question) =>
+          previousQuestionSet.has(normalizeForComparison(question.question_text)),
+        ) ||
+        questions.some((question) =>
+          question.options.some((option) =>
+            previousOptionSet.has(normalizeForComparison(option)),
+          ),
+        )
+      ) {
+        return null;
+      }
+    }
+
+    return questions;
+  } catch (error) {
+    console.warn(
+      "[Ensina-me] ai-tutor: erro ao gerar avaliação formal",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -472,6 +725,160 @@ Deno.serve(async (req: Request) => {
       body = await req.json();
     } catch {
       return json({ error: "Corpo da requisição inválido." }, 400);
+    }
+
+    if (body.action === "start_formal_evaluation") {
+      const topicId = body.topic_id?.trim();
+      if (!topicId) {
+        return json({ error: "Tópico é obrigatório." }, 400);
+      }
+
+      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+      if (!groqApiKey) {
+        return json({ error: "O Tutor ainda não foi configurado." }, 503);
+      }
+
+      const { data: topic, error: topicError } = await supabase
+        .from("topics")
+        .select("id, name, description")
+        .eq("id", topicId)
+        .eq("published", true)
+        .maybeSingle();
+
+      if (topicError || !topic) {
+        return json({ error: "Tópico não encontrado." }, 404);
+      }
+
+      const { data: material } = await supabase
+        .from("materials")
+        .select("id, title, introduction")
+        .eq("topic_id", topicId)
+        .eq("status", "published")
+        .maybeSingle();
+
+      const { data: sections } = material
+        ? await supabase
+            .from("material_sections")
+            .select("title, content, position")
+            .eq("material_id", material.id)
+            .order("position", { ascending: true })
+        : { data: [] };
+
+      const context = [
+        "TÓPICO: " + topic.name,
+        topic.description ? "DESCRIÇÃO: " + topic.description : "",
+        material
+          ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "")
+          : "",
+        ...(sections ?? []).map(
+          (section: { title: string; content: string }) =>
+            "SEÇÃO — " + section.title + "\n" + section.content,
+        ),
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const { data: historyData, error: historyError } = await supabase.rpc(
+        "get_formal_evaluation_history",
+        { _topic_id: topicId },
+      );
+
+      if (historyError) {
+        return json(
+          { error: "Não foi possível recuperar o histórico da avaliação." },
+          500,
+        );
+      }
+
+      const history = Array.isArray(historyData) ? historyData : [];
+      const latestAttempt = history[0];
+
+      const previousAttempt =
+        latestAttempt && Array.isArray(latestAttempt.questions)
+          ? latestAttempt.questions
+              .filter(
+                (item: unknown): item is { question_text: string; options: unknown } =>
+                  isRecord(item) &&
+                  typeof item.question_text === "string" &&
+                  Array.isArray(item.options),
+              )
+              .map((item) => ({
+                question_text: item.question_text,
+                options: item.options.filter(
+                  (value): value is string => typeof value === "string",
+                ),
+              }))
+          : [];
+
+      let questions = await generateFormalEvaluationQuestions({
+        apiKey: groqApiKey,
+        topicName: topic.name,
+        topicDescription: topic.description,
+        context: truncateText(context, MAX_CONTEXT_CHARACTERS),
+        previousAttempt,
+        seed: crypto.randomUUID(),
+      });
+
+      if (!questions) {
+        questions = await generateFormalEvaluationQuestions({
+          apiKey: groqApiKey,
+          topicName: topic.name,
+          topicDescription: topic.description,
+          context: truncateText(context, MAX_CONTEXT_CHARACTERS),
+          previousAttempt,
+          seed: crypto.randomUUID(),
+        });
+      }
+
+      if (!questions) {
+        return json(
+          {
+            error:
+              "Não foi possível gerar uma nova avaliação sem repetir questões anteriores. Tente novamente.",
+          },
+          502,
+        );
+      }
+
+      const { data: created, error: createError } = await supabase.rpc(
+        "create_formal_evaluation_attempt",
+        {
+          _topic_id: topicId,
+          _questions: questions,
+        },
+      );
+
+      if (createError || !created) {
+        console.error(
+          "[Ensina-me] ai-tutor: erro ao criar tentativa formal",
+          createError?.message ?? "resultado vazio",
+        );
+        return json({ error: "Não foi possível iniciar a avaliação." }, 500);
+      }
+
+      const createdAttemptId =
+        typeof created === "object" &&
+        created !== null &&
+        "attempt_id" in created
+          ? String((created as { attempt_id: unknown }).attempt_id)
+          : null;
+
+      if (!createdAttemptId) {
+        return json({ error: "A avaliação foi criada sem identificador." }, 500);
+      }
+
+      return json({
+        attempt_id: createdAttemptId,
+        total_questions: 10,
+        questions: questions.map((question, index) => ({
+          id: createdAttemptId + "-" + (index + 1),
+          position: index + 1,
+          question_text: question.question_text,
+          options: question.options,
+          difficulty: question.difficulty,
+          concept_tags: question.concept_tags,
+        })),
+      });
     }
 
 
