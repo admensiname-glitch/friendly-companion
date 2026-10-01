@@ -1135,6 +1135,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
         )}
       </div>
     </>
+  );
 
 }
 
