@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,7 +118,7 @@ function ProfilePage() {
   const [pendingCourseRemoval, setPendingCourseRemoval] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
 
-  async function loadProfileData() {
+  const loadProfileData = useCallback(async () => {
     const { data: sessionData } = await supabase.auth.getSession();
 
     if (!sessionData.session) {
@@ -165,11 +165,11 @@ function ProfilePage() {
     );
     setStudentDisciplines((disciplineData ?? []) as StudentDiscipline[]);
     setLoading(false);
-  }
+  }, [navigate]);
 
   useEffect(() => {
     void loadProfileData();
-  }, [navigate]);
+  }, [loadProfileData]);
 
   useEffect(() => {
     const courseId = profile?.course_id;
