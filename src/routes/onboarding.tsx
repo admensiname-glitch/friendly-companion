@@ -1083,6 +1083,7 @@ function Onboarding() {
       .upsert(
         {
           user_id: userId,
+          course_id: selectedCourseId,
           institution: institution || null,
           semester,
           daily_study_minutes: dailyStudyMinutes,
