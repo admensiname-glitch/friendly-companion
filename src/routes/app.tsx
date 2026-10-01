@@ -123,21 +123,31 @@ function AppLayout() {
           </nav>
         </div>
 
-        <div className="mt-auto px-4 pb-5">
-          {logoutError && <p className="mb-3 rounded-lg bg-[#FEF2F2] px-3 py-2 text-xs leading-5 text-[#B91C1C]" role="alert">{logoutError}</p>}
-          <div className="rounded-2xl border border-[#E7ECF3] bg-[#FAFBFD] p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0242D7] text-[10px] font-bold text-white">EM</div>
-              <div>
-                <p className="text-xs font-semibold text-[#0F172A]">Área do aluno</p>
-                <p className="mt-0.5 text-[11px] text-[#8B96A5]">Seu espaço de estudo</p>
-              </div>
+        <div className="mt-auto border-t border-[#DCE4ED] px-4 py-4 dark:border-[#27364A]">
+          {logoutError && <p className="mb-3 rounded-xl bg-[#FEF2F2] px-3 py-2 text-xs leading-5 text-[#B91C1C]" role="alert">{logoutError}</p>}
+          <Link
+            to="/app/perfil"
+            className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-[#EAF0F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] dark:hover:bg-[#172033]"
+            aria-label="Abrir meu perfil"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] text-[10px] font-extrabold tracking-wide text-white shadow-sm">
+              EM
             </div>
-            <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#6B7787] transition-colors hover:bg-[#FFFFFF] hover:text-[#0F172A] disabled:opacity-60">
-              <Icon name="logout" className="h-4 w-4" />
-              {isLoggingOut ? "Saindo..." : "Sair da área"}
-            </button>
-          </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold text-[#0F172A] dark:text-[#E7EDF5]">Meu perfil</p>
+              <p className="mt-0.5 truncate text-[11px] text-[#7B8796] dark:text-[#8797AA]">Conta e preferências</p>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-[#7B8796] transition-colors hover:bg-[#EAF0F6] hover:text-[#0F172A] disabled:cursor-not-allowed disabled:opacity-60 dark:text-[#8797AA] dark:hover:bg-[#172033] dark:hover:text-[#E7EDF5]"
+          >
+            <Icon name="logout" className="h-4 w-4" />
+            {isLoggingOut ? "Saindo..." : "Sair"}
+          </button>
         </div>
       </aside>
 
