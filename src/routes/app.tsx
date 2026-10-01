@@ -69,8 +69,8 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] text-[#0F172A]">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#E7ECF3] bg-white lg:flex">
+    <div className="min-h-screen bg-[#EAF0F6] text-[#0F172A]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[#DCE4ED] bg-[#F3F6FA] lg:flex">
         <div className="flex h-[72px] items-center px-7">
           <Link to="/app/dashboard" className="text-[22px] font-bold tracking-[-0.04em] text-[#0242D7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4">
             Ensina-me
@@ -111,7 +111,7 @@ function AppLayout() {
                 <p className="mt-0.5 text-[11px] text-[#8B96A5]">Seu espaço de estudo</p>
               </div>
             </div>
-            <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#6B7787] transition-colors hover:bg-white hover:text-[#0F172A] disabled:opacity-60">
+            <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-[#6B7787] transition-colors hover:bg-[#FFFFFF] hover:text-[#0F172A] disabled:opacity-60">
               <Icon name="logout" className="h-4 w-4" />
               {isLoggingOut ? "Saindo..." : "Sair da área"}
             </button>
@@ -119,7 +119,7 @@ function AppLayout() {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-[#E7ECF3] bg-white/95 backdrop-blur lg:ml-[248px]">
+      <header className="sticky top-0 z-30 border-b border-[#DCE4ED] bg-[#F7F9FC]/95 backdrop-blur lg:ml-[248px]">
         <div className="flex h-[72px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
           <Link to="/app/dashboard" className="text-xl font-bold tracking-[-0.04em] text-[#0242D7] lg:hidden">Ensina-me</Link>
           <div className="hidden lg:block">
@@ -145,7 +145,7 @@ function AppLayout() {
         </div>
       </main>
 
-      <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-white/96 px-2 py-2 backdrop-blur lg:hidden">
+      <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E1E7EF] bg-[#F4F7FB]/96 px-2 py-2 backdrop-blur lg:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
           {navigation.map((item) => (
             <Link
