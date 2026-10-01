@@ -781,12 +781,17 @@ function Onboarding() {
       const { data: profile } = await supabase
         .from("student_profiles")
         .select(
-          "institution, semester, daily_study_minutes, difficulties, onboarding_completed",
+          "course_id, institution, semester, daily_study_minutes, difficulties, onboarding_completed",
         )
         .eq("user_id", userId)
         .maybeSingle();
 
       if (profile) {
+        if (profile.course_id) {
+          setSelectedCourseId(profile.course_id);
+          const profileCourse = (courses ?? []).find((item) => item.id === profile.course_id);
+          if (profileCourse) setCourse(profileCourse.name);
+        }
         setInstitution(profile.institution ?? "");
         setSemester(profile.semester ?? null);
         setDailyStudyMinutes(profile.daily_study_minutes ?? 60);
@@ -856,7 +861,7 @@ function Onboarding() {
     return () => { cancelled = true; };
   }, [selectedCourseId]);
   // ── Auto-save profile fields with debounce ──
-  async function saveProfile() {
+  async function saveProfile(courseId: string | null = selectedCourseId) {
     if (saveDebounce.current) clearTimeout(saveDebounce.current);
 
     saveDebounce.current = setTimeout(async () => {
@@ -877,6 +882,7 @@ function Onboarding() {
         .upsert(
           {
             user_id: userId,
+            course_id: courseId,
             institution: institution || null,
             semester,
             daily_study_minutes: dailyStudyMinutes,
@@ -991,10 +997,8 @@ function Onboarding() {
 
   // ── Navigation ──
   function goNext() {
-    saveProfile();
-
     if (step === "institution") {
-      const selectedCourse = courseOptions.some(
+      const selectedCourse = courseOptions.find(
         (option) => normalize(option.name) === normalize(course),
       );
 
@@ -1004,12 +1008,17 @@ function Onboarding() {
         return;
       }
 
+      setSelectedCourseId(selectedCourse.id);
+      saveProfile(selectedCourse.id);
       setMessage("");
+      setStatus("saved");
       setStep("disciplines");
     } else if (step === "disciplines") {
+      saveProfile();
       setMessage("");
       setStep("exams");
     } else if (step === "exams") {
+      saveProfile();
       setMessage("");
       setStep("final");
     }
@@ -1157,10 +1166,10 @@ function Onboarding() {
         <header className="mb-10">
           <Link
             to="/"
-            className="inline-block text-xl font-bold tracking-[-0.03em] text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+            className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
             aria-label="Ensina-me, página inicial"
           >
-            Ensina-me
+            <BrandLogo compact />
           </Link>
         </header>
 
@@ -1212,7 +1221,7 @@ function Onboarding() {
                 setDisciplines([]);
                 setNewDiscipline("");
                 setStatus("idle");
-                saveProfile();
+                saveProfile(match?.id ?? null);
               }}
               courseOptions={courseOptions}
               courseLoading={courseLoading}
