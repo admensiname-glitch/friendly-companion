@@ -727,6 +727,11 @@ function Onboarding() {
 
   // ── Profile data ──
   const [course, setCourse] = useState("");
+  const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
+  const [courseLoading, setCourseLoading] = useState(true);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [disciplineOptions, setDisciplineOptions] = useState<DisciplineOption[]>([]);
+  const [disciplineLoading, setDisciplineLoading] = useState(false);
   const [institution, setInstitution] = useState("");
   const [semester, setSemester] = useState<number | null>(null);
   const [dailyStudyMinutes, setDailyStudyMinutes] = useState(60);
@@ -756,6 +761,15 @@ function Onboarding() {
 
       const userId = sessionData.session.user.id;
 
+      const { data: courses } = await supabase
+        .from("courses")
+        .select("id, name")
+        .eq("published", true)
+        .order("name", { ascending: true });
+
+      setCourseOptions((courses ?? []) as CourseOption[]);
+      setCourseLoading(false);
+
       const { data: profile } = await supabase
         .from("student_profiles")
         .select(
@@ -783,7 +797,11 @@ function Onboarding() {
       if (discs && discs.length > 0) {
         setDisciplines(discs.map((d) => d.discipline_name));
         const existingCourse = discs.find((d) => typeof d.course === "string" && d.course.trim())?.course;
-        if (existingCourse) setCourse(existingCourse);
+        if (existingCourse) {
+          setCourse(existingCourse);
+          const matchingCourse = (courses ?? []).find((item) => normalize(item.name) === normalize(existingCourse));
+          if (matchingCourse) setSelectedCourseId(matchingCourse.id);
+        }
       }
 
       const { data: existingExams } = await supabase
@@ -806,6 +824,29 @@ function Onboarding() {
     loadProfile();
   }, []);
 
+  // ── Load published disciplines for selected course ──
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setDisciplineOptions([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      setDisciplineLoading(true);
+      const { data } = await supabase
+        .from("disciplines")
+        .select("id, name")
+        .eq("course_id", selectedCourseId)
+        .eq("published", true)
+        .order("name", { ascending: true });
+      if (!cancelled) {
+        setDisciplineOptions((data ?? []) as DisciplineOption[]);
+        setDisciplineLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedCourseId]);
   // ── Auto-save profile fields with debounce ──
   async function saveProfile() {
     if (saveDebounce.current) clearTimeout(saveDebounce.current);
