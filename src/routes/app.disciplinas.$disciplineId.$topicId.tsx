@@ -2410,13 +2410,7 @@ function TopicDetailPage() {
       {/* ── Topic header ── */}
       <div className="mt-6 rounded-[22px] bg-[#F0F5FF] p-6 sm:p-7">
         <div className="flex items-start justify-between gap-4">
-          {disciplineName && (
-            <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-medium text-[#0242D7]">
-              {disciplineName}
-            </span>
-          )}
-        </div>
-        <div>
+          <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">Tópico de estudo</p>
           <p className="mt-1 text-xs font-semibold text-[#6B7A8E]">{disciplineName ?? "Disciplina"}</p>
         </div>
