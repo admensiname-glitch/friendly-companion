@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/cadastro")({
   component: Cadastro,
@@ -144,10 +145,10 @@ function Cadastro() {
         <header className="mb-10 flex items-center justify-between gap-4">
           <Link
             to="/"
-            className="text-xl font-bold tracking-[-0.03em] text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+            className="focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
             aria-label="Ensina-me, página inicial"
           >
-            Ensina-me
+            <BrandLogo compact />
           </Link>
           <Link
             to="/login"
