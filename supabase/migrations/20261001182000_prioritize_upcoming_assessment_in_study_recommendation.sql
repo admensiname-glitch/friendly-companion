@@ -72,7 +72,7 @@ begin
       left join public.student_topic_progress p on p.user_id=v_user_id and p.topic_id=t.id
       where sd.user_id=v_user_id and p.id is null
         and translate(lower(trim(sd.discipline_name)),'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
-         = translate(lower(trim(v_exam.discipline)),'áàãâäéèêëíìîïóòõôöúùüç','aaaaaeeeeiiiiooooouuuuc')
+         = translate(lower(trim(v_exam.discipline)),'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
       order by t.position
       limit 1;
     end if;
