@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +49,7 @@ function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
 }
 
 function Cadastro() {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -128,8 +129,9 @@ function Cadastro() {
 
     if (data.session) {
       setMessage(
-        "Conta criada e sessão iniciada. A confirmação de e-mail não foi exigida nesta configuração.",
+        "Conta criada e sessão iniciada. Abrindo sua configuração inicial...",
       );
+      await navigate({ to: "/onboarding" });
     } else {
       setMessage(
         "Conta criada com sucesso. Enviamos um e-mail de confirmação. Abra o e-mail enviado pelo Ensina-me e confirme sua conta antes de entrar.",
