@@ -346,7 +346,7 @@ const examTypes = [
   "Prova",
   "Trabalho",
   "Apresentação",
-  " Seminário",
+  "Seminário",
   "Prova final",
   "Avaliação parcial",
   "Outro",
@@ -869,18 +869,41 @@ function Onboarding() {
     return () => { cancelled = true; };
   }, [selectedCourseId]);
   // ── Auto-save profile fields with debounce ──
-  async function saveProfile(courseId: string | null = selectedCourseId) {
+  type SaveProfileOverrides = Partial<{
+    courseId: string | null;
+    institution: string;
+    semester: number | null;
+    dailyStudyMinutes: number;
+    difficulties: string;
+  }>;
+
+  function saveProfile(overrides: SaveProfileOverrides = {}) {
     if (saveDebounce.current) clearTimeout(saveDebounce.current);
 
     saveDebounce.current = setTimeout(async () => {
       setStatus("saving");
 
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      if (!sessionData.session) {
+        setStatus("error");
+        return;
+      }
 
       const userId = sessionData.session.user.id;
+      const nextCourseId =
+        overrides.courseId !== undefined ? overrides.courseId : selectedCourseId;
+      const nextInstitution =
+        overrides.institution !== undefined ? overrides.institution : institution;
+      const nextSemester =
+        overrides.semester !== undefined ? overrides.semester : semester;
+      const nextDailyStudyMinutes =
+        overrides.dailyStudyMinutes !== undefined
+          ? overrides.dailyStudyMinutes
+          : dailyStudyMinutes;
+      const nextDifficulties =
+        overrides.difficulties !== undefined ? overrides.difficulties : difficulties;
 
-      const difficultiesArray = difficulties
+      const difficultiesArray = nextDifficulties
         .split(",")
         .map((d) => d.trim())
         .filter(Boolean);
@@ -890,22 +913,19 @@ function Onboarding() {
         .upsert(
           {
             user_id: userId,
-            course_id: courseId,
-            institution: institution || null,
-            semester,
-            daily_study_minutes: dailyStudyMinutes,
-            difficulties: difficultiesArray.length > 0 ? difficultiesArray : null,
+            course_id: nextCourseId,
+            institution: nextInstitution || null,
+            semester: nextSemester,
+            daily_study_minutes: nextDailyStudyMinutes,
+            difficulties:
+              difficultiesArray.length > 0 ? difficultiesArray : null,
             onboarding_completed: false,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id" },
         );
 
-      if (error) {
-        setStatus("error");
-      } else {
-        setStatus("saved");
-      }
+      setStatus(error ? "error" : "saved");
     }, 800);
   }
 
@@ -1230,19 +1250,19 @@ function Onboarding() {
                 setDisciplines([]);
                 setNewDiscipline("");
                 setStatus("idle");
-                saveProfile(match?.id ?? null);
+                saveProfile({ courseId: match?.id ?? null });
               }}
               courseOptions={courseOptions}
               courseLoading={courseLoading}
               onInstitutionChange={(v) => {
                 setInstitution(v);
                 setStatus("idle");
-                saveProfile();
+                saveProfile({ institution: v });
               }}
               onSemesterChange={(v) => {
                 setSemester(v);
                 setStatus("idle");
-                saveProfile();
+                saveProfile({ semester: v });
               }}
             />
           )}
@@ -1287,12 +1307,12 @@ function Onboarding() {
                 onDifficultiesChange={(v) => {
                   setDifficulties(v);
                   setStatus("idle");
-                  saveProfile();
+                  saveProfile({ difficulties: v });
                 }}
                 onMinutesChange={(v) => {
                   setDailyStudyMinutes(v);
                   setStatus("idle");
-                  saveProfile();
+                  saveProfile({ dailyStudyMinutes: v });
                 }}
               />
               <ReviewSummary
