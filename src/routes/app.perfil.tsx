@@ -18,6 +18,13 @@ interface StudentDiscipline {
   discipline_name: string;
 }
 
+interface StudentExam {
+  id: string;
+  discipline: string;
+  exam_type: string;
+  exam_date: string | null;
+}
+
 interface ProfileData {
   course_id: string | null;
   institution: string | null;
@@ -111,6 +118,10 @@ function ProfilePage() {
     StudentDiscipline[]
   >([]);
   const [newDiscipline, setNewDiscipline] = useState("");
+  const [exams, setExams] = useState<StudentExam[]>([]);
+  const [newExamDiscipline, setNewExamDiscipline] = useState("");
+  const [newExamType, setNewExamType] = useState("Prova");
+  const [newExamDate, setNewExamDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [disciplineLoading, setDisciplineLoading] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -132,8 +143,12 @@ function ProfilePage() {
     setName(fullName?.split(" ")[0] || "Aluno");
     setEmail(user.email || "");
 
-    const [{ data: courseData }, { data: profileData }, { data: disciplineData }] =
-      await Promise.all([
+    const [
+      { data: courseData },
+      { data: profileData },
+      { data: disciplineData },
+      { data: examData },
+    ] = await Promise.all([
         supabase
           .from("courses")
           .select("id,name")
@@ -151,6 +166,11 @@ function ProfilePage() {
           .select("id,discipline_name")
           .eq("user_id", user.id)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("student_exams")
+          .select("id,discipline,exam_type,exam_date")
+          .eq("user_id", user.id)
+          .order("exam_date", { ascending: true }),
       ]);
 
     setCourses((courseData ?? []) as CourseOption[]);
@@ -164,6 +184,7 @@ function ProfilePage() {
       },
     );
     setStudentDisciplines((disciplineData ?? []) as StudentDiscipline[]);
+    setExams((examData ?? []) as StudentExam[]);
     setLoading(false);
   }, [navigate]);
 
@@ -481,6 +502,85 @@ function ProfilePage() {
     window.setTimeout(() => setSaveState("idle"), 1800);
   }
 
+  async function addExam() {
+    const disciplineName = newExamDiscipline.trim();
+    const examType = newExamType.trim() || "Prova";
+
+    if (!disciplineName || !newExamDate) {
+      setSaveState("error");
+      setMessage("Informe a disciplina e a data da avaliação.");
+      return;
+    }
+
+    const selected = disciplineOptions.find(
+      (discipline) => discipline.name.toLowerCase() === disciplineName.toLowerCase(),
+    );
+
+    if (!selected) {
+      setSaveState("error");
+      setMessage("Escolha uma disciplina disponível no seu curso.");
+      return;
+    }
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setSaveState("error");
+      setMessage("Sua sessão expirou. Faça login novamente.");
+      return;
+    }
+
+    setSaveState("saving");
+    setMessage(null);
+
+    const { data, error } = await supabase
+      .from("student_exams")
+      .insert({
+        user_id: sessionData.session.user.id,
+        discipline: selected.name,
+        exam_type: examType,
+        exam_date: newExamDate,
+      })
+      .select("id,discipline,exam_type,exam_date")
+      .single();
+
+    if (error) {
+      setSaveState("error");
+      setMessage("Não foi possível registrar a avaliação.");
+      return;
+    }
+
+    setExams((current) =>
+      [...current, data as StudentExam].sort((a, b) =>
+        String(a.exam_date ?? "").localeCompare(String(b.exam_date ?? "")),
+      ),
+    );
+    setNewExamDiscipline("");
+    setNewExamType("Prova");
+    setNewExamDate("");
+    setSaveState("saved");
+    window.setTimeout(() => setSaveState("idle"), 1800);
+  }
+
+  async function removeExam(examId: string) {
+    setSaveState("saving");
+    setMessage(null);
+
+    const { error } = await supabase
+      .from("student_exams")
+      .delete()
+      .eq("id", examId);
+
+    if (error) {
+      setSaveState("error");
+      setMessage("Não foi possível remover a avaliação.");
+      return;
+    }
+
+    setExams((current) => current.filter((exam) => exam.id !== examId));
+    setSaveState("saved");
+    window.setTimeout(() => setSaveState("idle"), 1800);
+  }
+
   async function handleLogout() {
     if (logoutPending) return;
     setLogoutPending(true);
@@ -747,6 +847,104 @@ function ProfilePage() {
               <p className="text-sm font-semibold text-[#344154] dark:text-[#DCE5EE]">
                 Escolha um curso antes de adicionar disciplinas.
               </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-10" aria-labelledby="exams-heading">
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
+            Próximas avaliações
+          </p>
+          <h2 id="exams-heading" className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
+            Provas e avaliações
+          </h2>
+          <p className="mt-1 text-sm text-[#718093] dark:text-[#96A6B8]">
+            Registre uma avaliação para que o Ensina-me possa considerar a data nas próximas recomendações de estudo.
+          </p>
+        </div>
+
+        <div className="border-y border-[#DCE5F0] dark:border-[#2B3A4F]">
+          <div className="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_150px_160px_auto]">
+            <div>
+              <label htmlFor="profile-exam-discipline" className="sr-only">Disciplina da avaliação</label>
+              <input
+                id="profile-exam-discipline"
+                type="search"
+                list="profile-exam-discipline-options"
+                value={newExamDiscipline}
+                onChange={(event) => setNewExamDiscipline(event.target.value)}
+                placeholder={disciplineLoading ? "Carregando disciplinas..." : "Disciplina"}
+                disabled={disciplineLoading || !profile?.course_id}
+                className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547] outline-none placeholder:text-[#96A3B3] focus:border-[#0242D7] focus:ring-2 focus:ring-[#D8E6FB] dark:border-[#34485E] dark:bg-[#182538] dark:text-[#E2EAF2]"
+              />
+              <datalist id="profile-exam-discipline-options">
+                {disciplineOptions.map((discipline) => (
+                  <option key={discipline.id} value={discipline.name} />
+                ))}
+              </datalist>
+            </div>
+
+            <label>
+              <span className="sr-only">Tipo de avaliação</span>
+              <input
+                type="text"
+                value={newExamType}
+                onChange={(event) => setNewExamType(event.target.value)}
+                placeholder="Tipo"
+                className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547] outline-none placeholder:text-[#96A3B3] focus:border-[#0242D7] focus:ring-2 focus:ring-[#D8E6FB] dark:border-[#34485E] dark:bg-[#182538] dark:text-[#E2EAF2]"
+              />
+            </label>
+
+            <label>
+              <span className="sr-only">Data da avaliação</span>
+              <input
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={newExamDate}
+                onChange={(event) => setNewExamDate(event.target.value)}
+                className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547] outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#D8E6FB] dark:border-[#34485E] dark:bg-[#182538] dark:text-[#E2EAF2]"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => void addExam()}
+              disabled={!profile?.course_id || disciplineLoading}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0242D7] px-4 text-sm font-bold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Registrar
+            </button>
+          </div>
+
+          {exams.length === 0 ? (
+            <p className="border-t border-[#E4EAF1] py-5 text-sm text-[#7A8796] dark:border-[#2B3A4F] dark:text-[#96A6B8]">
+              Nenhuma avaliação futura registrada.
+            </p>
+          ) : (
+            <div className="border-t border-[#E4EAF1] dark:border-[#2B3A4F]">
+              {exams.map((exam) => (
+                <div key={exam.id} className="grid gap-3 border-b border-[#E8EDF2] py-4 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[minmax(0,1fr)_130px_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#273547] dark:text-[#DFE8F1]">{exam.discipline}</p>
+                    <p className="mt-0.5 text-xs text-[#7A8796] dark:text-[#8999AB]">{exam.exam_type}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#536276] dark:text-[#B8C4D2]">
+                    {exam.exam_date ? new Date(exam.exam_date + "T12:00:00").toLocaleDateString("pt-BR") : "Data não definida"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void removeExam(exam.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8A96A5] hover:bg-[#F4F6F8] hover:text-[#B42318] dark:text-[#8293A6] dark:hover:bg-[#1B2638] dark:hover:text-[#F0A3A3]"
+                    aria-label={"Remover " + exam.exam_type + " de " + exam.discipline}
+                    title="Remover avaliação"
+                  >
+                    <Icon name="close" className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
