@@ -265,7 +265,7 @@
 .dark [class*="bg-[#FFF7E8]"],
 .dark [class*="bg-[#FFFBEB]"],
 .dark [class*="bg-[#FFFCF2]"] {
-  background-color: #332A16 !important;
+  background-color: #1B2638 !important;
 }
 
 .dark [class*="bg-[#F0FDF4]"],
@@ -337,7 +337,7 @@
 .dark [class*="text-[#A15D0B]"],
 .dark [class*="text-[#B86B13]"],
 .dark [class*="text-[#D97706]"] {
-  color: #F6C66D !important;
+  color: #AFC3D9 !important;
 }
 
 .dark [class*="border-[#E7ECF3]"],
@@ -362,7 +362,7 @@
 
 .dark [class*="border-[#FDE68A]"],
 .dark [class*="border-[#F1DD9C]"] {
-  border-color: #6B5728 !important;
+  border-color: #36485F !important;
 }
 
 .dark [class*="border-[#16A34A]"],
