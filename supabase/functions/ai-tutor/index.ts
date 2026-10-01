@@ -251,9 +251,11 @@ async function generateFormalEvaluationQuestions(args: {
       const previousQuestionSet = new Set(
         args.previousAttempt.map((item) => normalizeForComparison(item.question_text)),
       );
-      const previousOptionSet = new Set(
-        args.previousAttempt.flatMap((item) =>
-          item.options.map((option) => normalizeForComparison(option)),
+      const previousQuestionFingerprints = new Set(
+        args.previousAttempt.map((item) =>
+          normalizeForComparison(item.question_text) +
+          "||" +
+          item.options.map(normalizeForComparison).sort().join("|")
         ),
       );
 
@@ -262,8 +264,10 @@ async function generateFormalEvaluationQuestions(args: {
           previousQuestionSet.has(normalizeForComparison(question.question_text)),
         ) ||
         questions.some((question) =>
-          question.options.some((option) =>
-            previousOptionSet.has(normalizeForComparison(option)),
+          previousQuestionFingerprints.has(
+            normalizeForComparison(question.question_text) +
+            "||" +
+            question.options.map(normalizeForComparison).sort().join("|")
           ),
         )
       ) {
