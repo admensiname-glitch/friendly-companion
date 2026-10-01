@@ -2,6 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -285,10 +286,10 @@ function Login() {
       <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-md flex-col justify-center">
         <Link
           to="/"
-          className="mb-10 w-fit text-xl font-bold tracking-[-0.03em] text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+          className="mb-10 w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
           aria-label="Ensina-me, página inicial"
         >
-          Ensina-me
+          <BrandLogo compact />
         </Link>
 
         <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
