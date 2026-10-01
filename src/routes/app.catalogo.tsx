@@ -9,6 +9,9 @@ interface Discipline {
   description: string | null;
   course_id: string;
   course_name?: string;
+  curriculum_order?: number | null;
+  reference_semester?: number | null;
+  curriculum_area?: string | null;
 }
 interface Topic {
   id: string;
@@ -54,8 +57,9 @@ function CatalogPage() {
       try {
         const { data, error } = await supabase
           .from("disciplines")
-          .select("id,name,description,course_id,courses(name)")
+          .select("id,name,description,course_id,curriculum_order,reference_semester,curriculum_area,courses(name)")
           .eq("published", true)
+          .order("curriculum_order", { ascending: true, nullsFirst: false })
           .order("name", { ascending: true });
 
         if (error) throw error;
@@ -296,9 +300,11 @@ function CatalogPage() {
                 {index + 1}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-[#8A96A5] dark:text-[#8797AA]">
-                  {discipline.course_name}
-                </p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[#8A96A5] dark:text-[#8797AA]">
+                  <span>{discipline.course_name}</span>
+                  {discipline.curriculum_area && <><span aria-hidden="true">·</span><span>{discipline.curriculum_area}</span></>}
+                  {discipline.reference_semester && <><span aria-hidden="true">·</span><span>Referência: {discipline.reference_semester}º semestre</span></>}
+                </div>
                 <h2 className="mt-1 text-[16px] font-bold text-[#273547] dark:text-[#E0E8F1]">
                   {discipline.name}
                 </h2>
