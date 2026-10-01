@@ -15,8 +15,8 @@ function Icon({name,className=""}:{name:"book"|"target"|"chart"|"arrow";classNam
 }
 
 function Index(){
-  return <main className="min-h-screen bg-[#F7F9FC] text-[#172334]">
-    <header className="border-b border-[#E7ECF3] bg-white/95 backdrop-blur">
+  return <main className="min-h-screen bg-[#EDF2F7] text-[#172334]">
+    <header className="border-b border-[#DCE4ED] bg-[#F4F7FA]/95 backdrop-blur">
       <div className="mx-auto flex h-[72px] w-full max-w-[1180px] items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="text-[22px] font-bold tracking-[-0.045em] text-[#0242D7]">Ensina-me</Link>
         <nav aria-label="Navegação principal" className="flex items-center gap-1.5">
@@ -72,7 +72,7 @@ function Index(){
       </div>
     </section>
 
-    <section className="border-y border-[#E4EAF2] bg-white">
+    <section className="border-y border-[#DCE4ED] bg-[#F5F8FB]">
       <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-5 md:grid-cols-3">
           {[
@@ -92,7 +92,7 @@ function Index(){
       </div>
     </section>
 
-    <footer className="border-t border-[#E4EAF2] bg-white">
+    <footer className="border-t border-[#DCE4ED] bg-[#F4F7FA]">
       <div className="mx-auto flex max-w-[1180px] flex-col gap-2 px-4 py-7 text-xs text-[#8A95A3] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <span>Ensina-me</span><span>Aprendizagem com clareza.</span>
       </div>
