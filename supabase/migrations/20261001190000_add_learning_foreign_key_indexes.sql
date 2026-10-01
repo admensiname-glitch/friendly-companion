@@ -1,0 +1,9 @@
+create index if not exists ai_micro_assessments_topic_id_idx on public.ai_micro_assessments(topic_id);
+create index if not exists evaluation_attempts_topic_id_idx on public.evaluation_attempts(topic_id);
+create index if not exists exercise_answers_question_id_idx on public.exercise_answers(question_id);
+create index if not exists formal_evaluation_answers_question_id_idx on public.formal_evaluation_answers(question_id);
+create index if not exists material_citations_section_id_idx on public.material_citations(section_id);
+create index if not exists material_chunk_citations_section_id_idx on public.material_chunk_citations(section_id);
+create index if not exists material_generation_runs_material_id_idx on public.material_generation_runs(material_id);
+create index if not exists student_exams_user_id_idx on public.student_exams(user_id);
+create index if not exists topic_sources_source_id_idx on public.topic_sources(source_id);
