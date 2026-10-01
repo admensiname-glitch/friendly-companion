@@ -274,6 +274,8 @@ function MaterialSectionItem({
     common_mistakes: "Atenção",
     review: "Revisão rápida",
   };
+  const initiallyExpanded = section.position <= 7 || section.section_type === "review";
+  const [expanded, setExpanded] = useState(initiallyExpanded);
 
   return (
     <section
@@ -283,7 +285,7 @@ function MaterialSectionItem({
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0242D7]">
             {labels[section.section_type]}
           </p>
@@ -295,24 +297,41 @@ function MaterialSectionItem({
           </h3>
         </div>
 
-        <button
-          type="button"
-          onClick={onComplete}
-          disabled={completed}
-          aria-pressed={completed}
-          className={
-            completed
-              ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
-              : "rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
-          }
-        >
-          {completed ? "Estudado ✓" : "Marcar como estudado"}
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+            aria-controls={`section-content-${section.id}`}
+            className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+          >
+            {expanded ? "Recolher" : "Ler conteúdo"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onComplete}
+            disabled={completed}
+            aria-pressed={completed}
+            className={
+              completed
+                ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
+                : "rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+            }
+          >
+            {completed ? "Estudado ✓" : "Marcar como estudado"}
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 max-w-3xl space-y-2 text-base leading-7 text-[#334155]">
-        {renderParagraphs(section.content)}
-      </div>
+      {expanded && (
+        <div
+          id={`section-content-${section.id}`}
+          className="mt-3 max-w-3xl space-y-2 text-base leading-7 text-[#334155]"
+        >
+          {renderParagraphs(section.content)}
+        </div>
+      )}
     </section>
   );
 }
@@ -1282,32 +1301,80 @@ function ExerciseSection({
     openText: string | null,
   ) => Promise<void>;
 }) {
+  const QUESTIONS_PER_ROUND = 5;
+  const allQuestions = exercises.flatMap((exercise) => exercise.questions ?? []);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [shuffledOptionOrders, setShuffledOptionOrders] = useState<Record<string, string[]>>({});
+  const [questionOrder, setQuestionOrder] = useState<string[]>([]);
+  const [round, setRound] = useState(0);
 
   useEffect(() => {
-    if (exercises.length === 0) return;
+    if (allQuestions.length === 0) {
+      setQuestionOrder([]);
+      return;
+    }
+
+    const ids = allQuestions.map((question) => question.id);
+    const shuffled = [...ids];
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    setQuestionOrder(shuffled);
+    setRound(0);
+    setSelectedOptions({});
+    setRevealedQuestions(new Set());
+    setShuffledOptionOrders({});
+  }, [exercises]);
+
+  useEffect(() => {
+    if (allQuestions.length === 0) return;
+
     setShuffledOptionOrders((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const exercise of exercises) {
-        for (const question of exercise.questions ?? []) {
-          if (question.question_type !== "multiple_choice" || !question.options?.length || next[question.id]) continue;
-          const ids = question.options.map((option) => option.id);
-          for (let i = ids.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [ids[i], ids[j]] = [ids[j], ids[i]];
-          }
-          next[question.id] = ids;
-          changed = true;
+
+      for (const question of allQuestions) {
+        if (
+          question.question_type !== "multiple_choice" ||
+          !question.options?.length ||
+          next[question.id]
+        ) {
+          continue;
         }
+
+        const ids = question.options.map((option) => option.id);
+        for (let i = ids.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [ids[i], ids[j]] = [ids[j], ids[i]];
+        }
+
+        next[question.id] = ids;
+        changed = true;
       }
+
       return changed ? next : prev;
     });
   }, [exercises]);
 
-  if (exercises.length === 0) return null;
+  if (allQuestions.length === 0) return null;
+
+  const questionMap = new Map(allQuestions.map((question) => [question.id, question]));
+  const visibleQuestionIds = questionOrder.slice(
+    round * QUESTIONS_PER_ROUND,
+    (round + 1) * QUESTIONS_PER_ROUND,
+  );
+  const visibleQuestions = visibleQuestionIds
+    .map((id) => questionMap.get(id))
+    .filter(Boolean) as ExerciseQuestion[];
+
+  const answeredThisRound = visibleQuestionIds.filter((id) => revealedQuestions.has(id)).length;
+  const roundComplete =
+    visibleQuestionIds.length > 0 && answeredThisRound === visibleQuestionIds.length;
+  const hasMoreRounds = (round + 1) * QUESTIONS_PER_ROUND < questionOrder.length;
 
   function handleSelectOption(questionId: string, optionId: string) {
     setSelectedOptions((prev) => ({ ...prev, [questionId]: optionId }));
@@ -1319,9 +1386,13 @@ function ExerciseSection({
   }
 
   function getOrderedOptions(question: ExerciseQuestion): ExerciseOption[] {
-    if (question.question_type !== "multiple_choice" || !question.options) return question.options ?? [];
+    if (question.question_type !== "multiple_choice" || !question.options) {
+      return question.options ?? [];
+    }
+
     const order = shuffledOptionOrders[question.id];
     if (!order) return question.options;
+
     const byId = new Map(question.options.map((option) => [option.id, option]));
     return order.map((id) => byId.get(id)).filter(Boolean) as ExerciseOption[];
   }
@@ -1329,48 +1400,140 @@ function ExerciseSection({
   async function handleReveal(questionId: string) {
     const selectedOptionId = selectedOptions[questionId] ?? null;
     if (!selectedOptionId) return;
+
     await onAnswerRevealed(questionId, selectedOptionId, null);
     setRevealedQuestions((prev) => new Set(prev).add(questionId));
   }
 
+  function goToNextRound() {
+    if (!hasMoreRounds) return;
+    setRound((value) => value + 1);
+  }
+
+  function restartPractice() {
+    const ids = allQuestions.map((question) => question.id);
+    const shuffled = [...ids];
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    setQuestionOrder(shuffled);
+    setRound(0);
+    setSelectedOptions({});
+    setRevealedQuestions(new Set());
+
+    setShuffledOptionOrders((prev) => {
+      const next = { ...prev };
+      for (const question of allQuestions) {
+        const options = question.options?.map((option) => option.id) ?? [];
+        for (let i = options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [options[i], options[j]] = [options[j], options[i]];
+        }
+        if (options.length > 0) next[question.id] = options;
+      }
+      return next;
+    });
+  }
+
+  const roundNumber = round + 1;
+  const roundProgress = visibleQuestions.length
+    ? Math.round((answeredThisRound / visibleQuestions.length) * 100)
+    : 0;
+
   return (
     <section aria-labelledby="exercises-heading" className="mt-12">
-      <div className="flex items-center gap-2">
-        <h2 id="exercises-heading" className="text-lg font-semibold text-[#0F172A]">Exercícios de aplicação</h2>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 id="exercises-heading" className="text-lg font-semibold text-[#0F172A]">
+            Prática guiada
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#64748B]">
+            Pratique 5 questões por rodada. Você recebe o feedback após cada resposta e pode
+            continuar sem enfrentar todo o banco de uma vez.
+          </p>
+        </div>
+
+        <div className="text-right text-xs text-[#64748B]">
+          <p className="font-semibold text-[#0F172A]">
+            Rodada {roundNumber} de {Math.max(1, Math.ceil(questionOrder.length / QUESTIONS_PER_ROUND))}
+          </p>
+          <p className="mt-0.5">{allQuestions.length} questões disponíveis neste tópico</p>
+        </div>
       </div>
-      <p className="mt-1 text-sm text-[#64748B]">
-        Pratique os conceitos estudados. Selecione a alternativa correta e clique em Ver resposta.
-      </p>
-      <div className="mt-6 space-y-8">
-        {exercises.map((exercise) => (
-          <div key={exercise.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
-            <div>
-              <h3 className="font-semibold text-[#0F172A]">{exercise.title}</h3>
-              {exercise.content && (
-                <div className="mt-3 text-sm leading-7 text-[#475569]">{renderParagraphs(exercise.content)}</div>
-              )}
+
+      <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="font-semibold text-[#0F172A]">
+            Progresso da rodada
+          </span>
+          <span className="text-[#64748B]">
+            {answeredThisRound} de {visibleQuestions.length} respondidas
+          </span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+          <div
+            className="h-full rounded-full bg-[#0242D7] transition-all"
+            style={{ width: `${roundProgress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-6">
+        {visibleQuestions.map((question) => {
+          const orderedQuestion = { ...question, options: getOrderedOptions(question) };
+
+          return (
+            <div key={question.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
+              <ExerciseQuestionItem
+                question={orderedQuestion}
+                selectedOptionId={selectedOptions[question.id] ?? null}
+                revealedOptionId={
+                  revealedQuestions.has(question.id)
+                    ? selectedOptions[question.id] ?? null
+                    : null
+                }
+                openText=""
+                onSelectOption={(optionId) => handleSelectOption(question.id, optionId)}
+                onRevealAnswer={() => handleReveal(question.id)}
+              />
             </div>
-            {exercise.questions && exercise.questions.length > 0 && (
-              <div>
-                {exercise.questions.map((question) => {
-                  const orderedQuestion = { ...question, options: getOrderedOptions(question) };
-                  return (
-                    <ExerciseQuestionItem
-                      key={question.id}
-                      question={orderedQuestion}
-                      selectedOptionId={selectedOptions[question.id] ?? null}
-                      revealedOptionId={revealedQuestions.has(question.id) ? selectedOptions[question.id] ?? null : null}
-                      openText=""
-                      onSelectOption={(optionId) => handleSelectOption(question.id, optionId)}
-                      onRevealAnswer={() => handleReveal(question.id)}
-                    />
-                  );
-                })}
-              </div>
+          );
+        })}
+      </div>
+
+      {roundComplete && (
+        <div className="mt-6 rounded-xl border border-[#BFDBFE] bg-[#F8FBFF] p-5">
+          <p className="text-sm font-semibold text-[#0F172A]">
+            Rodada concluída.
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[#475569]">
+            Ótimo. A ideia é recuperar o que você aprendeu, receber feedback e continuar avançando
+            em pequenas etapas.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {hasMoreRounds ? (
+              <button
+                type="button"
+                onClick={goToNextRound}
+                className="rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0038B8]"
+              >
+                Continuar com mais 5
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={restartPractice}
+                className="rounded-lg border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-semibold text-[#0242D7] hover:bg-[#EFF6FF]"
+              >
+                Fazer nova rodada
+              </button>
             )}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
