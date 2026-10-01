@@ -1423,145 +1423,226 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
 
 // ─── Formal evaluation ─────────────────────────────────────────────────────────
 
+interface FormalEvaluationQuestion {
+  id: string;
+  position: number;
+  question_text: string;
+  options: string[];
+  difficulty?: "introductory" | "intermediate" | "advanced";
+  concept_tags?: string[];
+}
+
+interface FormalEvaluationResult {
+  attempt_id: string;
+  score: number;
+  correct_answers: number;
+  total_questions: number;
+  band: "novice" | "developing" | "proficient" | "mastered";
+  best_score?: number | null;
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const next = [...items];
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
+  }
+  return next;
+}
+
 function EvaluationSection({
-  exercise,
+  topicId,
   onDifficultyUpdate,
 }: {
-  exercise: Exercise | null;
+  topicId: string;
   onDifficultyUpdate: () => Promise<void>;
 }) {
   const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<EvaluationResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<FormalEvaluationQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [result, setResult] = useState<FormalEvaluationResult | null>(null);
+  const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [existingAnswerCount, setExistingAnswerCount] = useState(0);
-  const [shuffledOrders, setShuffledOrders] = useState<Record<string, string[]>>({});
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!exercise?.questions?.length) return;
-
-    void (async () => {
-      const { data: inProgress } = await supabase
-        .from("evaluation_attempts")
-        .select("id, total_questions")
-        .eq("exercise_id", exercise.id)
-        .eq("status", "in_progress")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (inProgress) {
-        const { data: existingAnswers } = await supabase
-          .from("exercise_answers")
-          .select("question_id, selected_option_id")
-          .eq("evaluation_attempt_id", inProgress.id);
-
-        const restored: Record<string, string> = {};
-        for (const answer of existingAnswers ?? []) {
-          if (answer.selected_option_id) restored[answer.question_id] = answer.selected_option_id;
-        }
-
-        setAttemptId(inProgress.id);
-        setAnswers(restored);
-        setExistingAnswerCount(existingAnswers?.length ?? 0);
-        setStarted(true);
-      }
-
-      const { data } = await supabase
-        .from("evaluation_attempts")
-        .select("id, score, correct_answers, total_questions")
-        .eq("exercise_id", exercise.id)
-        .eq("status", "completed")
-        .order("completed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (data && data.score !== null && !inProgress) {
-        const score = Number(data.score);
-        const band =
-          score < 40
-            ? "novice"
-            : score < 65
-              ? "developing"
-              : score < 85
-                ? "proficient"
-                : "mastered";
-
-        setResult({
-          attempt_id: data.id,
-          score,
-          correct_answers: data.correct_answers,
-          total_questions: data.total_questions,
-          band,
-        });
-      }
-    })();
-
-    setShuffledOrders((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const q of exercise.questions ?? []) {
-        if (!q.options?.length || next[q.id]) continue;
-        const ids = q.options.map((o) => o.id);
-        for (let i = ids.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [ids[i], ids[j]] = [ids[j], ids[i]];
-        }
-        next[q.id] = ids;
-        changed = true;
-      }
-      return changed ? next : prev;
-    });
-  }, [exercise]);
-
-  if (!exercise) return null;
-  const questions = exercise.questions ?? [];
-  if (!questions.length) return null;
-
-  const orderedOptions = (question: ExerciseQuestion) => {
-    const order = shuffledOrders[question.id];
-    if (!order) return question.options ?? [];
-    const byId = new Map((question.options ?? []).map((o) => [o.id, o]));
-    return order.map((id) => byId.get(id)).filter(Boolean) as ExerciseOption[];
-  };
-
-  async function startEvaluation() {
+  const loadState = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("start_topic_evaluation", {
-      _topic_id: exercise.topic_id,
+    setGenerationError(null);
+
+    const { data, error } = await supabase.rpc("get_formal_evaluation_state", {
+      _topic_id: topicId,
     });
-    setLoading(false);
+
     if (error || !data) {
-      console.error("[Ensina-me] Erro ao iniciar avaliação:", error);
+      console.error("[Ensina-me] Erro ao carregar avaliação formal:", error);
+      setGenerationError("Não foi possível carregar a avaliação. Tente novamente.");
+      setLoading(false);
       return;
     }
-    const payload = data as { attempt_id?: string };
-    if (!payload.attempt_id) return;
-    setAttemptId(payload.attempt_id);
-    setAnswers({});
-    setExistingAnswerCount(0);
+
+    const state = data as {
+      status?: string;
+      attempt_id?: string;
+      total_questions?: number;
+      questions?: FormalEvaluationQuestion[];
+      score?: number;
+      correct_answers?: number;
+      completed_at?: string;
+    };
+
+    if (state.status === "in_progress" && state.attempt_id) {
+      const loadedQuestions = Array.isArray(state.questions)
+        ? state.questions.map((question) => ({
+            ...question,
+            options: Array.isArray(question.options)
+              ? question.options.filter((option): option is string => typeof option === "string")
+              : [],
+          }))
+        : [];
+
+      setAttemptId(state.attempt_id);
+      setQuestions(prepareQuestionPresentation(loadedQuestions));
+      setAnswers({});
+      setResult(null);
+      setStarted(loadedQuestions.length === 10);
+    } else if (state.status === "completed" && state.attempt_id) {
+      const score = Number(state.score ?? 0);
+      const band =
+        score < 40
+          ? "novice"
+          : score < 65
+            ? "developing"
+            : score < 85
+              ? "proficient"
+              : "mastered";
+
+      setAttemptId(state.attempt_id);
+      setQuestions([]);
+      setAnswers({});
+      setStarted(false);
+      setResult({
+        attempt_id: state.attempt_id,
+        score,
+        correct_answers: Number(state.correct_answers ?? 0),
+        total_questions: 10,
+        band,
+      });
+    } else {
+      setAttemptId(null);
+      setQuestions([]);
+      setAnswers({});
+      setResult(null);
+      setStarted(false);
+    }
+
+    setLoading(false);
+  }, [topicId]);
+
+  useEffect(() => {
+    void loadState();
+  }, [loadState]);
+
+  function prepareQuestionPresentation(
+    sourceQuestions: FormalEvaluationQuestion[],
+  ): FormalEvaluationQuestion[] {
+    return shuffle(
+      sourceQuestions.map((question) => ({
+        ...question,
+        options: shuffle(question.options),
+      })),
+    ).map((question, index) => ({
+      ...question,
+      position: index + 1,
+    }));
+  }
+
+  async function startEvaluation() {
+    if (loading) return;
+
+    setLoading(true);
+    setGenerationError(null);
     setResult(null);
+    setStarted(false);
+    setAnswers({});
+    setQuestions([]);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        action: "start_formal_evaluation",
+        topic_id: topicId,
+      },
+    });
+
+    if (error || !data?.attempt_id || !Array.isArray(data.questions)) {
+      let messageText = data?.error;
+
+      if (!messageText && error) {
+        try {
+          const response = (error as { context?: Response }).context;
+          if (response) {
+            const payload = (await response.clone().json()) as { error?: string };
+            messageText = payload.error;
+          }
+        } catch {
+          // Keep the friendly fallback below.
+        }
+      }
+
+      setGenerationError(
+        messageText ?? "Não foi possível preparar uma nova avaliação. Tente novamente.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    const loadedQuestions = (data.questions as FormalEvaluationQuestion[])
+      .map((question) => ({
+        ...question,
+        options: Array.isArray(question.options)
+          ? question.options.filter((option): option is string => typeof option === "string")
+          : [],
+      }));
+
+    if (loadedQuestions.length !== 10) {
+      setGenerationError("A avaliação precisa carregar exatamente 10 questões.");
+      setLoading(false);
+      return;
+    }
+
+    setAttemptId(String(data.attempt_id));
+    setQuestions(prepareQuestionPresentation(loadedQuestions));
+    setAnswers({});
     setStarted(true);
+    setLoading(false);
   }
 
   async function finishEvaluation() {
-    if (!attemptId || Object.keys(answers).length !== questions.length) return;
+    if (!attemptId || questions.length !== 10 || Object.keys(answers).length !== 10) return;
+
     setLoading(true);
-    const answerPayload = questions.map((q) => ({
-      question_id: q.id,
-      selected_option_id: answers[q.id],
+
+    const answerPayload = questions.map((question) => ({
+      question_id: question.id,
+      selected_option_index: answers[question.id],
     }));
-    const { data, error } = await supabase.rpc("finalize_topic_evaluation", {
+
+    const { data, error } = await supabase.rpc("finalize_formal_evaluation", {
       _attempt_id: attemptId,
       _answers: answerPayload,
     });
+
     setLoading(false);
+
     if (error || !data) {
       console.error("[Ensina-me] Erro ao finalizar avaliação:", error);
+      setGenerationError("Não foi possível finalizar sua avaliação. Tente novamente.");
       return;
     }
-    setResult(data as EvaluationResult);
+
+    setQuestions([]);
+    setAnswers({});
+    setStarted(false);
+    setResult(data as FormalEvaluationResult);
     await onDifficultyUpdate();
   }
 
@@ -1575,50 +1656,74 @@ function EvaluationSection({
           Verifique seu domínio
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B]">
-          Esta é uma avaliação formal. Ao finalizar, suas respostas geram uma pontuação de domínio para este tópico.
+          Esta é uma avaliação formal com 10 questões. Cada nova tentativa recebe uma nova prova, com questões e alternativas renovadas e em ordem aleatória.
         </p>
 
-        {!started && !result && (
+        {generationError && (
+          <div
+            role="alert"
+            className="mt-5 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm leading-6 text-[#991B1B]"
+          >
+            {generationError}
+          </div>
+        )}
+
+        {loading && !started && !result && (
+          <div className="mt-5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-6">
+            <div className="h-4 w-48 animate-pulse rounded bg-[#E2E8F0]" />
+            <div className="mt-3 h-8 w-72 animate-pulse rounded bg-[#E2E8F0]" />
+            <div className="mt-5 h-10 w-40 animate-pulse rounded bg-[#E2E8F0]" />
+          </div>
+        )}
+
+        {!loading && !started && !result && (
           <div className="mt-5 rounded-xl border border-[#E2E8F0] bg-white p-6">
             <p className="text-sm text-[#475569]">
-              {questions.length} questões de múltipla escolha. Faça a avaliação sem consultar as respostas dos exercícios de aplicação.
+              Você responderá 10 questões de múltipla escolha baseadas no conteúdo deste tópico.
             </p>
             <button
               type="button"
-              onClick={startEvaluation}
+              onClick={() => void startEvaluation()}
               disabled={loading}
               className="mt-5 rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Iniciando..." : "Iniciar avaliação"}
+              {loading ? "Preparando..." : "Iniciar avaliação"}
             </button>
           </div>
         )}
 
-        {started && !result && (
+        {started && questions.length === 10 && (
           <div className="mt-6 space-y-7">
             {questions.map((question, index) => {
               const selected = answers[question.id];
+
               return (
                 <div key={question.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">
-                    Questão {index + 1} de {questions.length}
+                    Questão {index + 1} de 10
                   </p>
                   <p className="mt-2 text-base font-medium leading-6 text-[#0F172A]">
                     {question.question_text}
                   </p>
+
                   <div className="mt-4 space-y-2">
-                    {orderedOptions(question).map((option) => (
+                    {question.options.map((option, optionIndex) => (
                       <button
-                        key={option.id}
+                        key={optionIndex}
                         type="button"
-                        onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: option.id }))}
+                        onClick={() =>
+                          setAnswers((previous) => ({
+                            ...previous,
+                            [question.id]: optionIndex,
+                          }))
+                        }
                         className={
-                          selected === option.id
+                          selected === optionIndex
                             ? "w-full rounded-lg border border-[#0242D7] bg-[#EFF6FF] px-4 py-3 text-left text-sm text-[#0242D7]"
                             : "w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#CBD5E1]"
                         }
                       >
-                        {option.content}
+                        {String.fromCharCode(65 + optionIndex)}. {option}
                       </button>
                     ))}
                   </div>
@@ -1629,15 +1734,12 @@ function EvaluationSection({
             <div className="sticky bottom-4 rounded-xl border border-[#BFDBFE] bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[#475569]">
-                  <strong className="text-[#0F172A]">{Object.keys(answers).length}</strong> de {questions.length} respondidas
-                  {existingAnswerCount > 0 && (
-                    <span className="ml-2 text-[#64748B]">· tentativa retomada</span>
-                  )}
+                  <strong className="text-[#0F172A]">{Object.keys(answers).length}</strong> de 10 respondidas
                 </p>
                 <button
                   type="button"
-                  onClick={finishEvaluation}
-                  disabled={loading || Object.keys(answers).length !== questions.length}
+                  onClick={() => void finishEvaluation()}
+                  disabled={loading || Object.keys(answers).length !== 10}
                   className="rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? "Calculando..." : "Finalizar avaliação"}
@@ -1654,27 +1756,25 @@ function EvaluationSection({
               <div>
                 <p className="text-4xl font-bold text-[#0F172A]">{result.score}%</p>
                 <p className="mt-1 text-sm text-[#64748B]">
-                  {result.correct_answers} de {result.total_questions} respostas corretas
+                  {result.correct_answers} de 10 respostas corretas
                 </p>
               </div>
               <div className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-[#0F172A]">
                 {DOMAIN_LABELS[result.band]}
               </div>
             </div>
+
             <p className="mt-4 text-sm leading-6 text-[#475569]">
               Esse resultado fica registrado no seu progresso e poderá orientar as próximas revisões.
             </p>
+
             <button
               type="button"
-              onClick={() => {
-                setResult(null);
-                setStarted(false);
-                setAttemptId(null);
-                setAnswers({});
-              }}
-              className="mt-5 rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC]"
+              onClick={() => void startEvaluation()}
+              disabled={loading}
+              className="mt-5 rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC] disabled:opacity-50"
             >
-              Fazer nova tentativa
+              {loading ? "Preparando nova tentativa..." : "Fazer nova tentativa"}
             </button>
           </div>
         )}
@@ -2266,7 +2366,7 @@ function TopicDetailPage() {
           <SourcesSection citations={citations} />
           <ReviewSection difficulties={difficulties} />
           <EvaluationSection
-            exercise={evaluation}
+            topicId={topicId}
             onDifficultyUpdate={refreshDifficulties}
           />
           <TutorSection topicId={topicId} topicName={topic?.name ?? "este tópico"} />
