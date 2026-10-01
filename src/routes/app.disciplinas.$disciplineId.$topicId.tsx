@@ -280,7 +280,7 @@ function MaterialSectionItem({
   return (
     <section
       aria-labelledby={`section-${section.id}`}
-      className={`mt-8 rounded-2xl border border-[#E7ECF3] bg-white p-5 sm:p-6 transition-colors ${
+      className={`scroll-mt-20 mt-6 rounded-2xl border border-[#E7ECF3] bg-white p-4 sm:mt-8 sm:p-6 transition-colors ${
         completed ? "border-[#BBF7D0]" : "border-[#E2E8F0]"
       }`}
     >
@@ -297,13 +297,13 @@ function MaterialSectionItem({
           </h3>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
             aria-controls={`section-content-${section.id}`}
-            className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+            className="min-h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-semibold sm:w-auto sm:rounded-full sm:py-1.5 text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
           >
             {expanded ? "Recolher" : "Ler conteúdo"}
           </button>
@@ -316,7 +316,7 @@ function MaterialSectionItem({
             className={
               completed
                 ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
-                : "rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
+                : "shrink-0 rounded-full border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
             }
           >
             {completed ? "Estudado ✓" : "Marcar como estudado"}
@@ -1161,7 +1161,7 @@ function StudySessionCard({ topicId }: { topicId: string }) {
   }
 
   return (
-    <section aria-label="Sessão de estudo" className="mt-8 rounded-xl border border-[#E2E8F0] bg-white p-5">
+    <section aria-label="Sessão de estudo" className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:mt-8 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0F172A]">Sessão de estudo</p>
@@ -1258,7 +1258,7 @@ function ExerciseQuestionItem({
         <button
           type="button"
           onClick={onRevealAnswer}
-          className="mt-4 rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+          className="mt-4 min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm sm:w-auto font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
         >
           Ver resposta
         </button>
@@ -1486,7 +1486,7 @@ function ExerciseSection({
           const orderedQuestion = { ...question, options: getOrderedOptions(question) };
 
           return (
-            <div key={question.id} className="rounded-xl border border-[#E2E8F0] bg-white p-6">
+            <div key={question.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-6">
               <ExerciseQuestionItem
                 question={orderedQuestion}
                 selectedOptionId={selectedOptions[question.id] ?? null}
@@ -2378,11 +2378,11 @@ function TopicDetailPage() {
       {/* ── Breadcrumb ── */}
       <nav
         aria-label="Navegação"
-        className="flex flex-wrap items-center gap-2 text-sm text-[#64748B]"
+        className="mobile-scroll-x -mx-1 flex flex-nowrap items-center gap-2 overflow-x-auto px-1 pb-1 text-sm text-[#64748B]"
       >
         <Link
           to="/app/dashboard"
-          className="hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+          className="shrink-0 whitespace-nowrap hover:text-[#0242D7] focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
         >
           Dashboard
         </Link>
@@ -2402,13 +2402,13 @@ function TopicDetailPage() {
           {disciplineName ?? "Disciplina"}
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-[#0F172A]" aria-current="page">
+        <span className="shrink-0 whitespace-nowrap text-[#0F172A]" aria-current="page">
           {topic?.name ?? "Tópico"}
         </span>
       </nav>
 
       {/* ── Topic header ── */}
-      <div className="mt-6 rounded-[22px] bg-[#F0F5FF] p-6 sm:p-7">
+      <div className="mt-5 rounded-[20px] bg-[#F0F5FF] p-5 sm:mt-6 sm:rounded-[22px] sm:p-7">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7]">
             Tópico de estudo
@@ -2419,7 +2419,7 @@ function TopicDetailPage() {
         </div>
         <h1
           id="topic-title"
-          className="mt-3 text-3xl font-bold tracking-[-0.045em] text-[#172334] sm:text-[38px]"
+          className="mt-3 text-[28px] font-bold leading-[1.08] tracking-[-0.045em] text-[#172334] sm:text-[38px]"
         >
           {topic?.name ?? "Carregando..."}
         </h1>
@@ -2434,7 +2434,7 @@ function TopicDetailPage() {
       {!loading && !error && !notFound && sections.length > 0 && (
         <nav
           aria-label="Mapa do estudo"
-          className="surface-card mt-5 rounded-2xl p-4 sm:p-5"
+          className="surface-card mt-4 rounded-2xl p-4 sm:mt-5 sm:p-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A95A3]">Percurso</p><p className="mt-1 text-sm font-bold text-[#243245]">Mapa do estudo</p></div>
@@ -2442,14 +2442,14 @@ function TopicDetailPage() {
               {contentProgress.completed}/{contentProgress.total} partes estudadas
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mobile-scroll-x mt-3 flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
             {sections.map((section) => (
               <a
                 key={section.id}
                 href={`#section-${section.id}`}
                 className={
                   completedSectionIds.includes(section.id)
-                    ? "rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
+                    ? "shrink-0 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-1.5 text-xs font-semibold text-[#166534]"
                     : "rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-xs font-medium text-[#475569] hover:border-[#BFDBFE] hover:text-[#0242D7]"
                 }
               >
