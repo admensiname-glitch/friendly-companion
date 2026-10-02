@@ -2007,7 +2007,7 @@ function ReviewSection({
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 id="review-heading" className="text-2xl font-semibold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]">
+            <h2 id="review-heading" className="text-[26px] font-semibold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]">
               Pontos que pedem outra passagem
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] dark:text-[#9AA9BA]">
@@ -3129,9 +3129,9 @@ function TopicDetailPage() {
 
               <TopicVideoSection videos={videos} />
 
-              <div className="mt-7 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-                <nav aria-label="Partes do estudo" className="lg:sticky lg:top-6">
-                  <div className="rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 dark:border-[#2B3A4F] dark:bg-[#151F2D]">
+              <div className="mt-6 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start sm:mt-7">
+                <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
+                  <div className="flex min-w-max gap-2 rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 lg:block lg:min-w-0" dark:border-[#2B3A4F] dark:bg-[#151F2D]">
                     {sections.map((section, sectionIndex) => {
                       const isActive = sectionIndex === activeSectionIndex;
                       const isCompleted = completedSectionIds.includes(section.id);
@@ -3142,7 +3142,7 @@ function TopicDetailPage() {
                           type="button"
                           onClick={() => setActiveSectionIndex(sectionIndex)}
                           aria-current={isActive ? "step" : undefined}
-                          className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
+                          className={`flex min-w-[190px] items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors lg:w-full lg:min-w-0 ${
                             isActive
                               ? "bg-white text-[#172334] shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:bg-[#1B2638] dark:text-[#E7EDF5]"
                               : "text-[#667487] hover:bg-white/80 dark:text-[#9EAEBD] dark:hover:bg-[#1B2638]"
@@ -3338,14 +3338,14 @@ function TopicDetailPage() {
                 {difficulties.length > 0 && (
                   <a
                     href="#revisao"
-                    className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
                   >
                     Revisar agora
                   </a>
                 )}
                 <Link
                   to="/app/estude-agora"
-                  className="inline-flex items-center rounded-lg border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-bold text-[#0242D7] hover:bg-[#EFF6FF] dark:border-[#3B5574] dark:bg-[#172B48] dark:text-[#7DB0FF] dark:hover:bg-[#213652]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-bold text-[#0242D7] hover:bg-[#EFF6FF] dark:border-[#3B5574] dark:bg-[#172B48] dark:text-[#7DB0FF] dark:hover:bg-[#213652]"
                 >
                   Ver próximo passo →
                 </Link>
