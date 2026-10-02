@@ -418,6 +418,13 @@
     padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
   }
 
+  @media (max-width: 1023px) {
+    html {
+      scroll-padding-top: 76px;
+      scroll-padding-bottom: 76px;
+    }
+  }
+
   .mobile-scroll-x {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -432,6 +439,10 @@
 @media (max-width: 639px) {
   body {
     overflow-x: hidden;
+  }
+
+  main {
+    min-width: 0;
   }
 
   button,
