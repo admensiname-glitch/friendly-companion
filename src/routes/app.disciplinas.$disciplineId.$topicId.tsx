@@ -1323,7 +1323,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
 
   return (
     <>
-      <section aria-labelledby="tutor-heading" className="mt-12 hidden lg:block">
+      <section id="tutor" aria-labelledby="tutor-heading" className="mt-12 hidden lg:block">
         <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -3093,21 +3093,44 @@ function TopicDetailPage() {
                 Prática guiada
               </h2>
 
-              <div className="mb-5 flex items-center justify-between gap-3 text-xs text-[#7A8796] dark:text-[#8797AA]">
-                <span>
-                  {applicationProgress.answered} de {applicationProgress.total} questões respondidas
-                </span>
-                {exercises.length > 0 && (
-                  <span>
-                    {applicationProgress.total > 0 ? Math.round((applicationProgress.answered / applicationProgress.total) * 100) : 0}% da prática registrada
-                  </span>
-                )}
-              </div>
+              {exercises.length > 0 ? (
+                <>
+                  <div className="mb-5 flex items-center justify-between gap-3 text-xs text-[#7A8796] dark:text-[#8797AA]">
+                    <span>
+                      {applicationProgress.answered} de {applicationProgress.total} questões respondidas
+                    </span>
+                    <span>
+                      {applicationProgress.total > 0
+                        ? Math.round((applicationProgress.answered / applicationProgress.total) * 100)
+                        : 0}% da prática registrada
+                    </span>
+                  </div>
 
-              <ExerciseSection
-                exercises={exercises}
-                onAnswerRevealed={handleAnswerRevealed}
-              />
+                  <ExerciseSection
+                    exercises={exercises}
+                    onAnswerRevealed={handleAnswerRevealed}
+                  />
+                </>
+              ) : (
+                <div className="rounded-2xl border border-[#D5E1F2] bg-[#EFF5FF] p-6 dark:border-[#2E4563] dark:bg-[#142238]">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+                    Prática adaptativa
+                  </p>
+                  <h3 className="mt-2 text-xl font-bold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5]">
+                    Teste o que você acabou de entender
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5F7187] dark:text-[#B3C0CF]">
+                    O Tutor pode criar uma questão sobre este tópico, ouvir seu raciocínio,
+                    corrigir sua resposta e ajustar o próximo passo conforme seu desempenho.
+                  </p>
+                  <a
+                    href="#tutor"
+                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                  >
+                    Abrir o Tutor →
+                  </a>
+                </div>
+              )}
             </div>
           </section>
 
