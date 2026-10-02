@@ -886,7 +886,17 @@ function TutorMicroAssessmentCard({
   );
 }
 
-function TutorSection({ topicId, topicName }: { topicId: string; topicName: string }) {
+function TutorSection({
+  topicId,
+  topicName,
+  openSignal,
+  onPracticeCompleted,
+}: {
+  topicId: string;
+  topicName: string;
+  openSignal: number;
+  onPracticeCompleted?: () => void;
+}) {
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
@@ -897,6 +907,12 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   const [microAssessment, setMicroAssessment] = useState<TutorMicroAssessment | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef({ active: false, offsetX: 0, offsetY: 0, moved: false });
+
+  useEffect(() => {
+    if (openSignal > 0) {
+      setOpened(true);
+    }
+  }, [openSignal]);
   const [tutorPosition, setTutorPosition] = useState({ x: 16, y: 16 });
   const [isDraggingTutor, setIsDraggingTutor] = useState(false);
 
@@ -1213,6 +1229,8 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
           key={microAssessment.id}
           assessment={microAssessment}
           onAnswered={(result) => {
+            onPracticeCompleted?.();
+
             if (result.next_message) {
               setMessages((current) => [
                 ...current,
@@ -1322,8 +1340,8 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
   );
 
   return (
-    <>
-      <section id="tutor" aria-labelledby="tutor-heading" className="mt-12 hidden lg:block">
+    <div id="tutor">
+      <section aria-labelledby="tutor-heading" className="mt-12 hidden lg:block">
         <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -1432,7 +1450,7 @@ function TutorSection({ topicId, topicName }: { topicId: string; topicName: stri
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -2382,6 +2400,8 @@ function TopicDetailPage() {
   const [difficulties, setDifficulties] = useState<TopicDifficulty[]>([]);
   const [applicationProgress, setApplicationProgress] = useState({ answered: 0, total: 0 });
   const [evaluationCompleted, setEvaluationCompleted] = useState(false);
+  const [tutorPracticeDone, setTutorPracticeDone] = useState(false);
+  const [tutorOpenSignal, setTutorOpenSignal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
@@ -2491,6 +2511,7 @@ function TopicDetailPage() {
       setDifficulties([]);
       setApplicationProgress({ answered: 0, total: 0 });
       setEvaluationCompleted(false);
+      setTutorPracticeDone(false);
 
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -2870,8 +2891,9 @@ function TopicDetailPage() {
                   contentProgress.total > 0 &&
                   contentProgress.completed >= contentProgress.total;
                 const practiceDone =
-                  applicationProgress.total > 0 &&
-                  applicationProgress.answered >= applicationProgress.total;
+                  (applicationProgress.total > 0 &&
+                    applicationProgress.answered >= applicationProgress.total) ||
+                  tutorPracticeDone;
                 const reviewNeeded = difficulties.length > 0;
                 const activeStep = !contentDone
                   ? 0
@@ -3123,12 +3145,21 @@ function TopicDetailPage() {
                     O Tutor pode criar uma questão sobre este tópico, ouvir seu raciocínio,
                     corrigir sua resposta e ajustar o próximo passo conforme seu desempenho.
                   </p>
-                  <a
-                    href="#tutor"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTutorOpenSignal((value) => value + 1);
+                      window.setTimeout(() => {
+                        document.getElementById("tutor")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }, 0);
+                    }}
                     className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
                   >
                     Abrir o Tutor →
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
@@ -3188,7 +3219,12 @@ function TopicDetailPage() {
 
           <SourcesSection citations={citations} />
 
-          <TutorSection topicId={topicId} topicName={topic?.name ?? "este tópico"} />
+          <TutorSection
+            topicId={topicId}
+            topicName={topic?.name ?? "este tópico"}
+            openSignal={tutorOpenSignal}
+            onPracticeCompleted={() => setTutorPracticeDone(true)}
+          />
         </div>
       )}
     </section>
