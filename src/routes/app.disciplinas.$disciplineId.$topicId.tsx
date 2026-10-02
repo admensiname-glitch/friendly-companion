@@ -2533,18 +2533,36 @@ function TopicDetailPage() {
 
     const tokens = normalize(difficulty.difficulty_tag)
       .split(/\s+/)
-      .filter((token) => token.length >= 4);
+      .filter((token) => token.length >= 3);
 
-    let bestIndex = 0;
+    const related = (token: string, text: string) => {
+      if (!token || !text) return false;
+      if (text.includes(token)) return true;
+
+      const words = text.split(/\s+/);
+      return words.some((word) => {
+        const sharedPrefix = Math.min(token.length, word.length);
+        if (sharedPrefix < 4) return false;
+        let index = 0;
+        while (index < sharedPrefix && token[index] === word[index]) index += 1;
+        return index >= 4;
+      });
+    };
+
+    let bestIndex = sections.findIndex((section) =>
+      !completedSectionIds.includes(section.id),
+    );
+    if (bestIndex < 0) bestIndex = 0;
+
     let bestScore = -1;
 
     sections.forEach((section, index) => {
       const title = normalize(section.title);
       const content = normalize(section.content);
-
-      const titleMatches = tokens.filter((token) => title.includes(token)).length;
-      const contentMatches = tokens.filter((token) => content.includes(token)).length;
-      const score = titleMatches * 5 + contentMatches;
+      const titleMatches = tokens.filter((token) => related(token, title)).length;
+      const contentMatches = tokens.filter((token) => related(token, content)).length;
+      const incompleteBonus = completedSectionIds.includes(section.id) ? 0 : 0.5;
+      const score = titleMatches * 8 + contentMatches * 2 + incompleteBonus;
 
       if (score > bestScore) {
         bestScore = score;
@@ -2560,7 +2578,7 @@ function TopicDetailPage() {
         block: "start",
       });
     });
-  }, [sections]);
+  }, [completedSectionIds, sections]);
 
   const markSectionComplete = useCallback(
     async (sectionId: string) => {
