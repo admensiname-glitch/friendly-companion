@@ -1985,7 +1985,13 @@ function ExerciseSection({
   );
 }
 
-function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
+function ReviewSection({
+  difficulties,
+  onSelectDifficulty,
+}: {
+  difficulties: TopicDifficulty[];
+  onSelectDifficulty: (difficulty: TopicDifficulty) => void;
+}) {
   if (difficulties.length === 0) return null;
 
   const label = (tag: string) =>
@@ -2005,7 +2011,7 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
               Pontos que pedem outra passagem
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748B] dark:text-[#9AA9BA]">
-              Estes conceitos apareceram como dificuldade nas suas respostas e podem ganhar uma revisão antes da próxima avaliação.
+              Estes conceitos apareceram como dificuldade nas suas respostas. Clique em um deles para voltar ao trecho de estudo mais relacionado.
             </p>
           </div>
           <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
@@ -2013,23 +2019,34 @@ function ReviewSection({ difficulties }: { difficulties: TopicDifficulty[] }) {
           </span>
         </div>
 
-        <div className="mt-6 divide-y divide-[#E2E8F0] border-y border-[#E2E8F0] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+        <div className="mt-6 divide-y divide-[#E2E8F0] overflow-hidden rounded-2xl border border-[#E2E8F0] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
           {difficulties.map((difficulty) => (
-            <div key={difficulty.difficulty_tag} className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div>
-                <p className="font-semibold text-[#1F2D40] dark:text-[#E7EDF5]">
-                  {label(difficulty.difficulty_tag)}
-                </p>
-                <p className="mt-1 text-sm text-[#718093] dark:text-[#9AA9BA]">
+            <button
+              key={difficulty.difficulty_tag}
+              type="button"
+              onClick={() => onSelectDifficulty(difficulty)}
+              className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0242D7] dark:hover:bg-[#151F2D]"
+              aria-label={`Revisar ${label(difficulty.difficulty_tag)}`}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold text-[#1F2D40] dark:text-[#E7EDF5]">
+                    {label(difficulty.difficulty_tag)}
+                  </span>
+                  <span aria-hidden="true" className="text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF]">
+                    →
+                  </span>
+                </span>
+                <span className="mt-1 block text-sm text-[#718093] dark:text-[#9AA9BA]">
                   {difficulty.review_status === "reviewed"
                     ? "Você já retomou este ponto. Continue praticando para consolidar."
                     : "Retome o conceito e tente novamente antes de seguir para uma nova avaliação."}
-                </p>
-              </div>
-              <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
+                </span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
                 {difficulty.count} {difficulty.count === 1 ? "registro" : "registros"}
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -2510,6 +2527,40 @@ function TopicDetailPage() {
     },
     [refreshDifficulties],
   );
+
+  const openDifficultyReview = useCallback((difficulty: TopicDifficulty) => {
+    if (sections.length === 0) return;
+
+    const tokens = normalize(difficulty.difficulty_tag)
+      .split(/\s+/)
+      .filter((token) => token.length >= 4);
+
+    let bestIndex = 0;
+    let bestScore = -1;
+
+    sections.forEach((section, index) => {
+      const title = normalize(section.title);
+      const content = normalize(section.content);
+
+      const titleMatches = tokens.filter((token) => title.includes(token)).length;
+      const contentMatches = tokens.filter((token) => content.includes(token)).length;
+      const score = titleMatches * 5 + contentMatches;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    });
+
+    setActiveSectionIndex(bestIndex);
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("estudo-guiado")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [sections]);
 
   const markSectionComplete = useCallback(
     async (sectionId: string) => {
@@ -3229,7 +3280,10 @@ function TopicDetailPage() {
             </div>
           </section>
 
-          <ReviewSection difficulties={difficulties} />
+          <ReviewSection
+            difficulties={difficulties}
+            onSelectDifficulty={openDifficultyReview}
+          />
 
           <section id="avaliacao">
             <EvaluationSection
