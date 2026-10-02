@@ -173,7 +173,7 @@ class TopicRuntimeBoundary extends Component<
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-5 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+            className="mt-5 min-h-11 w-full rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] sm:w-auto"
           >
             Recarregar tópico
           </button>
@@ -1667,12 +1667,12 @@ function ExerciseQuestionItem({
 
   return (
     <div className="mt-6">
-      <p className="text-base font-medium text-[#0F172A]">
+      <p className="text-[15px] font-medium leading-7 text-[#0F172A] sm:text-base">
         {question.question_text}
       </p>
 
       {isMultipleChoice && question.options && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-2.5">
           {question.options.map((option) => (
             <ExerciseOptionItem
               key={option.id}
@@ -1705,7 +1705,7 @@ function ExerciseQuestionItem({
         <button
           type="button"
           onClick={onRevealAnswer}
-          className="mt-4 min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm sm:w-auto font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+          className="mt-5 min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
         >
           Ver resposta
         </button>
@@ -1933,7 +1933,7 @@ function ExerciseSection({
           const orderedQuestion = { ...question, options: getOrderedOptions(question) };
 
           return (
-            <div key={question.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-6">
+            <div key={question.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
               <ExerciseQuestionItem
                 question={orderedQuestion}
                 selectedOptionId={selectedOptions[question.id] ?? null}
@@ -1965,7 +1965,7 @@ function ExerciseSection({
               <button
                 type="button"
                 onClick={goToNextRound}
-                className="rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0038B8]"
+                className="min-h-11 w-full rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0038B8] sm:w-auto"
               >
                 Continuar com mais 5
               </button>
@@ -1973,7 +1973,7 @@ function ExerciseSection({
               <button
                 type="button"
                 onClick={restartPractice}
-                className="rounded-lg border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-semibold text-[#0242D7] hover:bg-[#EFF6FF]"
+                className="min-h-11 w-full rounded-xl border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-semibold text-[#0242D7] hover:bg-[#EFF6FF] sm:w-auto"
               >
                 Fazer nova rodada
               </button>
@@ -2328,7 +2328,7 @@ function EvaluationSection({
               type="button"
               onClick={() => void startEvaluation()}
               disabled={loading}
-              className="mt-5 rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {loading ? "Preparando..." : "Iniciar avaliação"}
             </button>
@@ -2336,7 +2336,7 @@ function EvaluationSection({
         )}
 
         {started && questions.length === 10 && (
-          <div className="mt-6 space-y-7">
+          <div className="mt-6 space-y-5 sm:space-y-7">
             {questions.map((question, index) => {
               const selected = answers[question.id];
 
@@ -2380,7 +2380,7 @@ function EvaluationSection({
               );
             })}
 
-            <div className="sticky bottom-4 rounded-xl border border-[#BFDBFE] bg-white p-4 shadow-sm">
+            <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 rounded-2xl border border-[#BFDBFE] bg-white/95 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.10)] backdrop-blur sm:bottom-4 sm:bg-white">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-[#475569]">
                   <strong className="text-[#0F172A]">{Object.keys(answers).length}</strong> de 10 respondidas
@@ -2389,7 +2389,7 @@ function EvaluationSection({
                   type="button"
                   onClick={() => void finishEvaluation()}
                   disabled={loading || Object.keys(answers).length !== 10}
-                  className="rounded-md bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {loading ? "Calculando..." : "Finalizar avaliação"}
                 </button>
@@ -2421,7 +2421,7 @@ function EvaluationSection({
               {result.band !== "mastered" && (
                 <a
                   href="#revisao"
-                  className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-bold text-[#0242D7] ring-1 ring-inset ring-[#BFDBFE] hover:bg-[#F8FAFC]"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0242D7] ring-1 ring-inset ring-[#BFDBFE] hover:bg-[#F8FAFC]"
                 >
                   Revisar pontos sinalizados
                 </a>
@@ -2429,7 +2429,7 @@ function EvaluationSection({
               {result.band === "mastered" && (
                 <Link
                   to="/app/estude-agora"
-                  className="inline-flex items-center rounded-md bg-[#0242D7] px-4 py-2 text-sm font-bold text-white hover:bg-[#0038B8]"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] sm:w-auto"
                 >
                   Próximo passo →
                 </Link>
@@ -2438,7 +2438,7 @@ function EvaluationSection({
                 type="button"
                 onClick={() => void startEvaluation()}
                 disabled={loading}
-                className="inline-flex items-center rounded-md border border-[#BFDBFE] bg-white px-4 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC] disabled:opacity-50"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 py-2.5 text-sm font-semibold text-[#0242D7] hover:bg-[#F8FAFC] disabled:opacity-50 sm:w-auto"
               >
                 {loading ? "Preparando nova tentativa..." : "Fazer nova tentativa"}
               </button>
