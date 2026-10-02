@@ -61,6 +61,19 @@ function AppLayout() {
         return;
       }
 
+      const { data: profile, error: profileError } = await supabase
+        .from("student_profiles")
+        .select("onboarding_completed")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (profileError || !profile?.onboarding_completed) {
+        await navigate({ to: "/onboarding", replace: true });
+        return;
+      }
+
       setAuthChecking(false);
     })();
 
