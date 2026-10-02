@@ -24,7 +24,7 @@ with ready_materials as (
       where ms.material_id = m.id
         and (
           length(trim(coalesce(ms.content, ''))) < 180
-          or ms.content ~* '(\\{\\{TOPICO\\}\\}|prática em preparação|avaliação formal em preparação|as questões serão revisadas)'
+          or ms.content ~* '(\{\{TOPICO\}\}|prática em preparação|avaliação formal em preparação|as questões serão revisadas)'
         )
     )
     and exists (
@@ -68,7 +68,7 @@ and exists (
       where ms.material_id = m.id
         and (
           length(trim(coalesce(ms.content,''))) < 180
-          or ms.content ~* '(\\{\\{TOPICO\\}\\}|prática em preparação|avaliação formal em preparação|as questões serão revisadas)'
+          or ms.content ~* '(\{\{TOPICO\}\}|prática em preparação|avaliação formal em preparação|as questões serão revisadas)'
         )
     )
     and exists (
