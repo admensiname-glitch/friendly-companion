@@ -1,15 +1,13 @@
-import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/app")({
+  // Keep this shell client-only. Supabase Auth uses browser session storage,
+  // so protected-route checks belong in the browser rather than SSR.
   ssr: false,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/login" });
-  },
   component: AppLayout,
 });
 
@@ -48,6 +46,28 @@ const navigation = [
 
 function AppLayout() {
   const navigate = useNavigate();
+  const [authChecking, setAuthChecking] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      if (error || !data.session) {
+        await navigate({ to: "/login", replace: true });
+        return;
+      }
+
+      setAuthChecking(false);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = window.localStorage.getItem("ensina-me-theme");
@@ -92,6 +112,18 @@ function AppLayout() {
       setIsLoggingOut(false);
       logoutPending.current = false;
     }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-background text-foreground" aria-busy="true">
+        <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6">
+          <div className="text-sm font-medium text-[#687688] dark:text-[#AAB7C7]">
+            Abrindo sua área de aprendizagem...
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
