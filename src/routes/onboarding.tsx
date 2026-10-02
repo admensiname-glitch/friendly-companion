@@ -1,7 +1,6 @@
 import {
   Link,
   createFileRoute,
-  redirect,
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -710,32 +709,13 @@ function TechnicalErrorDetails({ techError }: TechnicalErrorDetailsProps) {
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-
-    if (!data.session) {
-      throw redirect({ to: "/login" });
-    }
-
-    const userId = data.session.user.id;
-
-    const { data: profile } = await supabase
-      .from("student_profiles")
-      .select("onboarding_completed")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (profile?.onboarding_completed) {
-      throw redirect({ to: "/app/dashboard" });
-    }
-  },
-
   component: Onboarding,
 });
 
 function Onboarding() {
   const navigate = useNavigate();
   const saveDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
 
   // ── Step ──
   const [step, setStep] = useState<Step>("institution");
@@ -773,7 +753,10 @@ function Onboarding() {
   useEffect(() => {
     const loadProfile = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return;
+      if (!sessionData.session) {
+        await navigate({ to: "/login", replace: true });
+        return;
+      }
 
       const userId = sessionData.session.user.id;
 
@@ -793,6 +776,11 @@ function Onboarding() {
         )
         .eq("user_id", userId)
         .maybeSingle();
+
+      if (profile?.onboarding_completed) {
+        await navigate({ to: "/app/dashboard", replace: true });
+        return;
+      }
 
       if (profile) {
         if (profile.course_id) {
@@ -840,10 +828,12 @@ function Onboarding() {
           })),
         );
       }
+
+      setAuthChecking(false);
     };
 
-    loadProfile();
-  }, []);
+    void loadProfile();
+  }, [navigate]);
 
   // ── Load published disciplines for selected course ──
   useEffect(() => {
@@ -1188,6 +1178,16 @@ function Onboarding() {
     dailyStudyMinutes,
     difficulties,
   };
+
+  if (authChecking) {
+    return (
+      <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A]">
+        <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-2xl items-center justify-center">
+          <p className="text-sm font-medium text-[#64748B]">Preparando sua configuração...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A] sm:py-12">
