@@ -78,6 +78,16 @@ function truncate(text: string, max: number): string {
   return text.length <= max ? text : text.slice(0, max) + "\n[trecho excedente omitido]";
 }
 
+function sanitizeGeneratedText(text: string): string {
+  return text
+    .replace(/\s*\([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\)/gi, "")
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function keywordsFor(topic: TopicRow, disciplineName: string): string[] {
   return [...new Set(
     (topic.name + " " + disciplineName + " " + (topic.description ?? ""))
@@ -448,6 +458,11 @@ async function generate(topic: TopicRow, disciplineName: string, sources: Source
     7600,
   );
   const sourceIds = sources.map((s) => s.id);
+  const sourceRefs = sources.map((s, index) => ({
+    ref: "SOURCE_" + (index + 1),
+    id: s.id,
+    title: s.title,
+  }));
 
   const prompt = [
     "Você é o redator acadêmico do Ensina-me.",
@@ -458,15 +473,17 @@ async function generate(topic: TopicRow, disciplineName: string, sources: Source
     "Não use frases-padrão, instruções ao estudante, boilerplate ou seções com conteúdo repetido.",
     "A introdução deve delimitar o objeto e os principais eixos documentados.",
     "Gere exatamente 10 seções, com títulos específicos. Cada seção deve ter 2 a 4 parágrafos e pelo menos 180 caracteres.",
-    "source_ids deve conter somente fontes que sustentem diretamente aquela seção.",
+    "source_ids deve conter somente os identificadores SOURCE_1, SOURCE_2 etc. das fontes que sustentam diretamente aquela seção.",
+    "NUNCA escreva UUIDs, ids internos, chaves técnicas ou identificadores de banco dentro de introduction, title ou content.",
+    "Os UUIDs reais são internos do sistema e não devem aparecer no texto. Use apenas SOURCE_1, SOURCE_2 etc. no campo source_ids.",
     "JSON válido: {introduction:string, sections:[{title:string, content:string, source_ids:string[]}]}",
     "",
     "DISCIPLINA: " + disciplineName,
     "TÓPICO: " + topic.name,
     topic.description ? "DESCRIÇÃO: " + topic.description : "",
     "",
-    "FONTES COM IDS:",
-    sources.map((s) => s.id + " :: " + s.title).join("\n"),
+    "FONTES DISPONÍVEIS:",
+    sourceRefs.map((s) => s.ref + " :: " + s.title).join("\n"),
     "",
     "EVIDÊNCIAS:",
     evidenceBlock,
@@ -523,9 +540,17 @@ async function generate(topic: TopicRow, disciplineName: string, sources: Source
 
   if (!validOutput(parsed)) throw new Error("Saída inválida para " + topic.name);
 
+  const sourceRefToId = new Map(sourceRefs.map((source) => [source.ref, source.id]));
   const allowed = new Set(sourceIds);
+
+  parsed.introduction = sanitizeGeneratedText(parsed.introduction);
   for (const section of parsed.sections) {
-    section.source_ids = [...new Set(section.source_ids)].filter((id: string) => allowed.has(id));
+    section.title = sanitizeGeneratedText(section.title);
+    section.content = sanitizeGeneratedText(section.content);
+    section.source_ids = [...new Set(section.source_ids)]
+      .map((ref: string) => sourceRefToId.get(ref) ?? (allowed.has(ref) ? ref : null))
+      .filter((id): id is string => typeof id === "string" && allowed.has(id));
+
     if (section.source_ids.length === 0) {
       throw new Error("Seção sem fonte em " + topic.name);
     }
@@ -554,7 +579,7 @@ async function rebuildTopic(topic: TopicRow, disciplineName: string): Promise<vo
     material_id: materialId,
     status: "running",
     model_name: "openai/gpt-oss-120b",
-    prompt_version: "academic_rebuild_v9_local_crossref_openalex",
+    prompt_version: "academic_rebuild_v10_safe_source_refs",
     source_count: sources.length,
     started_at: new Date().toISOString(),
   }).select("id").single();
@@ -739,7 +764,7 @@ Deno.serve(async (req) => {
       processed,
       failures,
       model: "openai/gpt-oss-120b",
-      prompt_version: "academic_rebuild_v9_local_crossref_openalex",
+      prompt_version: "academic_rebuild_v10_safe_source_refs",
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
