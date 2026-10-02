@@ -208,15 +208,6 @@ function AppLayout() {
             <p className="mt-0.5 text-sm font-semibold text-[#273547]">Estude no seu ritmo. Avance com clareza.</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMobileGuideOpen(true)}
-              aria-label="Abrir guia do aluno"
-              title="Guia do aluno"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE4ED] bg-transparent text-[#596778] transition-colors hover:border-[#C8D7EB] hover:text-[#0242D7] dark:border-[#334155] dark:text-[#C5D0DE] dark:hover:border-[#4B6380] dark:hover:text-[#7DB0FF] lg:hidden"
-            >
-              <Icon name="more" className="h-[18px] w-[18px]" />
-            </button>
             <div className="hidden items-center gap-2 lg:flex">
             <Link
               to="/app/perfil"
@@ -251,10 +242,76 @@ function AppLayout() {
       </header>
 
       <main className="lg:ml-[248px]">
-        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-8 sm:px-6 sm:py-7 sm:pb-10 lg:px-9 lg:py-9 lg:pb-12">
+        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-24 sm:px-6 sm:py-7 sm:pb-10 lg:px-9 lg:py-9 lg:pb-12">
           <Outlet />
         </div>
       </main>
+
+      <nav
+        aria-label="Navegação rápida"
+        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#DCE5EE] bg-[#F8FAFC]/96 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/96 lg:hidden"
+      >
+        <div className="mx-auto grid h-16 max-w-md grid-cols-5">
+          {navigation.slice(0, 2).map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              activeOptions={{ exact: item.to === "/app/dashboard" }}
+              activeProps={{ className: "text-[#0242D7] dark:text-[#7DB0FF]" }}
+              inactiveProps={{ className: "text-[#7A8796] dark:text-[#8FA0B2]" }}
+              className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-bold"
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={isActive ? "flex h-7 w-9 items-center justify-center rounded-xl bg-[#EAF1FC] dark:bg-[#172B48]" : "flex h-7 w-9 items-center justify-center rounded-xl"}>
+                    <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </>
+              )}
+            </Link>
+          ))}
+
+          <Link
+            to="/app/estude-agora"
+            className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-bold text-[#0242D7] dark:text-[#7DB0FF]"
+            activeOptions={{ exact: true }}
+          >
+            <span className="flex h-8 w-10 items-center justify-center rounded-2xl bg-[#0242D7] text-white shadow-[0_6px_16px_rgba(2,66,215,0.22)] dark:bg-[#4E8CF0]">
+              <Icon name="spark" className="h-[18px] w-[18px]" />
+            </span>
+            <span className="truncate">Estudar</span>
+          </Link>
+
+          <Link
+            to="/app/revisao"
+            className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-bold text-[#7A8796] dark:text-[#8FA0B2]"
+            activeProps={{ className: "text-[#0242D7] dark:text-[#7DB0FF]" }}
+            activeOptions={{ exact: true }}
+          >
+            {({ isActive }) => (
+              <>
+                <span className={isActive ? "flex h-7 w-9 items-center justify-center rounded-xl bg-[#EAF1FC] dark:bg-[#172B48]" : "flex h-7 w-9 items-center justify-center rounded-xl"}>
+                  <Icon name="review" className="h-[18px] w-[18px]" />
+                </span>
+                <span className="truncate">Revisão</span>
+              </>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMobileGuideOpen(true)}
+            aria-label="Abrir mais opções"
+            className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-bold text-[#7A8796] dark:text-[#8FA0B2]"
+          >
+            <span className="flex h-7 w-9 items-center justify-center rounded-xl">
+              <Icon name="more" className="h-[18px] w-[18px]" />
+            </span>
+            <span className="truncate">Mais</span>
+          </button>
+        </div>
+      </nav>
 
       {mobileGuideOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
