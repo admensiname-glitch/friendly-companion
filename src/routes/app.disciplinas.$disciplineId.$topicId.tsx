@@ -251,7 +251,7 @@ function TopicSkeleton() {
 
 function NotFound() {
   return (
-    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
+    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-6 text-center sm:p-8">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
         <svg
           aria-hidden="true"
@@ -299,7 +299,7 @@ function ErrorState() {
 
 function ContentPlaceholder() {
   return (
-    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-10 text-center">
+    <div className="mt-8 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-6 text-center sm:p-10">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF]">
         <svg
           aria-hidden="true"
@@ -354,7 +354,7 @@ function MaterialSectionItem({
   return (
     <article
       aria-labelledby={`section-${section.id}`}
-      className="rounded-[22px] border border-[#DCE5EE] bg-[#F8FAFC] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-7 dark:border-[#2B3A4F] dark:bg-[#111C2A]"
+      className="rounded-[22px] border border-[#DCE5EE] bg-[#F8FAFC] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-7 dark:border-[#2B3A4F] dark:bg-[#111C2A]"
     >
       <div className="flex items-start gap-4">
         <div
@@ -385,17 +385,17 @@ function MaterialSectionItem({
         </div>
       </div>
 
-      <div className="mt-6 max-w-3xl space-y-4 text-[15px] leading-7 text-[#465468] dark:text-[#C1CCDA]">
+      <div className="mt-5 max-w-3xl space-y-4 text-[15px] leading-7 text-[#465468] dark:text-[#C1CCDA]">
         {renderParagraphs(section.content)}
       </div>
 
-      <div className="mt-7 border-t border-[#E2E8F0] pt-5 dark:border-[#2B3A4F]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-6 border-t border-[#E2E8F0] pt-4 sm:pt-5 dark:border-[#2B3A4F]">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
           <button
             type="button"
             onClick={onPrevious}
             disabled={index === 0}
-            className="rounded-lg px-3 py-2 text-sm font-semibold text-[#64748B] hover:bg-[#EDF2F7] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#A8B6C7] dark:hover:bg-[#1B2638]"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-semibold text-[#64748B] hover:bg-[#EDF2F7] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#A8B6C7] dark:hover:bg-[#1B2638]"
           >
             ← Anterior
           </button>
@@ -407,8 +407,8 @@ function MaterialSectionItem({
             aria-pressed={completed}
             className={
               completed
-                ? "rounded-lg border border-[#BBE4CA] bg-[#EEF9F1] px-4 py-2 text-sm font-bold text-[#166534] dark:border-[#2D6750] dark:bg-[#122B21] dark:text-[#8CD7B0]"
-                : "rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] transition-colors hover:bg-[#0038B8]"
+                ? "min-h-11 rounded-lg border border-[#BBE4CA] bg-[#EEF9F1] px-4 py-2 text-sm font-bold text-[#166534] dark:border-[#2D6750] dark:bg-[#122B21] dark:text-[#8CD7B0]"
+                : "min-h-11 rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] transition-colors hover:bg-[#0038B8]"
             }
           >
             {completed ? "Parte estudada ✓" : "Marcar como estudada"}
@@ -418,7 +418,7 @@ function MaterialSectionItem({
             type="button"
             onClick={onNext}
             disabled={index === total - 1}
-            className="rounded-lg px-3 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#EAF1FC] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#7DB0FF] dark:hover:bg-[#172B48]"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#EAF1FC] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#7DB0FF] dark:hover:bg-[#172B48]"
           >
             Próxima →
           </button>
@@ -582,7 +582,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
   if (uniqueSources.length === 0) return null;
 
   return (
-    <section aria-labelledby="sources-heading" className="mt-12">
+    <section aria-labelledby="sources-heading" className="mt-10 sm:mt-12">
       <h2 id="sources-heading" className="text-lg font-semibold text-[#0F172A]">
         Fontes utilizadas
       </h2>
@@ -2000,7 +2000,7 @@ function ReviewSection({
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   return (
-    <section id="revisao" aria-labelledby="review-heading" className="mt-14">
+    <section id="revisao" aria-labelledby="review-heading" className="mt-12 sm:mt-14">
       <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
           3 · Revisar
