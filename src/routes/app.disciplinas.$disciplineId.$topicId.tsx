@@ -2895,7 +2895,15 @@ function TopicDetailPage() {
       setLoading(false);
     };
 
-    loadData();
+    void loadData().catch((loadError) => {
+      console.error("[Ensina-me] Erro inesperado ao carregar o tópico:", loadError);
+      reportLovableError(loadError, {
+        boundary: "topic_load_data",
+        topic_id: topicId,
+      });
+      setError(true);
+      setLoading(false);
+    });
   }, [disciplineId, topicId]);
 
   return (
