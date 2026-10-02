@@ -1,4 +1,5 @@
-import { Link, Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,19 +11,7 @@ type SupabaseRpcClient = {
 };
 
 export const Route = createFileRoute("/admin")({
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getSession();
-
-    if (error || !data.session) {
-      throw redirect({ to: "/login" });
-    }
-
-    const { data: isAdmin, error: roleError } = await (
-      supabase as unknown as SupabaseRpcClient
-    ).rpc("has_role", { required_role: "admin" });
-
-    return { isAdmin: !roleError && isAdmin === true };
-  },
+  ssr: false,
   component: AdminLayout,
 });
 
@@ -57,7 +46,45 @@ function AccessDenied() {
 }
 
 function AdminLayout() {
-  const { isAdmin } = Route.useRouteContext();
+  const navigate = useNavigate();
+  const [authChecking, setAuthChecking] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      if (error || !data.session) {
+        await navigate({ to: "/login", replace: true });
+        return;
+      }
+
+      const { data: adminResult, error: roleError } = await (
+        supabase as unknown as SupabaseRpcClient
+      ).rpc("has_role", { required_role: "admin" });
+
+      if (!active) return;
+
+      setIsAdmin(!roleError && adminResult === true);
+      setAuthChecking(false);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  if (authChecking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-6 py-12 text-[#0F172A]">
+        <p className="text-sm font-medium text-[#64748B]">Verificando acesso administrativo...</p>
+      </main>
+    );
+  }
 
   if (!isAdmin) {
     return <AccessDenied />;
