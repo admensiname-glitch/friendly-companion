@@ -3131,7 +3131,7 @@ function TopicDetailPage() {
 
               <div className="mt-6 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start sm:mt-7">
                 <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
-                  <div className="flex min-w-max gap-2 rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 lg:block lg:min-w-0" dark:border-[#2B3A4F] dark:bg-[#151F2D]">
+                  <div className="flex min-w-max gap-2 rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 dark:border-[#2B3A4F] dark:bg-[#151F2D] lg:block lg:min-w-0">
                     {sections.map((section, sectionIndex) => {
                       const isActive = sectionIndex === activeSectionIndex;
                       const isCompleted = completedSectionIds.includes(section.id);
