@@ -709,10 +709,10 @@ Deno.serve(async (req) => {
     if (topicResult.error) throw topicResult.error;
 
     const selected = (topicResult.data ?? [])
-      .filter((topic: any) => !disciplineId || topic.discipline_id === disciplineId)
-      .filter((topic: any) => disciplineIds.length === 0 || disciplineIds.includes(topic.discipline_id))
-      .filter((topic: any) => topicIds.length === 0 || topicIds.includes(topic.id))
-      .filter((topic: any) => !completed.has(topic.id))
+      .filter((topic) => !disciplineId || topic.discipline_id === disciplineId)
+      .filter((topic) => disciplineIds.length === 0 || disciplineIds.includes(topic.discipline_id))
+      .filter((topic) => topicIds.length === 0 || topicIds.includes(topic.id))
+      .filter((topic) => !completed.has(topic.id))
       .slice(0, limit);
 
     const processed: string[] = [];
