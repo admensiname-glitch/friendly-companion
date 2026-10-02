@@ -2031,9 +2031,11 @@ function prepareQuestionPresentation(
 function EvaluationSection({
   topicId,
   onDifficultyUpdate,
+  onCompletedChange,
 }: {
   topicId: string;
   onDifficultyUpdate: () => Promise<void>;
+  onCompletedChange: (completed: boolean) => void;
 }) {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<FormalEvaluationQuestion[]>([]);
