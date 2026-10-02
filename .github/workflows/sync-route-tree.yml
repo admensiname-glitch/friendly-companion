@@ -1,0 +1,46 @@
+name: Sync generated route tree
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ensina-me-route-tree-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate route tree through the configured TanStack/Vite pipeline
+        run: bun run build
+
+      - name: Commit generated route tree when routing changed
+        shell: bash
+        run: |
+          if git diff --quiet -- src/routeTree.gen.ts; then
+            echo "routeTree.gen.ts is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routeTree.gen.ts
+          git commit -m "chore: sync generated route tree [skip ci]"
+          git push
