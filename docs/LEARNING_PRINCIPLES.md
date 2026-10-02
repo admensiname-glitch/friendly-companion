@@ -123,3 +123,6 @@ O desenho do produto prioriza estratégias com forte apoio na literatura de apre
 
 Esses princípios devem orientar decisões de produto, conteúdo e motor adaptativo — não apenas a aparência das telas.
 
+
+
+<!-- CI audit marker -->
