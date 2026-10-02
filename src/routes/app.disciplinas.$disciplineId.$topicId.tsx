@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,58 @@ const DOMAIN_LABELS: Record<EvaluationResult["band"], string> = {
   mastered: "Domínio consolidado",
 };
 
+// Keep topic rendering isolated from the app-level error boundary. If a malformed
+// runtime value reaches a child renderer, the rest of the app must remain usable and
+// the real exception should still reach Lovable preview telemetry.
+class TopicRuntimeBoundary extends Component<
+  { children: React.ReactNode; topicId: string },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("[Ensina-me] Erro de renderização na página de tópico:", error);
+    reportLovableError(error, {
+      boundary: "topic_runtime_boundary",
+      topic_id: this.props.topicId,
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          className="mt-6 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-6 dark:border-[#6B3030] dark:bg-[#2A161A]"
+          role="alert"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#B91C1C] dark:text-[#FCA5A5]">
+            Erro ao abrir este tópico
+          </p>
+          <h2 className="mt-2 text-lg font-bold text-[#7F1D1D] dark:text-[#FECACA]">
+            Uma parte do conteúdo encontrou um problema inesperado.
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#991B1B] dark:text-[#FCA5A5]">
+            O Ensina-me preservou sua sessão. Recarregue a página para tentar abrir o tópico novamente.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+          >
+            Recarregar tópico
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // ─── Normalization ─────────────────────────────────────────────────────────────
 
 function normalize(str: string): string {
@@ -145,7 +198,7 @@ function normalize(str: string): string {
 // ─── Render paragraph breaks ───────────────────────────────────────────────────
 
 function renderParagraphs(text: string | null | undefined): React.ReactNode[] {
-  if (!text) return [];
+  if (typeof text !== "string" || !text) return [];
 
   const step1 = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const step2 = step1
@@ -543,7 +596,7 @@ function SourcesSection({ citations }: { citations: MaterialCitation[] }) {
             : null;
 
           const authorsText = (() => {
-            if (!src.authors || src.authors.length === 0) return null;
+            if (!Array.isArray(src.authors) || src.authors.length === 0) return null;
             const names = src.authors.map((a: unknown) => {
               if (typeof a === "string") return a;
               if (typeof a === "object" && a !== null && "name" in a) {
@@ -2846,7 +2899,8 @@ function TopicDetailPage() {
   }, [disciplineId, topicId]);
 
   return (
-    <section aria-labelledby="topic-title">
+    <TopicRuntimeBoundary topicId={topicId}>
+      <section aria-labelledby="topic-title">
       {/* ── Topic header ── */}
       <div className="border-b border-[#D8E1EA] pb-7 dark:border-[#2B3A4F]">
         <Link
@@ -3229,6 +3283,7 @@ function TopicDetailPage() {
           />
         </div>
       )}
-    </section>
+      </section>
+    </TopicRuntimeBoundary>
   );
 }
