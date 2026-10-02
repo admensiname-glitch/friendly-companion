@@ -192,18 +192,18 @@ function AppDashboard() {
   }, [topicsProgress]);
 
   return (
-    <section aria-labelledby="app-dashboard-title" className="max-w-5xl">
+    <section aria-labelledby="app-dashboard-title" className="w-full max-w-7xl">
       <header className="pb-2">
         <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
           Seu espaço de aprendizagem
         </p>
         <h1
           id="app-dashboard-title"
-          className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[40px]"
+          className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[48px]"
         >
           Olá, {firstName}.
         </h1>
-        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">
+        <p className="mt-2 max-w-3xl text-[16px] leading-7 text-[#687688] dark:text-[#AAB7C7]">
           Vamos continuar de onde você parou.
         </p>
       </header>
@@ -213,7 +213,7 @@ function AppDashboard() {
         className="mt-8 overflow-hidden rounded-[18px] border border-[#D5E1F2] bg-[#EFF5FF] dark:border-[#2E4563] dark:bg-[#142238]"
       >
         <div className="grid lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="p-5 sm:p-7">
+          <div className="p-5 sm:p-9">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#7DB0FF]">
               {recommendation?.reason === "assessment"
                 ? "Preparação para avaliação"
@@ -227,7 +227,7 @@ function AppDashboard() {
             </p>
             <h2
               id="today-heading"
-              className="mt-2 max-w-2xl text-[22px] font-bold leading-7 tracking-[-0.035em] text-[#172334] dark:text-[#F0F5FA] sm:text-[28px] sm:leading-8"
+              className="mt-2 max-w-2xl text-[22px] font-bold leading-7 tracking-[-0.035em] text-[#172334] dark:text-[#F0F5FA] sm:text-[32px] sm:leading-9"
             >
               {recommendation?.topic_name ??
                 activeTopics[0]?.topic_name ??
@@ -271,7 +271,7 @@ function AppDashboard() {
               Hoje
             </p>
             <div className="mt-2 flex items-end gap-2">
-              <span className="text-3xl font-bold tracking-[-0.04em] text-[#172334] dark:text-[#F0F5FA]">
+              <span className="text-4xl font-bold tracking-[-0.04em] text-[#172334] dark:text-[#F0F5FA]">
                 {todayStudy?.minutes ?? 0}
               </span>
               <span className="pb-1 text-sm font-semibold text-[#748397] dark:text-[#9DADBF]">
@@ -286,7 +286,7 @@ function AppDashboard() {
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs">
+            <div className="mt-4 flex items-center justify-between text-sm">
               <span className="text-[#7A8796] dark:text-[#96A6B8]">
                 Meta diária
               </span>
@@ -324,12 +324,12 @@ function AppDashboard() {
         ].map(([label, value, detail]) => (
           <div
             key={label}
-            className="border-b border-[#DCE5F0] px-1 py-4 sm:border-b-0 sm:border-r sm:px-5 sm:py-5 last:border-0 dark:border-[#2B3A4F]"
+            className="border-b border-[#DCE5F0] px-1 py-4 sm:border-b-0 sm:border-r sm:px-6 sm:py-6 last:border-0 dark:border-[#2B3A4F]"
           >
             <p className="text-xs font-semibold text-[#8792A0] dark:text-[#8FA0B2]">
               {label}
             </p>
-            <p className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
+            <p className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
               {value}
             </p>
             <p className="mt-0.5 text-xs text-[#7B8796] dark:text-[#8797AA]">
@@ -348,7 +348,7 @@ function AppDashboard() {
               </p>
               <h2
                 id="continue-heading"
-                className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]"
+                className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]"
               >
                 De onde você parou
               </h2>
@@ -361,7 +361,7 @@ function AppDashboard() {
             </Link>
           </div>
 
-          <div className="mt-3 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
             {activeTopics.slice(0, 4).map((topic, index) => (
               <Link
                 key={topic.topic_id}
@@ -370,32 +370,32 @@ function AppDashboard() {
                   disciplineId: topic.discipline_id,
                   topicId: topic.topic_id,
                 }}
-                className="group grid gap-3 px-1 py-4 sm:grid-cols-[34px_minmax(0,1fr)_160px_auto] sm:items-center"
+                className="group grid gap-4 px-1 py-5 sm:grid-cols-[44px_minmax(0,1fr)_220px_auto] sm:items-center"
               >
                 <span className="text-xs font-bold text-[#99A4B2] dark:text-[#73859A]">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[15px] font-bold text-[#273547] dark:text-[#DFE8F1]">
+                  <p className="text-[17px] font-bold text-[#273547] dark:text-[#DFE8F1]">
                     {topic.topic_name}
                   </p>
-                  <p className="mt-0.5 text-xs text-[#7A8796] dark:text-[#8999AB]">
+                  <p className="mt-1 text-sm text-[#7A8796] dark:text-[#8999AB]">
                     {topic.discipline_name}
                   </p>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between text-[10px] font-semibold text-[#8792A0] dark:text-[#8797AA]">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[#8792A0] dark:text-[#8797AA]">
                     <span>Progresso</span>
                     <span>{topic.progress}%</span>
                   </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#E7EDF4] dark:bg-[#27384F]">
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E7EDF4] dark:bg-[#27384F]">
                     <div
                       className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]"
                       style={{ width: `${topic.progress}%` }}
                     />
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
+                <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
                   {topic.review_count > 0
                     ? "Revisar"
                     : topic.progress > 0
@@ -417,7 +417,7 @@ function AppDashboard() {
             </p>
             <h2
               id="path-heading"
-              className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]"
+              className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]"
             >
               Disciplinas em andamento
             </h2>
@@ -431,37 +431,37 @@ function AppDashboard() {
         </div>
 
         {loading ? (
-          <div className="mt-3 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
             {[1, 2, 3].map((item) => (
               <div key={item} className="h-20 animate-pulse" />
             ))}
           </div>
         ) : disciplineProgress.length > 0 ? (
-          <div className="mt-3 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
             {disciplineProgress.map((discipline, index) => (
               <Link
                 key={discipline.discipline_id}
                 to="/app/disciplinas/$disciplineId"
                 params={{ disciplineId: discipline.discipline_id }}
-                className="group grid gap-3 px-1 py-4 sm:grid-cols-[34px_minmax(0,1fr)_220px_auto] sm:items-center"
+                className="group grid gap-3 px-1 py-4 sm:grid-cols-[44px_minmax(0,1fr)_280px_auto] sm:items-center"
               >
                 <span className="text-xs font-bold text-[#99A4B2] dark:text-[#73859A]">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
-                  <p className="text-[15px] font-bold text-[#273547] dark:text-[#DFE8F1]">
+                  <p className="text-[17px] font-bold text-[#273547] dark:text-[#DFE8F1]">
                     {discipline.discipline_name}
                   </p>
-                  <p className="mt-0.5 text-xs text-[#7A8796] dark:text-[#8999AB]">
+                  <p className="mt-1 text-sm text-[#7A8796] dark:text-[#8999AB]">
                     {discipline.completed} de {discipline.topics} tópicos concluídos
                   </p>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between text-[10px] font-semibold text-[#8792A0] dark:text-[#8797AA]">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[#8792A0] dark:text-[#8797AA]">
                     <span>Domínio do percurso</span>
                     <span>{discipline.progress}%</span>
                   </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#E7EDF4] dark:bg-[#27384F]">
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E7EDF4] dark:bg-[#27384F]">
                     <div
                       className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]"
                       style={{ width: `${discipline.progress}%` }}
