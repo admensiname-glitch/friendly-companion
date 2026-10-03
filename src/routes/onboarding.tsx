@@ -15,7 +15,7 @@ type Step = "institution" | "disciplines" | "exams" | "final";
 function normalize(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
 }
