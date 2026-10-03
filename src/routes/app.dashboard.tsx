@@ -210,11 +210,11 @@ function AppDashboard() {
 
       <section
         aria-labelledby="today-heading"
-        className="mt-8 overflow-hidden rounded-[18px] border border-[#D5E1F2] bg-[#EFF5FF] dark:border-[#2E4563] dark:bg-[#142238]"
+        className="mt-8 overflow-hidden rounded-[20px] border border-[#0B56D8] bg-[#0242D7] shadow-[0_14px_36px_rgba(2,66,215,0.14)] dark:border-[#2D6FE0] dark:bg-[#0B3FA8]"
       >
         <div className="grid lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="p-5 sm:p-9">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#7DB0FF]">
+          <div className="p-5 text-white sm:p-9">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/75 dark:text-white/75">
               {recommendation?.reason === "assessment"
                 ? "Preparação para avaliação"
                 : recommendation?.reason === "review"
@@ -227,18 +227,18 @@ function AppDashboard() {
             </p>
             <h2
               id="today-heading"
-              className="mt-2 max-w-2xl text-[22px] font-bold leading-7 tracking-[-0.035em] text-[#172334] dark:text-[#F0F5FA] sm:text-[32px] sm:leading-9"
+              className="mt-2 max-w-2xl text-[22px] font-bold leading-7 tracking-[-0.035em] text-white dark:text-white sm:text-[32px] sm:leading-9"
             >
               {recommendation?.topic_name ??
                 activeTopics[0]?.topic_name ??
                 "Seu próximo passo começa aqui"}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-[#55677D] dark:text-[#AAB9CB]">
+            <p className="mt-1 text-sm font-semibold text-white/80 dark:text-white/80">
               {recommendation?.discipline_name ??
                 activeTopics[0]?.discipline_name ??
                 "Escolha uma disciplina para começar."}
             </p>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5F7187] dark:text-[#B3C0CF]">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/85 dark:text-white/85">
               {recommendation?.message ??
                 "Aprenda uma ideia, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
@@ -250,7 +250,7 @@ function AppDashboard() {
                   disciplineId: recommendation.discipline_id,
                   topicId: recommendation.topic_id,
                 }}
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white transition-transform hover:-translate-y-px hover:bg-[#0038B8]"
+                className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#0242D7] shadow-sm transition-transform hover:-translate-y-px hover:bg-[#F5F8FF]"
               >
                 Continuar estudando
                 <Icon name="arrow" className="h-4 w-4" />
@@ -258,7 +258,7 @@ function AppDashboard() {
             ) : (
               <Link
                 to="/app/disciplinas"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
+                className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#0242D7] shadow-sm hover:bg-[#F5F8FF]"
               >
                 Escolher disciplina
                 <Icon name="arrow" className="h-4 w-4" />
@@ -266,7 +266,7 @@ function AppDashboard() {
             )}
           </div>
 
-          <div className="border-t border-[#D5E1F2] bg-white/55 p-5 dark:border-[#2E4563] dark:bg-[#111C2E]/45 lg:border-l lg:border-t-0">
+          <div className="border-t border-white/20 bg-white p-5 dark:border-[#2E4563] dark:bg-[#111C2E] lg:border-l lg:border-t-0">
             <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#7D8B9B] dark:text-[#8797AA]">
               Hoje
             </p>
@@ -315,7 +315,7 @@ function AppDashboard() {
         </div>
       </section>
 
-      <div className="mt-8 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-4">
         {[
           ["Tópicos", topicsProgress.length.toString(), "no seu percurso"],
           ["Revisões", topicsProgress.reduce((sum, topic) => sum + topic.review_count, 0).toString(), "pontos para retomar"],
@@ -324,7 +324,7 @@ function AppDashboard() {
         ].map(([label, value, detail]) => (
           <div
             key={label}
-            className="border-b border-[#DCE5F0] px-1 py-4 sm:border-b-0 sm:border-r sm:px-6 sm:py-6 last:border-0 dark:border-[#2B3A4F]"
+            className="rounded-2xl border border-[#DCE5F0] bg-white px-5 py-4 shadow-[0_4px_14px_rgba(23,35,52,0.04)] dark:border-[#2B3A4F] dark:bg-[#111C2E] sm:py-5"
           >
             <p className="text-xs font-semibold text-[#8792A0] dark:text-[#8FA0B2]">
               {label}
@@ -361,7 +361,7 @@ function AppDashboard() {
             </Link>
           </div>
 
-          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4EAF1] bg-white dark:divide-[#2B3A4F] dark:border-[#2B3A4F] dark:bg-[#111C2E]">
             {activeTopics.slice(0, 4).map((topic, index) => (
               <Link
                 key={topic.topic_id}
@@ -370,7 +370,7 @@ function AppDashboard() {
                   disciplineId: topic.discipline_id,
                   topicId: topic.topic_id,
                 }}
-                className="group grid gap-4 px-1 py-5 sm:grid-cols-[44px_minmax(0,1fr)_220px_auto] sm:items-center"
+                className="group grid gap-4 border-b border-[#E4EAF1] px-4 py-5 last:border-b-0 hover:bg-[#F8FAFD] dark:border-[#2B3A4F] dark:hover:bg-[#17263A] sm:grid-cols-[44px_minmax(0,1fr)_220px_auto] sm:items-center sm:px-5"
               >
                 <span className="text-xs font-bold text-[#99A4B2] dark:text-[#73859A]">
                   {String(index + 1).padStart(2, "0")}
@@ -395,7 +395,7 @@ function AppDashboard() {
                     />
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
+                <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#C9D8EF] px-3 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:border-[#38506F] dark:text-[#7DB0FF]">
                   {topic.review_count > 0
                     ? "Revisar"
                     : topic.progress > 0
@@ -431,19 +431,19 @@ function AppDashboard() {
         </div>
 
         {loading ? (
-          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4EAF1] bg-white dark:divide-[#2B3A4F] dark:border-[#2B3A4F] dark:bg-[#111C2E]">
             {[1, 2, 3].map((item) => (
               <div key={item} className="h-20 animate-pulse" />
             ))}
           </div>
         ) : disciplineProgress.length > 0 ? (
-          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4EAF1] bg-white dark:divide-[#2B3A4F] dark:border-[#2B3A4F] dark:bg-[#111C2E]">
             {disciplineProgress.map((discipline, index) => (
               <Link
                 key={discipline.discipline_id}
                 to="/app/disciplinas/$disciplineId"
                 params={{ disciplineId: discipline.discipline_id }}
-                className="group grid gap-3 px-1 py-4 sm:grid-cols-[44px_minmax(0,1fr)_280px_auto] sm:items-center"
+                className="group grid gap-3 border-b border-[#E4EAF1] px-4 py-4 last:border-b-0 hover:bg-[#F8FAFD] dark:border-[#2B3A4F] dark:hover:bg-[#17263A] sm:grid-cols-[44px_minmax(0,1fr)_280px_auto] sm:items-center sm:px-5"
               >
                 <span className="text-xs font-bold text-[#99A4B2] dark:text-[#73859A]">
                   {String(index + 1).padStart(2, "0")}
@@ -473,12 +473,12 @@ function AppDashboard() {
             ))}
           </div>
         ) : (
-          <div className="muted-panel mt-3 rounded-xl p-7">
+          <div className="muted-panel mt-3 rounded-2xl border border-[#E4EAF1] p-7">
             <p className="text-sm font-semibold text-[#344154] dark:text-[#DCE5EE]">
-              Suas disciplinas aparecerão aqui.
+              {disciplines.length > 0 ? "Os tópicos das suas disciplinas aparecerão aqui." : "Suas disciplinas aparecerão aqui."}
             </p>
             <p className="mt-1 text-sm leading-6 text-[#7A8796] dark:text-[#97A7B8]">
-              Assim que houver uma disciplina disponível, seu percurso começa aqui.
+              {disciplines.length > 0 ? "Assim que os tópicos estiverem disponíveis, seu percurso começa aqui." : "Assim que houver uma disciplina disponível, seu percurso começa aqui."}
             </p>
           </div>
         )}
@@ -494,14 +494,14 @@ function AppDashboard() {
               Acesso rápido
             </h2>
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <Link to="/app/disciplinas" className="font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <Link to="/app/disciplinas" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Minhas disciplinas
             </Link>
-            <Link to="/app/revisao" className="font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">
+            <Link to="/app/revisao" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Revisão
             </Link>
-            <Link to="/app/desempenho" className="font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">
+            <Link to="/app/desempenho" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Meu desempenho
             </Link>
           </div>
