@@ -9,8 +9,11 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
 try {
   await page.goto(`${baseURL}/app/dashboard`, { waitUntil: "networkidle" });
-  await page.waitForURL(/\/login$/, { timeout: 15000 });
-  await page.getByRole("heading", { name: /entre na sua conta/i }).waitFor();
+  await page.waitForTimeout(3000);
+  if (!page.url().match(/\/login(?:$|\?)/)) {
+    throw new Error(`Expected protected route to redirect to /login, got ${page.url()}`);
+  }
+  await page.getByRole("heading", { name: /entre na sua conta/i }).waitFor({ timeout: 10000 });
   console.log("PASS: /app/dashboard redirects unauthenticated users to /login");
 
   await page.getByRole("link", { name: /criar conta/i }).click();
