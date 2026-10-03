@@ -12,6 +12,10 @@ on:
       - "public/icon-512.jpg"
       - "public/icon-192.png"
       - "public/ensina-me-icon.svg"
+      - "public/manifest.webmanifest"
+      - "src/router.tsx"
+      - "src/styles.css"
+      - "src/routes/__root.tsx"
       - "package.json"
 
 jobs:
