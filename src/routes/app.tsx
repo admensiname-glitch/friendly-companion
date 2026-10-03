@@ -1,5 +1,5 @@
-import { Link, Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +64,7 @@ const navigation = [
 
 function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [authChecking, setAuthChecking] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -192,6 +193,22 @@ function AppLayout() {
     navigation[4],
   ];
 
+  const mobileContext = useMemo(() => {
+    const pathname = location.pathname;
+    if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
+    if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
+    if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Disciplinas", back: false };
+    if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
+    if (pathname === "/app/revisao") return { title: "Revisão", back: false };
+    if (pathname === "/app/desempenho") return { title: "Desempenho", back: false };
+    if (pathname === "/app/catalogo" || pathname === "/app/catalogo/") return { title: "Catálogo", back: false };
+    if (pathname === "/app/perfil") return { title: "Meu perfil", back: true };
+    if (pathname.includes("/app/disciplinas/")) return { title: "Tópico", back: true };
+    if (pathname.includes("/app/estudo/")) return { title: "Estudo", back: true };
+    if (pathname.includes("/app/questoes/")) return { title: "Questão", back: true };
+    return { title: "Ensina-me", back: true };
+  }, [location.pathname]);
+
   return (
     <div className="app-shell min-h-[100dvh] bg-background text-foreground">
       <aside className="app-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
@@ -244,10 +261,27 @@ function AppLayout() {
       </aside>
 
       <header className="app-mobile-header lg:hidden">
-        <Link to="/app/dashboard" aria-label="Ensina-me, início" className="shrink-0">
-          <BrandLogo compact tone={isDark ? "light" : "blue"} />
-        </Link>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {mobileContext.back ? (
+            <button
+              type="button"
+              className="app-icon-button app-back-button"
+              aria-label="Voltar"
+              onClick={() => window.history.length > 1 ? window.history.back() : void navigate({ to: "/app/dashboard" })}
+            >
+              <Icon name="chevron" className="h-5 w-5 rotate-180" />
+            </button>
+          ) : (
+            <Link to="/app/dashboard" aria-label="Ensina-me, início" className="shrink-0">
+              <BrandLogo compact tone={isDark ? "light" : "blue"} />
+            </Link>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-extrabold tracking-[-0.02em] text-[#172334] dark:text-[#E7EDF5]">{mobileContext.title}</p>
+            {mobileContext.back && <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A96A5] dark:text-[#8797AA]">Ensina-me</p>}
+          </div>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
             className="app-icon-button"
@@ -336,7 +370,9 @@ function AppLayout() {
 
       <main className="lg:ml-[252px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
-          <Outlet />
+          <div key={location.pathname} className="app-route-stage">
+            <Outlet />
+          </div>
         </div>
       </main>
 
