@@ -408,9 +408,6 @@ function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">Senha</label> className="text-sm font-medium text-[#0F172A]">
-                Senha
-              </label>
               <div className="relative mt-2">
                 <input
                   id="password"
