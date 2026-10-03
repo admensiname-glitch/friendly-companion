@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Component, useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
@@ -1750,7 +1750,7 @@ function ExerciseSection({
   ) => Promise<void>;
 }) {
   const QUESTIONS_PER_ROUND = 5;
-  const allQuestions = exercises.flatMap((exercise) => exercise.questions ?? []);
+  const allQuestions = useMemo(() => exercises.flatMap((exercise) => exercise.questions ?? []), [exercises]);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [shuffledOptionOrders, setShuffledOptionOrders] = useState<Record<string, string[]>>({});
@@ -1776,7 +1776,7 @@ function ExerciseSection({
     setSelectedOptions({});
     setRevealedQuestions(new Set());
     setShuffledOptionOrders({});
-  }, [exercises]);
+  }, [allQuestions]);
 
   useEffect(() => {
     if (allQuestions.length === 0) return;
@@ -1806,7 +1806,7 @@ function ExerciseSection({
 
       return changed ? next : prev;
     });
-  }, [exercises]);
+  }, [allQuestions]);
 
   if (allQuestions.length === 0) return null;
 
