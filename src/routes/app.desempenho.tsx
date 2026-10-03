@@ -42,7 +42,7 @@ function PerformancePage() {
       ]);
 
       if (!summaryResult.error && summaryResult.data) {
-        setSummary(summaryResult.data as Summary);
+        setSummary(summaryResult.data as unknown as Summary);
       }
       if (!evaluationsResult.error) {
         setEvaluations((evaluationsResult.data ?? []) as Evaluation[]);

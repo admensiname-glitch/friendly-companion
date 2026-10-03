@@ -61,7 +61,7 @@ function StudyNowPage() {
         setRecommendation((recommendationResult.data ?? null) as Recommendation | null);
       }
       if (!todayResult.error && todayResult.data) {
-        setTodayStudy(todayResult.data as TodayStudy);
+        setTodayStudy(todayResult.data as unknown as TodayStudy);
       }
       setLoading(false);
     })();

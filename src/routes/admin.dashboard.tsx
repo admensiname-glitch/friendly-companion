@@ -42,7 +42,7 @@ function AdminDashboard() {
         setError(true);
         return;
       }
-      setStats(data as AdminStats);
+      setStats(data as unknown as AdminStats);
     })();
   }, []);
 
