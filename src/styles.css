@@ -1197,83 +1197,89 @@
 
 
 /* Native-feeling mobile navigation and route transitions */
-html {
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
-}
-
-@keyframes ensina-view-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(.992);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes ensina-view-out {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-4px) scale(.998);
-  }
-}
-
-::view-transition-old(root) {
-  animation: ensina-view-out 170ms cubic-bezier(.4,0,1,1) both;
-}
-
-::view-transition-new(root) {
-  animation: ensina-view-in 260ms cubic-bezier(.22,1,.36,1) both;
-}
-
-.app-route-stage {
-  animation: ensina-route-in 240ms cubic-bezier(.22,1,.36,1) both;
-}
-
-.app-shell a,
-.app-shell button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.app-shell a:active,
-.app-shell button:active {
-  transition-duration: 90ms;
-}
-
-.app-mobile-tabbar {
-  transition: background-color 180ms ease, box-shadow 180ms ease;
-}
-
-.app-tab-icon {
-  transition: transform 180ms cubic-bezier(.22,1,.36,1), background-color 180ms ease;
-}
-
-.app-tab-active .app-tab-icon {
-  transform: translateY(-1px) scale(1.025);
-}
-
-.app-icon-button:active,
-.app-primary-button:active,
-.app-top-action:active,
-.app-sheet-item:active {
-  transform: scale(.965);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
+@media (max-width: 639px) {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
 
+  @keyframes ensina-view-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(.992);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes ensina-view-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-4px) scale(.998);
+    }
+  }
+
+  .app-route-stage {
+    animation: ensina-route-in 240ms cubic-bezier(.22,1,.36,1) both;
+  }
+
+  .app-shell a,
+  .app-shell button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app-shell a:active,
+  .app-shell button:active {
+    transition-duration: 90ms;
+  }
+
+  .app-mobile-tabbar {
+    transition: background-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .app-tab-icon {
+    transition: transform 180ms cubic-bezier(.22,1,.36,1), background-color 180ms ease;
+  }
+
+  .app-tab-active .app-tab-icon {
+    transform: translateY(-1px) scale(1.025);
+  }
+
+  .app-icon-button:active,
+  .app-primary-button:active,
+  .app-top-action:active,
+  .app-sheet-item:active {
+    transform: scale(.965);
+  }
+
+  @supports (view-transition-name: root) {
+    ::view-transition-old(root) {
+      animation: ensina-view-out 170ms cubic-bezier(.4,0,1,1) both;
+    }
+
+    ::view-transition-new(root) {
+      animation: ensina-view-in 260ms cubic-bezier(.22,1,.36,1) both;
+    }
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
   .app-route-stage,
   .app-tab-icon {
     animation: none !important;
     transition-duration: .01ms !important;
+  }
+
+  @supports (view-transition-name: root) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none !important;
+    }
   }
 }
