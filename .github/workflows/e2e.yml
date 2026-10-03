@@ -36,9 +36,7 @@ jobs:
       - name: Wait for app
         run: |
           for i in {1..30}; do
-            if curl --silent --show-error --max-time 2 http://127.0.0.1:4173/ > /dev/null; then
-              exit 0
-            fi
+            if curl --silent --show-error --max-time 2 http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/ensina-me-vite.log
