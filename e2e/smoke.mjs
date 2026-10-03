@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:5173";
+const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:4173";
 const email = process.env.E2E_TEST_EMAIL;
 const password = process.env.E2E_TEST_PASSWORD;
 
