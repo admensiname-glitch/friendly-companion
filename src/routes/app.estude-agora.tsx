@@ -124,6 +124,12 @@ function StudyNowPage() {
                 Começar agora
                 <Icon name="arrow" className="h-4 w-4" />
               </Link>
+              <a
+                href={`/app/disciplinas/${recommendation!.discipline_id}/${recommendation!.topic_id}#pratica`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]"
+              >
+                Praticar questões
+              </a>
               <Link to="/app/revisao" className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]">
                 Ver revisão
               </Link>
