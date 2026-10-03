@@ -1283,3 +1283,170 @@
     }
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Native mobile navigation polish — third pass                                */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 639px) {
+  @keyframes ensina-mobile-stage-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes ensina-mobile-sheet-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 22px, 0) scale(.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes ensina-mobile-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .app-route-stage {
+    animation: ensina-mobile-stage-in 260ms cubic-bezier(.22, 1, .36, 1) both;
+    will-change: opacity, transform;
+  }
+
+  .app-mobile-header {
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .app-mobile-header .app-icon-button,
+  .app-mobile-header .app-avatar-small {
+    transition: transform 160ms cubic-bezier(.22, 1, .36, 1), opacity 160ms ease;
+  }
+
+  .app-mobile-header .app-icon-button:active,
+  .app-mobile-header .app-avatar-small:active {
+    transform: scale(.94);
+  }
+
+  .app-mobile-tabbar {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .app-tab {
+    transition: color 180ms ease, opacity 180ms ease, transform 180ms cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .app-tab:active {
+    transform: scale(.96);
+  }
+
+  .app-tab-icon {
+    transition: transform 220ms cubic-bezier(.22, 1, .36, 1), background-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .app-tab-active .app-tab-icon {
+    transform: translateY(-1px) scale(1.035);
+    box-shadow: 0 5px 14px rgba(2, 66, 215, .10);
+  }
+
+  .app-sheet-backdrop {
+    animation: ensina-mobile-backdrop-in 160ms ease-out both;
+    background: rgba(15, 23, 42, .02);
+  }
+
+  .app-bottom-sheet {
+    animation: ensina-mobile-sheet-in 240ms cubic-bezier(.22, 1, .36, 1) both;
+    will-change: transform, opacity;
+  }
+
+  .app-bottom-sheet > .mx-auto.mb-5 {
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+
+  .app-bottom-sheet:focus-within > .mx-auto.mb-5 {
+    opacity: .7;
+  }
+
+  .app-sheet-item {
+    transition: transform 150ms cubic-bezier(.22, 1, .36, 1), background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .app-sheet-item:active {
+    transform: scale(.975);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+  }
+
+  /* Directional native-like route motion. */
+  html:active-view-transition-type(mobile-forward) ::view-transition-old(root) {
+    animation: ensina-mobile-view-out-left 180ms cubic-bezier(.4, 0, 1, 1) both;
+  }
+
+  html:active-view-transition-type(mobile-forward) ::view-transition-new(root) {
+    animation: ensina-mobile-view-in-right 260ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  html:active-view-transition-type(mobile-back) ::view-transition-old(root) {
+    animation: ensina-mobile-view-out-right 180ms cubic-bezier(.4, 0, 1, 1) both;
+  }
+
+  html:active-view-transition-type(mobile-back) ::view-transition-new(root) {
+    animation: ensina-mobile-view-in-left 260ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  @keyframes ensina-mobile-view-in-right {
+    from { opacity: 0; transform: translate3d(18px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes ensina-mobile-view-in-left {
+    from { opacity: 0; transform: translate3d(-18px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes ensina-mobile-view-out-left {
+    from { opacity: 1; transform: translate3d(0, 0, 0); }
+    to { opacity: .55; transform: translate3d(-10px, 0, 0); }
+  }
+
+  @keyframes ensina-mobile-view-out-right {
+    from { opacity: 1; transform: translate3d(0, 0, 0); }
+    to { opacity: .55; transform: translate3d(10px, 0, 0); }
+  }
+
+  @supports not selector(html:active-view-transition-type(mobile-forward)) {
+    ::view-transition-old(root) {
+      animation: ensina-view-out 170ms cubic-bezier(.4, 0, 1, 1) both;
+    }
+
+    ::view-transition-new(root) {
+      animation: ensina-view-in 260ms cubic-bezier(.22, 1, .36, 1) both;
+    }
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .app-route-stage {
+    animation: none !important;
+    will-change: auto;
+  }
+
+  .app-mobile-header,
+  .app-tab,
+  .app-tab-icon,
+  .app-sheet-item {
+    transition-duration: .01ms !important;
+  }
+
+  .app-sheet-backdrop,
+  .app-bottom-sheet {
+    animation: none !important;
+  }
+}
