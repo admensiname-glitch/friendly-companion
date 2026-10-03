@@ -47,11 +47,15 @@ const navigation = [
 function AppLayout() {
   const navigate = useNavigate();
   const [authChecking, setAuthChecking] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    void (async () => {
+    const checkAccess = async () => {
+      setAuthChecking(true);
+      setAuthError(null);
+
       const { data, error } = await supabase.auth.getSession();
 
       if (!active) return;
@@ -69,13 +73,26 @@ function AppLayout() {
 
       if (!active) return;
 
-      if (profileError || !profile?.onboarding_completed) {
+      if (profileError) {
+        setAuthError("Não foi possível verificar sua configuração. Verifique sua conexão e tente novamente.");
+        setAuthChecking(false);
+        return;
+      }
+
+      if (!profile?.onboarding_completed) {
         await navigate({ to: "/onboarding", replace: true });
         return;
       }
 
       setAuthChecking(false);
-    })();
+    };
+
+    void checkAccess();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
 
     return () => {
       active = false;
@@ -131,9 +148,16 @@ function AppLayout() {
     return (
       <div className="min-h-screen bg-background text-foreground" aria-busy="true">
         <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6">
-          <div className="text-sm font-medium text-[#687688] dark:text-[#AAB7C7]">
-            Abrindo sua área de aprendizagem...
-          </div>
+          {authError ? (
+            <div className="w-full max-w-md rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-6 text-center dark:border-[#6B3030] dark:bg-[#2A161A]">
+              <p className="text-sm font-semibold text-[#991B1B] dark:text-[#FCA5A5]">{authError}</p>
+              <button type="button" onClick={() => window.location.reload()} className="mt-4 min-h-11 rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Tentar novamente</button>
+            </div>
+          ) : (
+            <div className="text-sm font-medium text-[#687688] dark:text-[#AAB7C7]">
+              Abrindo sua área de aprendizagem...
+            </div>
+          )}
         </div>
       </div>
     );
