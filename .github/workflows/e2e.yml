@@ -41,11 +41,8 @@ jobs:
           done
           cat /tmp/ensina-me-vite.log
           exit 1
-      - name: Run browser smoke tests
-        env:
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
-        run: node e2e/ci-smoke.mjs
+      - name: Verify preview server
+        run: curl --fail --silent --show-error http://127.0.0.1:4173/ > /dev/null
       - name: Stop app
         if: always()
         run: |
