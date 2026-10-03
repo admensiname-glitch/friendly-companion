@@ -974,7 +974,6 @@ function TutorSection({
     if (typeof window === "undefined") return;
 
     const maxX = Math.max(12, window.innerWidth - 64);
-    const maxY = Math.max(12, window.innerHeight - 72);
     const fallback = {
       x: Math.max(12, window.innerWidth - 64),
       y: Math.max(12, window.innerHeight - 132),
