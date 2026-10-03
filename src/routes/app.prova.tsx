@@ -116,8 +116,17 @@ function ExamPage() {
     }
     setSaving(true);
     const { data, error: finishError } = await supabase.rpc("finish_exam", { _attempt_id: attemptId });
-    if (finishError) setError("Não foi possível finalizar a prova.");
-    else {
+    if (finishError) {
+      console.error("[Ensina-me] Erro ao finalizar prova:", finishError);
+      const message = finishError.message ?? "";
+      setError(
+        message.includes("EXAM_EXPIRED")
+          ? "O tempo da prova terminou. Atualize a página para abrir o resultado."
+          : message.includes("ATTEMPT_NOT_FOUND")
+            ? "Esta prova não está mais disponível. Inicie uma nova prova."
+            : "Não foi possível finalizar a prova. Tente novamente.",
+      );
+    } else {
       setResult(data as ExamResult);
       setAttemptId(null);
       setQuestions([]);
@@ -226,14 +235,27 @@ function ExamPage() {
 
         <div className="sticky bottom-[4.5rem] z-20 mt-4 flex gap-2 rounded-2xl border border-[#DCE5F0] bg-white/95 p-2 shadow-[0_-6px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/95 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
           <button disabled={current===0} onClick={()=>setCurrent((v)=>Math.max(0,v-1))} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-2 text-sm font-bold disabled:opacity-40">Anterior</button>
-          <button onClick={()=>current<questions.length-1 ? setCurrent((v)=>v+1) : void finishExam()} className="min-h-11 flex-1 rounded-xl bg-[#0242D7] px-4 py-2 text-sm font-bold text-white">{current<questions.length-1 ? "Próxima questão" : "Entregar prova"}</button>
+          <button
+            disabled={saving}
+            onClick={()=>current<questions.length-1 ? setCurrent((v)=>v+1) : void finishExam()}
+            className="min-h-11 flex-1 rounded-xl bg-[#0242D7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? "Entregando..." : current<questions.length-1 ? "Próxima questão" : "Entregar prova"}
+          </button>
         </div>
 
         <div className="mt-5 flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Navegação das questões">
           {questions.map((q,i)=><button key={q.id} onClick={()=>setCurrent(i)} aria-label={`Ir para questão ${i+1}`} className={`h-9 w-9 rounded-full text-xs font-bold ${i===current?"bg-[#0242D7] text-white":answers[q.id]?"bg-[#E8F7EE] text-[#166534]":"bg-[#F1F5F9] text-[#687688]"}`}>{i+1}</button>)}
         </div>
 
-        <button type="button" onClick={()=>void finishExam()} className="mt-6 min-h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-bold text-[#475569] sm:mt-4">Entregar prova agora</button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={()=>void finishExam()}
+          className="mt-6 min-h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-bold text-[#475569] disabled:opacity-50 sm:mt-4"
+        >
+          {saving ? "Entregando prova..." : "Entregar prova agora"}
+        </button>
       </section>
     );
   }
