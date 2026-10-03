@@ -192,6 +192,6 @@ function DisciplineDetailPage(){
      </div>
      <TopicsList topics={topics} officialDisciplineId={officialDiscId??disciplineId} learningState={learningState}/>
      <div className="mt-9 flex flex-wrap gap-3"><Link to="/app/disciplinas" className="inline-flex items-center gap-2 rounded-xl border border-[#DCE5F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#556273] hover:border-[#C8D7EB] hover:text-[#0242D7]"><Icon name="back" className="h-4 w-4"/> Voltar</Link></div>
-     </section></>:null}
+     </>:null}
   </section>;
 }
