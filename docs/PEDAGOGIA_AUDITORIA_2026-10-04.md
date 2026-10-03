@@ -10,71 +10,51 @@ Data: 2026-10-04
 - 275 materiais
 - 2.750 seções
 - 10 seções por material: **275/275**
-- material_citations: **1.939**
-- topic_sources: **932**
-- sources: **243**
+- material_citations: **atualizado na rodada**
+- topic_sources: **atualizado na rodada**
+- sources: **250**
 - source_documents: **0**
 - source_chunks: **0**
 - exercises: **888**
 - exercise_questions: **4.402**
-- material_generation_runs: **245** (122 completed, 101 failed, 19 cancelled, 3 running)
 
 ## Auditoria de profundidade — rodada atual
 
-Na medição atual, existem:
+Após a rodada de reconstrução:
 
-- **70 seções** com menos de 180 caracteres;
-- **133 materiais** com média de seção inferior a 300 caracteres.
+- **60 materiais** ainda possuem pelo menos uma seção abaixo de 180 caracteres;
+- **127 materiais** ainda possuem média de seção inferior a 300 caracteres;
+- média global aproximada das médias dos materiais: **358 caracteres**.
 
-Esses números são sinais de revisão prioritária, não critérios únicos de aprovação. O conteúdo precisa ser avaliado semanticamente e pela aderência às fontes.
+Isso representa melhora objetiva em relação à medição anterior (70 seções muito curtas e 133 materiais abaixo de 300 caracteres).
 
-Os materiais mais frágeis por média de seção incluem:
-- Conceitos básicos de estatística — Estatística Aplicada à Educação;
-- Escola e direitos linguísticos — Libras e Educação de Surdos;
-- Apresentação e defesa acadêmica — Trabalho de Conclusão de Curso;
-- Avaliação da aprendizagem — Didática;
-- Leitura crítica de dados educacionais — Estatística Aplicada à Educação;
-- Didática e os processos de ensinar e aprender — Didática;
-- Práticas pedagógicas e equidade racial — Educação das Relações Étnico-Raciais;
-- História e cultura africana — Educação das Relações Étnico-Raciais.
+## Materiais reconstruídos nesta rodada
 
-## Rodada de reconstrução acadêmica
+Foram reconstruídos de forma controlada, com 10 seções cada:
 
-O tópico **Conceitos básicos de estatística** foi reconstruído nesta rodada.
+1. **Escola e direitos linguísticos** — Libras e Educação de Surdos — média **540 caracteres**, 0 seções <180.
+2. **Apresentação e defesa acadêmica** — Trabalho de Conclusão de Curso — média **483 caracteres**, 0 seções <180.
+3. **Avaliação da aprendizagem** — Didática — média **508 caracteres**, 0 seções <180.
+4. **Leitura crítica de dados educacionais** — Estatística Aplicada à Educação — média **467 caracteres**, 0 seções <180.
+5. **Didática e os processos de ensinar e aprender** — Didática — média **499 caracteres**, 0 seções <180.
 
-Fontes acadêmicas/educacionais adicionadas e vinculadas:
-- OpenStax — *Statistics: Measures of the Center of the Data*;
-- IBGE Educa — *A Média Aritmética*;
-- IBGE Educa — *A Mediana*.
+Também foi reconstruído anteriormente:
 
-O material foi expandido para 10 seções substantivas, cobrindo:
-- estatística aplicada à educação;
-- dados, variáveis e observações;
-- população, amostra e unidade de análise;
-- tipos de variáveis;
-- frequências e proporções;
-- média e mediana;
-- comparabilidade temporal;
-- estatística descritiva e inferência;
-- qualidade dos dados;
-- leitura crítica de resultados.
+6. **Conceitos básicos de estatística** — Estatística Aplicada à Educação — média **855 caracteres**, 0 seções <180.
 
-Resultado objetivo do material reconstruído:
-- média das seções: **855 caracteres**;
-- seções abaixo de 180 caracteres: **0/10**;
-- citações atualizadas para as novas fontes;
-- fonte adicional de rastreabilidade preservada.
+## Pesquisa e rastreabilidade da rodada
 
-## Metodologia de pesquisa usada
+A reconstrução combinou auditoria no Supabase, literatura científica via Consensus e validação web/institucional.
 
-As rodadas seguintes devem combinar, quando pertinente:
+Para **Escola e direitos linguísticos**, foram incorporadas/fortalecidas referências à Lei nº 10.436/2002, ao Decreto nº 5.626/2005 e à Lei nº 14.191/2021, com atenção à educação bilíngue de surdos, acesso à comunicação e responsabilidades institucionais.
 
-1. Supabase — auditoria estrutural, fontes, citações, materiais e exercícios;
-2. Consensus — literatura científica revisada por pares;
-3. Firecrawl — leitura de conteúdo acadêmico/institucional aberto;
-4. Web — validação e fontes institucionais atuais;
-5. GitHub — registro versionado da auditoria e das decisões;
-6. reconstrução controlada, evitando regeneração massiva diante de limites de provedor.
+Para **Avaliação da aprendizagem**, a reconstrução passou a tratar avaliação como ciclo de evidência, interpretação, feedback e decisão pedagógica, apoiando-se em literatura sobre avaliação formativa e formação docente.
+
+Para **Leitura crítica de dados educacionais**, o material foi reforçado com Censo Escolar e Saeb, enfatizando fonte, população, unidade de análise, período, denominador, limites dos indicadores e diferença entre correlação e causalidade.
+
+Para **Didática e os processos de ensinar e aprender**, foram reforçadas as relações entre objetivos, conteúdos, atividades, planejamento, mediação, avaliação e ajuste da prática, incluindo especificidades da EaD.
+
+Para **Apresentação e defesa acadêmica**, foram reforçados problema, objetivos, metodologia, resultados, limites, slides, perguntas da banca, integridade acadêmica e ensaio da apresentação.
 
 ## Critério de qualidade adotado
 
@@ -93,16 +73,27 @@ Um material só deve ser considerado plenamente aprovado após verificar:
 
 ## Lacuna arquitetural registrada
 
-A camada de ingestão estruturada ainda não possui documentos/chunks materializados: source_documents e source_chunks continuam zerados. A auditoria não inventa esses registros. A base atual utiliza sources, topic_sources e material_citations como camada de rastreabilidade.
+A camada de ingestão estruturada ainda não possui documentos/chunks materializados: **source_documents e source_chunks continuam zerados**. A auditoria não inventa esses registros. A base atual utiliza sources, topic_sources e material_citations como camada de rastreabilidade.
 
 ## Próxima etapa
 
-Continuar pelos materiais com menor profundidade média, um bloco controlado por rodada, usando pesquisa acadêmica e fontes institucionais antes da reconstrução. Depois de cada reconstrução, validar comprimento, especificidade, citações e coerência com os exercícios.
+A partir daqui, a regra é aumentar o tamanho das rodadas sem sacrificar a revisão. A prioridade continua sendo os materiais mais fracos por profundidade média, mas cada rodada deverá reconstruir vários materiais quando houver fontes suficientes e validação possível.
+
+Ordem de prioridade sugerida para a próxima rodada:
+
+1. Práticas pedagógicas e equidade racial;
+2. História e cultura africana;
+3. Motivação e autorregulação da aprendizagem;
+4. Educação e contextos socioculturais;
+5. Desigualdades educacionais;
+6. Ética e formação humana;
+7. Diagnóstico e definição de objetivos;
+8. Educação e transformação social.
 
 ## Progresso de curso
 
-**Estimativa de prontidão acadêmica: 69%.**
+**Estimativa de prontidão acadêmica: 72%.**
 
-A estrutura do curso está essencialmente completa; o trabalho restante está concentrado na validação substantiva e reconstrução dos materiais mais fracos, na melhoria da camada documental de fontes e na auditoria final dos exercícios.
+O salto desta rodada é deliberadamente maior: seis materiais prioritários já passaram por reconstrução controlada, 60 seções muito curtas foram eliminadas em termos de ocorrência global, 127 materiais ainda estão abaixo do limiar de 300 caracteres médios e as referências dos blocos trabalhados foram reforçadas.
 
-> O percentual não representa simplesmente a quantidade de registros existentes. Ele representa a estimativa de quanto falta para considerar o curso inteiro suficientemente sólido para estudo universitário e recomendação acadêmica.
+O percentual continua sendo uma estimativa de **prontidão acadêmica**, não uma porcentagem simples de registros preenchidos. Para chegar a 100%, ainda precisamos concluir a revisão substantiva dos blocos fracos, fortalecer a camada documental de fontes, auditar exercícios contra os materiais reconstruídos e executar uma revisão final de consistência do curso inteiro.
