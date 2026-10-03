@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" rx="190" fill="#0242D7"/>
+<g fill="#FFFFFF">
+  <path d="M512 175 L770 315 L512 455 L254 315 Z"/>
+  <path d="M337 365 L512 460 L687 365 L687 495 C687 565 608 622 512 622 C416 622 337 565 337 495 Z"/>
+  <rect x="695" y="348" width="30" height="255" rx="15"/>
+  <circle cx="710" cy="625" r="25"/>
+  <text x="512" y="785" text-anchor="middle" font-family="Nunito, DejaVu Sans, Arial, sans-serif" font-size="112" font-weight="800" letter-spacing="-4">ensina-me</text>
+</g>
+</svg>
