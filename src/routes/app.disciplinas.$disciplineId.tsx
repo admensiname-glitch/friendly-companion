@@ -175,7 +175,7 @@ function DisciplineDetailPage(){
     return <Outlet />;
   }
 
-  return <section aria-labelledby="discipline-title">
+  return <section className="app-native-screen" aria-labelledby="discipline-title">
     <div className="flex items-center gap-2 text-xs text-[#8A95A3]">
       <Link to="/app/disciplinas" className="inline-flex items-center gap-1.5 font-semibold hover:text-[#0242D7]"><Icon name="back" className="h-3.5 w-3.5"/> Disciplinas</Link>
       <span>/</span><span className="truncate text-[#596778]">{loading?"Carregando":officialDiscName??"Disciplina"}</span>
