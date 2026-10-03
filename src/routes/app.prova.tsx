@@ -144,7 +144,7 @@ function ExamPage() {
     `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   if (loading && !questions.length && !result) {
-    return <section className="max-w-4xl"><div className="h-24 animate-pulse rounded-xl bg-[#F1F5F9]" /></section>;
+    return <section className="app-native-screen max-w-4xl"><div className="h-24 animate-pulse rounded-xl bg-[#F1F5F9]" /></section>;
   }
 
   if (result) {
@@ -191,7 +191,7 @@ function ExamPage() {
 
   if (questions.length) {
     return (
-      <section className="max-w-3xl" aria-labelledby="exam-title">
+      <section className="app-native-screen app-exam-mode max-w-3xl" aria-labelledby="exam-title">
         <header className="sticky top-0 z-20 -mx-4 border-b border-[#DCE5F0] bg-white/95 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:px-0">
           <div className="flex items-center justify-between gap-3">
             <div>
