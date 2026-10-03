@@ -266,14 +266,14 @@ function AppLayout() {
       </header>
 
       <main className="lg:ml-[248px]">
-        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-24 sm:px-6 sm:py-7 sm:pb-10 lg:px-9 lg:py-9 lg:pb-12">
+        <div className="mx-auto w-full max-w-[1180px] px-3.5 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-7 sm:pb-10 lg:px-9 lg:py-9 lg:pb-12">
           <Outlet />
         </div>
       </main>
 
       <nav
         aria-label="Navegação rápida"
-        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#DCE5EE] bg-[#F8FAFC]/96 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/96 lg:hidden"
+        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[#DCE5EE] bg-[#F8FAFC]/96 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/96 lg:hidden"
       >
         <div className="mx-auto grid h-16 max-w-md grid-cols-5">
           {navigation.slice(0, 2).map((item) => (
