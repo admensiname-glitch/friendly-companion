@@ -220,13 +220,25 @@ function AppDashboard() {
             Olá, {firstName}! 👋
           </h1>
           <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">
-            Vamos continuar sua jornada.
+            Seu professor indicou o Ensina-me para acompanhar sua jornada de aprendizagem — vamos continuar de onde você parou.
           </p>
         </div>
         <Link to="/app/desempenho" className="app-icon-button hidden sm:inline-flex" aria-label="Ver meu desempenho">
           <Icon name="chart" className="h-[18px] w-[18px]" />
         </Link>
       </header>
+
+      <section className="mt-4 rounded-[20px] border border-[#DCE7F8] bg-white p-4 shadow-sm dark:border-[#263A55] dark:bg-[#142238]" aria-label="Como usar o Ensina-me">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
+            <Icon name="book" className="h-4.5 w-4.5" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">Seu professor trouxe você até aqui.</p>
+            <p className="mt-1 text-xs leading-5 text-[#718096] dark:text-[#9EADBD]">Use o Ensina-me para estudar o conteúdo, praticar, entender seus erros e revisar antes da próxima aula ou avaliação.</p>
+          </div>
+        </div>
+      </section>
 
       <section className="mt-5 overflow-hidden rounded-[24px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8]" aria-labelledby="next-study-title">
         <div className="relative p-5 sm:p-7">
