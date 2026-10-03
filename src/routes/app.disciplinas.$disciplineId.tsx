@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,6 +55,8 @@ function TopicsList({topics,officialDisciplineId,learningState}:{topics:Topic[];
 }
 
 function DisciplineDetailPage(){
+  const matchRoute = useMatchRoute();
+  const hasTopicChild = Boolean(matchRoute({ to: "/app/disciplinas/$disciplineId/$topicId" }));
   const {disciplineId}=Route.useParams();
   const [studentDisc,setStudentDisc]=useState<StudentDiscipline|null>(null);
   const [officialDiscName,setOfficialDiscName]=useState<string|null>(null);
@@ -169,6 +171,10 @@ function DisciplineDetailPage(){
     })();
   },[disciplineId]);
 
+  if (hasTopicChild) {
+    return <Outlet />;
+  }
+
   return <section aria-labelledby="discipline-title">
     <div className="flex items-center gap-2 text-xs text-[#8A95A3]">
       <Link to="/app/disciplinas" className="inline-flex items-center gap-1.5 font-semibold hover:text-[#0242D7]"><Icon name="back" className="h-3.5 w-3.5"/> Disciplinas</Link>
@@ -186,6 +192,6 @@ function DisciplineDetailPage(){
      </div>
      <TopicsList topics={topics} officialDisciplineId={officialDiscId??disciplineId} learningState={learningState}/>
      <div className="mt-9 flex flex-wrap gap-3"><Link to="/app/disciplinas" className="inline-flex items-center gap-2 rounded-xl border border-[#DCE5F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#556273] hover:border-[#C8D7EB] hover:text-[#0242D7]"><Icon name="back" className="h-4 w-4"/> Voltar</Link></div>
-     <Outlet/></>:null}
+     </section></>:null}
   </section>;
 }
