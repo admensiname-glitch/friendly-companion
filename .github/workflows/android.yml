@@ -41,6 +41,46 @@ jobs:
           test -f www/index.html
       - name: Generate Android project
         run: npx cap add android
+      - name: Configure Android immersive fullscreen
+        run: |
+          mkdir -p android/app/src/main/java/com/ensiname/app
+          cat > android/app/src/main/java/com/ensiname/app/MainActivity.java <<'EOF'
+          package com.ensiname.app;
+
+          import android.os.Bundle;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            private void hideSystemBars() {
+              WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+              WindowInsetsControllerCompat controller =
+                  WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+              if (controller != null) {
+                controller.hide(WindowInsetsCompat.Type.systemBars());
+                controller.setSystemBarsBehavior(
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
+              }
+            }
+
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              hideSystemBars();
+            }
+
+            @Override
+            public void onWindowFocusChanged(boolean hasFocus) {
+              super.onWindowFocusChanged(hasFocus);
+              if (hasFocus) {
+                hideSystemBars();
+              }
+            }
+          }
+          EOF
       - name: Generate Android icon and splash assets
         run: npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor "#0242D7" --iconBackgroundColorDark "#0242D7" --splashBackgroundColor "#F8FAFC" --splashBackgroundColorDark "#0B1220"
       - name: Sync Capacitor
