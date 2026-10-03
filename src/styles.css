@@ -1289,14 +1289,17 @@
 /* Native mobile navigation polish — third pass                                */
 /* -------------------------------------------------------------------------- */
 @media (max-width: 639px) {
+  /*
+   * The mobile Tutor is position: fixed. A transformed ancestor becomes
+   * its containing block, which can push the floating Tutor off-screen.
+   * Keep the route stage transform-free; View Transitions handle the motion.
+   */
   @keyframes ensina-mobile-stage-in {
     from {
       opacity: 0;
-      transform: translate3d(0, 10px, 0);
     }
     to {
       opacity: 1;
-      transform: translate3d(0, 0, 0);
     }
   }
 
@@ -1317,8 +1320,9 @@
   }
 
   .app-route-stage {
-    animation: ensina-mobile-stage-in 260ms cubic-bezier(.22, 1, .36, 1) both;
-    will-change: opacity, transform;
+    animation: ensina-mobile-stage-in 220ms ease-out both;
+    will-change: opacity;
+    transform: none !important;
   }
 
   .app-mobile-header {
@@ -1436,6 +1440,7 @@
   .app-route-stage {
     animation: none !important;
     will-change: auto;
+    transform: none !important;
   }
 
   .app-mobile-header,
