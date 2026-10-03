@@ -305,6 +305,8 @@ function Cadastro() {
             </button>
           </form>
 
+          <p className="mt-5 text-center text-xs leading-5 text-[#64748B]">Ao criar sua conta, você concorda com os <Link to="/termos" className="font-semibold text-[#0242D7] hover:underline">Termos de uso</Link> e a <Link to="/privacidade" className="font-semibold text-[#0242D7] hover:underline">Política de Privacidade</Link>.</p>
+
           <p className="mt-7 text-center text-sm text-[#64748B]">
             Já possui uma conta?{" "}
             <Link

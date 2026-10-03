@@ -402,10 +402,12 @@ function Login() {
               />
             </div>
 
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">Senha</label>
+              <Link to="/recuperar-senha" className="text-xs font-semibold text-[#0242D7] hover:underline">Esqueci minha senha</Link>
+            </div>
+
             <div>
-              <label htmlFor="password" className="text-sm font-medium text-[#0F172A]">
-                Senha
-              </label>
               <div className="relative mt-2">
                 <input
                   id="password"
