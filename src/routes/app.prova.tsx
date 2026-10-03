@@ -67,7 +67,7 @@ function ExamPage() {
       _discipline_id: disciplineId || null,
       _topic_ids: selectedTopics,
       _question_count: count,
-      _duration_seconds: duration,
+      _duration_seconds: duration * 60,
     });
     if (rpcError || !data?.attempt_id || !Array.isArray(data.questions)) {
       setError(rpcError?.message?.includes("NOT_ENOUGH_QUESTIONS")
@@ -94,7 +94,7 @@ function ExamPage() {
       _attempt_question_id: question.attempt_question_id,
       _selected_option_id: optionId,
     });
-    if (answerError) setError("Não foi possível registrar esta resposta.");
+    if (answerError) setError(answerError.message.includes("EXAM_EXPIRED") ? "O tempo da prova terminou. Entregue a prova para ver o resultado." : "Não foi possível registrar esta resposta.");
     else setAnswers((old) => ({ ...old, [question.id]: optionId }));
     setSaving(false);
   }
@@ -233,7 +233,7 @@ function ExamPage() {
         <div className="mt-6">
           <p className="text-sm font-semibold text-[#344154]">Tópicos <span className="font-normal text-[#8792A0]">(opcional)</span></p>
           <div className="mt-3 grid max-h-64 gap-2 overflow-auto rounded-xl border border-[#E2E8F0] p-3 sm:grid-cols-2">
-            {visibleTopics.slice(0,60).map(t=><label key={t.id} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm text-[#475569] hover:bg-[#F8FAFC]"><input type="checkbox" checked={selectedTopics.includes(t.id)} onChange={(e)=>setSelectedTopics(old=>e.target.checked?[...old,t.id]:old.filter(id=>id!==t.id))}/>{t.name}</label>)}
+            {visibleTopics.map(t=><label key={t.id} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm text-[#475569] hover:bg-[#F8FAFC]"><input type="checkbox" checked={selectedTopics.includes(t.id)} onChange={(e)=>setSelectedTopics(old=>e.target.checked?[...old,t.id]:old.filter(id=>id!==t.id))}/>{t.name}</label>)}
           </div>
         </div>
 
