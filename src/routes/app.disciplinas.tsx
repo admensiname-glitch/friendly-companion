@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +87,8 @@ function DisciplineRow({
 }
 
 function DisciplinesPage() {
+  const matchRoute = useMatchRoute();
+  const hasChildRoute = Boolean(matchRoute({ to: "/app/disciplinas/$disciplineId", fuzzy: true }));
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +118,10 @@ function DisciplinesPage() {
       setLoading(false);
     })();
   }, []);
+
+  if (hasChildRoute) {
+    return <Outlet />;
+  }
 
   return (
     <section aria-labelledby="disciplines-title" className="max-w-4xl">
@@ -176,8 +182,6 @@ function DisciplinesPage() {
           ))}
         </div>
       )}
-
-      <Outlet />
     </section>
   );
 }
