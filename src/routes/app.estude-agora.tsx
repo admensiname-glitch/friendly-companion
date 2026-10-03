@@ -33,6 +33,14 @@ function reasonLabel(reason: Recommendation["reason"]) {
   return "Próximo passo";
 }
 
+function primaryActionLabel(reason: Recommendation["reason"]) {
+  if (reason === "assessment") return "Preparar este tópico";
+  if (reason === "review") return "Revisar este tópico";
+  if (reason === "continue") return "Continuar estudo";
+  if (reason === "start") return "Começar tópico";
+  return "Estudar agora";
+}
+
 function StudyNowPage() {
   const navigate = useNavigate();
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -121,9 +129,15 @@ function StudyNowPage() {
                 params={{ disciplineId: recommendation!.discipline_id!, topicId: recommendation!.topic_id! }}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] hover:bg-[#0038B8]"
               >
-                Começar agora
+                {primaryActionLabel(recommendation?.reason)}
                 <Icon name="arrow" className="h-4 w-4" />
               </Link>
+              <a
+                href={`/app/disciplinas/${recommendation!.discipline_id}/${recommendation!.topic_id}#pratica`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]"
+              >
+                Praticar questões
+              </a>
               <Link to="/app/revisao" className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]">
                 Ver revisão
               </Link>
