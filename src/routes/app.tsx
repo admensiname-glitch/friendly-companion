@@ -140,9 +140,9 @@ function AppLayout() {
     }
   }
 
-  if (authChecking) {
+  if (authChecking || authError) {
     return (
-      <div className="min-h-screen bg-background text-foreground" aria-busy="true">
+      <div className="min-h-screen bg-background text-foreground" aria-busy={authChecking}>
         <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6">
           {authError ? (
             <div className="w-full max-w-md rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-6 text-center dark:border-[#6B3030] dark:bg-[#2A161A]">
