@@ -111,6 +111,10 @@ function AppDashboard() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
+  const [teacherAssignments, setTeacherAssignments] = useState<Array<{ id: string; title: string; message: string | null; due_at: string | null; topic_id: string | null; topic_name: string | null; discipline_name: string | null; class_name: string }>>([]);
+  const [joinCode, setJoinCode] = useState("");
+  const [joinMessage, setJoinMessage] = useState("");
+  const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,6 +135,7 @@ function AppDashboard() {
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
+          supabase.rpc("get_student_teacher_assignments"),
         ]);
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
@@ -239,6 +244,57 @@ function AppDashboard() {
           </div>
         </div>
       </section>
+
+      <section className="mt-4 rounded-[20px] border border-[#DCE7F8] bg-white p-4 shadow-sm dark:border-[#263A55] dark:bg-[#142238]" aria-labelledby="teacher-indication-title">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
+            <Icon name="book" className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 id="teacher-indication-title" className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">Indicação do professor</h2>
+            <p className="mt-1 text-xs leading-5 text-[#718096] dark:text-[#9EADBD]">Entre com o código da sua turma para receber conteúdos e atividades indicados pelo professor.</p>
+            <form className="mt-3 flex gap-2" onSubmit={async (event) => {
+              event.preventDefault();
+              if (!joinCode.trim() || joining) return;
+              setJoining(true); setJoinMessage("");
+              const { error } = await supabase.rpc("join_teacher_class", { p_join_code: joinCode.trim() });
+              if (error) setJoinMessage(error.message || "Não foi possível entrar na turma.");
+              else {
+                setJoinMessage("Turma vinculada! As próximas indicações aparecerão aqui.");
+                setJoinCode("");
+                const { data } = await supabase.rpc("get_student_teacher_assignments");
+                if (data) setTeacherAssignments(data as unknown as typeof teacherAssignments);
+              }
+              setJoining(false);
+            }}>
+              <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase())} maxLength={12} placeholder="Código da turma" aria-label="Código da turma" className="min-w-0 flex-1 rounded-xl border border-[#DCE7F8] bg-[#F8FAFD] px-3 py-2.5 text-sm font-bold uppercase outline-none focus:border-[#0242D7] dark:border-[#31445F] dark:bg-[#0F1B2D]" />
+              <button type="submit" disabled={joining || !joinCode.trim()} className="rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{joining ? "..." : "Entrar"}</button>
+            </form>
+            {joinMessage && <p className="mt-2 text-xs font-semibold text-[#5E6C7D] dark:text-[#9EADBD]">{joinMessage}</p>}
+          </div>
+        </div>
+      </section>
+
+      {teacherAssignments.length > 0 && (
+        <section className="mt-4" aria-labelledby="teacher-assignments-title">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 id="teacher-assignments-title" className="text-base font-black text-[#172334] dark:text-[#E7EDF5]">Indicações do professor</h2>
+            <span className="text-[11px] font-extrabold text-[#0242D7] dark:text-[#78A9FF]">{teacherAssignments.length} nova{teacherAssignments.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="space-y-2">
+            {teacherAssignments.slice(0, 3).map((assignment) => (
+              <div key={assignment.id} className="app-card p-4">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-[#0242D7] dark:text-[#78A9FF]">{assignment.class_name}</p>
+                <h3 className="mt-1 text-sm font-black text-[#172334] dark:text-[#E7EDF5]">{assignment.title}</h3>
+                {assignment.message && <p className="mt-1 text-xs leading-5 text-[#718096] dark:text-[#9EADBD]">{assignment.message}</p>}
+                {assignment.topic_id && assignment.discipline_name && (
+                  <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topicsProgress.find((t) => t.topic_id === assignment.topic_id)?.discipline_id ?? "", topicId: assignment.topic_id }} className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-[#EEF4FF] px-3 text-xs font-black text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">Estudar indicado</Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-5 overflow-hidden rounded-[24px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8]" aria-labelledby="next-study-title">
         <div className="relative p-5 sm:p-7">
