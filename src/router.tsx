@@ -10,7 +10,23 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: "intent",
-    defaultViewTransition: false,
+    // View Transitions are deliberately enabled only on mobile.
+    // Desktop navigation keeps the existing behavior unchanged.
+    defaultViewTransition: ({ fromLocation, toLocation }) => {
+      if (typeof window === "undefined" || !window.matchMedia("(max-width: 639px)").matches) {
+        return false;
+      }
+
+      const fromPath = fromLocation?.pathname ?? "";
+      const toPath = toLocation.pathname;
+      const fromDepth = fromPath.split("/").filter(Boolean).length;
+      const toDepth = toPath.split("/").filter(Boolean).length;
+      const direction = toDepth >= fromDepth ? "forward" : "back";
+
+      return {
+        types: [`mobile-${direction}`],
+      };
+    },
   });
 
   return router;
