@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,8 @@ function Icon({ name, className = "" }: { name: "search" | "book" | "arrow" | "b
 }
 
 function CatalogPage() {
+  const matchRoute = useMatchRoute();
+  const hasDisciplineChild = Boolean(matchRoute({ to: "/app/catalogo/$disciplineId" }));
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -142,6 +144,10 @@ function CatalogPage() {
         .includes(normalized),
     );
   }, [disciplines, query]);
+
+  if (hasDisciplineChild) {
+    return <Outlet />;
+  }
 
   if (selectedDiscipline) {
     return (
