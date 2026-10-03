@@ -2978,7 +2978,7 @@ function TopicDetailPage() {
 
   return (
     <TopicRuntimeBoundary topicId={topicId}>
-      <section aria-labelledby="topic-title">
+      <section className="app-native-screen" aria-labelledby="topic-title">
       {/* ── Topic header ── */}
       <div className="border-b border-[#D8E1EA] pb-7 dark:border-[#2B3A4F]">
         <Link

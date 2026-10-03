@@ -861,3 +861,153 @@
     animation-duration: .01ms !important;
   }
 }
+
+/* Native app surface: second-pass student screens */
+@media (max-width: 639px) {
+  .app-shell .app-native-screen {
+    width: 100%;
+    max-width: none;
+  }
+
+  .app-shell .app-native-screen > header {
+    border-bottom: 0;
+    padding-bottom: 8px;
+  }
+
+  .app-shell .app-native-screen > header h1,
+  .app-shell .app-native-screen > div > header h1 {
+    font-size: 25px !important;
+    line-height: 1.12 !important;
+    letter-spacing: -.045em !important;
+  }
+
+  .app-shell .app-native-screen > header > p:first-child,
+  .app-shell .app-native-screen > div > header > p:first-child {
+    font-size: 10px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+
+  .app-shell .app-native-screen .native-card,
+  .app-shell .app-native-screen [data-native-card="true"] {
+    border: 1px solid #E1E8F0 !important;
+    border-radius: 20px !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 5px 22px rgba(15,23,42,.045);
+  }
+
+  .dark .app-shell .app-native-screen .native-card,
+  .dark .app-shell .app-native-screen [data-native-card="true"] {
+    border-color: #2B3B51 !important;
+    background: #172437 !important;
+    box-shadow: 0 10px 28px rgba(0,0,0,.13);
+  }
+
+  .app-shell .app-native-screen input,
+  .app-shell .app-native-screen select,
+  .app-shell .app-native-screen textarea {
+    min-height: 46px;
+    border-radius: 14px !important;
+  }
+
+  .app-shell .app-native-screen button,
+  .app-shell .app-native-screen a[role="button"] {
+    min-height: 44px;
+  }
+
+  .app-shell .app-native-screen .mobile-primary-action {
+    position: sticky;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    z-index: 20;
+    margin-inline: -4px;
+    padding: 8px 4px;
+    border-radius: 18px;
+    background: rgba(248,250,252,.94);
+    backdrop-filter: blur(16px);
+  }
+
+  .dark .app-shell .app-native-screen .mobile-primary-action {
+    background: rgba(15,25,40,.94);
+  }
+
+  .app-shell .app-native-screen .mobile-choice {
+    min-height: 58px;
+    border-radius: 16px !important;
+    padding: 13px 14px !important;
+    text-align: left;
+  }
+
+  .app-shell .app-native-screen .mobile-progress {
+    height: 6px;
+    border-radius: 999px;
+  }
+
+  .app-shell .app-native-screen .mobile-section {
+    margin-top: 18px;
+    border-radius: 20px;
+    border: 1px solid #E1E8F0;
+    background: #FFFFFF;
+    padding: 16px;
+  }
+
+  .dark .app-shell .app-native-screen .mobile-section {
+    border-color: #2B3B51;
+    background: #172437;
+  }
+
+  .app-shell .app-native-screen .mobile-list > * {
+    border-radius: 17px !important;
+    border: 1px solid #E1E8F0 !important;
+    margin-bottom: 8px;
+    background: #FFFFFF;
+  }
+
+  .dark .app-shell .app-native-screen .mobile-list > * {
+    border-color: #2B3B51 !important;
+    background: #172437;
+  }
+
+  .app-shell .app-native-screen .mobile-list > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@media (min-width: 640px) {
+  .app-shell .app-native-screen .native-card,
+  .app-shell .app-native-screen [data-native-card="true"] {
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 639px) {
+  .app-shell .app-exam-mode {
+    margin-inline: -4px;
+    width: calc(100% + 8px);
+  }
+
+  .app-shell .app-exam-mode > header {
+    margin-inline: 0;
+    border-radius: 18px;
+    border: 1px solid #E1E8F0;
+    background: rgba(255,255,255,.96);
+    padding: 12px;
+    box-shadow: 0 5px 18px rgba(15,23,42,.05);
+  }
+
+  .dark .app-shell .app-exam-mode > header {
+    border-color: #2B3B51;
+    background: rgba(23,36,55,.96);
+  }
+
+  .app-shell .app-exam-mode article {
+    border-radius: 22px !important;
+    border-color: #E1E8F0 !important;
+    box-shadow: 0 8px 28px rgba(15,23,42,.055);
+  }
+
+  .dark .app-shell .app-exam-mode article {
+    border-color: #2B3B51 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,.14);
+  }
+}

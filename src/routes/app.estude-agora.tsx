@@ -80,7 +80,7 @@ function StudyNowPage() {
   const canStudy = Boolean(recommendation?.topic_id && recommendation?.discipline_id);
 
   return (
-    <section aria-labelledby="study-now-title" className="mx-auto max-w-3xl">
+    <section aria-labelledby="study-now-title" className="app-native-screen mx-auto max-w-3xl">
       <header className="border-b border-[#DCE5F0] pb-7 dark:border-[#2B3A4F]">
         <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">Seu próximo passo</p>
         <h1 id="study-now-title" className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[40px]">

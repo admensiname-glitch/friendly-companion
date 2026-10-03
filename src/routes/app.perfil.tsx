@@ -598,7 +598,7 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <section className="max-w-3xl space-y-5" aria-label="Carregando perfil">
+      <section className="app-native-screen max-w-3xl space-y-5" aria-label="Carregando perfil">
         <div className="h-8 w-48 animate-pulse rounded-lg bg-[#E7EDF4] dark:bg-[#1C293B]" />
         <div className="h-28 animate-pulse rounded-xl bg-[#E7EDF4] dark:bg-[#1C293B]" />
         <div className="h-48 animate-pulse rounded-xl bg-[#E7EDF4] dark:bg-[#1C293B]" />

@@ -116,7 +116,7 @@ function CatalogDisciplinePage() {
   }
 
   return (
-    <section aria-labelledby="catalog-discipline-title">
+    <section className="app-native-screen" aria-labelledby="catalog-discipline-title">
       <Link to="/app/catalogo" className="text-sm font-medium text-[#64748B] hover:text-[#0242D7]">
         ← Catálogo
       </Link>

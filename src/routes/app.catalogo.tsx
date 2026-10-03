@@ -238,7 +238,7 @@ function CatalogPage() {
   }
 
   return (
-    <section aria-labelledby="catalog-title" className="max-w-5xl">
+    <section aria-labelledby="catalog-title" className="app-native-screen max-w-5xl">
       <header className="border-b border-[#DCE5F0] pb-7 dark:border-[#2B3A4F]">
         <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
           Biblioteca de aprendizagem

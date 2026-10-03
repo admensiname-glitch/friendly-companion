@@ -144,12 +144,12 @@ function ExamPage() {
     `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   if (loading && !questions.length && !result) {
-    return <section className="max-w-4xl"><div className="h-24 animate-pulse rounded-xl bg-[#F1F5F9]" /></section>;
+    return <section className="app-native-screen max-w-4xl"><div className="h-24 animate-pulse rounded-xl bg-[#F1F5F9]" /></section>;
   }
 
   if (result) {
     return (
-      <section className="max-w-3xl" aria-labelledby="exam-result">
+      <section className="app-native-screen max-w-3xl" aria-labelledby="exam-result">
         <p className="text-sm font-semibold text-[#0242D7]">Modo Prova</p>
         <h1 id="exam-result" className="mt-2 text-3xl font-bold text-[#172334] sm:text-4xl">Prova concluída</h1>
         <div className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-6 sm:p-8">
@@ -191,7 +191,7 @@ function ExamPage() {
 
   if (questions.length) {
     return (
-      <section className="max-w-3xl" aria-labelledby="exam-title">
+      <section className="app-native-screen app-exam-mode max-w-3xl" aria-labelledby="exam-title">
         <header className="sticky top-0 z-20 -mx-4 border-b border-[#DCE5F0] bg-white/95 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:px-0">
           <div className="flex items-center justify-between gap-3">
             <div>

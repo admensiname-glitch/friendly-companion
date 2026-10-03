@@ -53,7 +53,7 @@ function PerformancePage() {
   }, []);
 
   return (
-    <section aria-labelledby="performance-title" className="max-w-4xl">
+    <section aria-labelledby="performance-title" className="app-native-screen max-w-4xl">
       <header className="border-b border-[#DCE5F0] pb-7 dark:border-[#2B3A4F]">
         <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
           Seu progresso
