@@ -1114,3 +1114,15 @@
     box-shadow: 0 10px 30px rgba(0,0,0,.14);
   }
 }
+
+
+/* Mobile study flow surfaces */
+@media (max-width: 639px) {
+  .app-study-flow .app-content { padding-top: 4px; }
+  .app-study-flow .app-native-screen > header { border-bottom: 0; padding-bottom: 8px; }
+  .app-study-flow .mobile-primary-action { bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
+  .app-assessment-flow .app-content { padding-top: 0; }
+  .app-assessment-flow .app-exam-mode { min-height: calc(100dvh - 60px); }
+  .app-assessment-flow .mobile-choice { min-height: 64px; }
+  .app-review-flow .app-content { padding-top: 4px; }
+}
