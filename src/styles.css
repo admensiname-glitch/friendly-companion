@@ -1455,3 +1455,51 @@
     animation: none !important;
   }
 }
+
+/* Native mobile refinement — 2026-10 */
+@media (max-width: 639px) {
+  .app-route-stage {
+    animation: ensina-mobile-fade-in 220ms cubic-bezier(.22,1,.36,1) both !important;
+    transform: none !important;
+    will-change: opacity;
+  }
+  @keyframes ensina-mobile-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .app-shell .app-mobile-header {
+    min-height: 56px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .app-shell .app-mobile-tabbar {
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+    backdrop-filter: blur(18px) saturate(1.25);
+    -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  }
+  .app-shell .app-mobile-tabbar a:active,
+  .app-shell .app-mobile-tabbar button:active {
+    transform: scale(.94);
+  }
+  .app-shell .app-mobile-tabbar .app-tab-icon {
+    transition: transform 180ms cubic-bezier(.22,1,.36,1);
+  }
+  .app-shell .app-mobile-tabbar a[aria-current="page"] .app-tab-icon,
+  .app-shell .app-mobile-tabbar a[data-active="true"] .app-tab-icon {
+    transform: translateY(-1px) scale(1.06);
+  }
+  .app-shell .app-native-screen a:active,
+  .app-shell .app-native-screen button:active {
+    transform: scale(.985);
+  }
+  .app-shell [role="dialog"] {
+    overscroll-behavior: contain;
+  }
+  .app-shell input,
+  .app-shell textarea,
+  .app-shell select {
+    font-size: 16px;
+  }
+}
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .app-route-stage { animation: none !important; transform: none !important; }
+}
