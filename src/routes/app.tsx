@@ -158,6 +158,30 @@ function AppLayout() {
     }
   }
 
+  const mobileFlowClass = (() => {
+    const pathname = location.pathname;
+    if (pathname.includes("/app/estudo/") || pathname.includes("/app/questoes/")) return " app-study-flow";
+    if (pathname.startsWith("/app/prova")) return " app-assessment-flow";
+    if (pathname === "/app/revisao") return " app-review-flow";
+    return "";
+  })();
+
+  const mobileContext = (() => {
+    const pathname = location.pathname;
+    if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
+    if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
+    if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Disciplinas", back: false };
+    if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
+    if (pathname === "/app/revisao") return { title: "Revisão", back: false };
+    if (pathname === "/app/desempenho") return { title: "Desempenho", back: false };
+    if (pathname === "/app/catalogo" || pathname === "/app/catalogo/") return { title: "Catálogo", back: false };
+    if (pathname === "/app/perfil") return { title: "Meu perfil", back: true };
+    if (pathname.includes("/app/disciplinas/")) return { title: "Tópico", back: true };
+    if (pathname.includes("/app/estudo/")) return { title: "Estudo", back: true };
+    if (pathname.includes("/app/questoes/")) return { title: "Questão", back: true };
+    return { title: "Ensina-me", back: true };
+  })();
+
   if (authChecking || authError) {
     return (
       <div className="app-stage flex min-h-[100dvh] items-center justify-center px-6" aria-busy={authChecking}>
@@ -192,30 +216,6 @@ function AppLayout() {
     navigation[3],
     navigation[4],
   ];
-
-  const mobileFlowClass = useMemo(() => {
-    const pathname = location.pathname;
-    if (pathname.includes("/app/estudo/") || pathname.includes("/app/questoes/")) return " app-study-flow";
-    if (pathname.startsWith("/app/prova")) return " app-assessment-flow";
-    if (pathname === "/app/revisao") return " app-review-flow";
-    return "";
-  }, [location.pathname]);
-
-  const mobileContext = useMemo(() => {
-    const pathname = location.pathname;
-    if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
-    if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
-    if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Disciplinas", back: false };
-    if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
-    if (pathname === "/app/revisao") return { title: "Revisão", back: false };
-    if (pathname === "/app/desempenho") return { title: "Desempenho", back: false };
-    if (pathname === "/app/catalogo" || pathname === "/app/catalogo/") return { title: "Catálogo", back: false };
-    if (pathname === "/app/perfil") return { title: "Meu perfil", back: true };
-    if (pathname.includes("/app/disciplinas/")) return { title: "Tópico", back: true };
-    if (pathname.includes("/app/estudo/")) return { title: "Estudo", back: true };
-    if (pathname.includes("/app/questoes/")) return { title: "Questão", back: true };
-    return { title: "Ensina-me", back: true };
-  }, [location.pathname]);
 
   return (
     <div className={`app-shell min-h-[100dvh] bg-background text-foreground${mobileFlowClass}`}>
