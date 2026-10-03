@@ -27,12 +27,12 @@ jobs:
         run: npx --yes playwright@1.55.0 install --with-deps chromium
       - name: Start app
         run: |
-          bun run dev --host 127.0.0.1 > /tmp/ensina-me-vite.log 2>&1 &
+          bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/ensina-me-vite.log 2>&1 &
           echo $! > /tmp/ensina-me-vite.pid
       - name: Wait for app
         run: |
           for i in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:5173/login > /dev/null; then exit 0; fi
+            if curl --silent --show-error --max-time 2 http://127.0.0.1:5173/ > /dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/ensina-me-vite.log
