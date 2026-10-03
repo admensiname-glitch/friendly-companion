@@ -214,7 +214,7 @@ function AppDashboard() {
       >
         <div className="grid lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="p-5 text-white sm:p-9">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#7DB0FF]">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/75 dark:text-white/75">
               {recommendation?.reason === "assessment"
                 ? "Preparação para avaliação"
                 : recommendation?.reason === "review"
@@ -315,7 +315,7 @@ function AppDashboard() {
         </div>
       </section>
 
-      <div className="mt-8 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-4">
         {[
           ["Tópicos", topicsProgress.length.toString(), "no seu percurso"],
           ["Revisões", topicsProgress.reduce((sum, topic) => sum + topic.review_count, 0).toString(), "pontos para retomar"],
@@ -437,7 +437,7 @@ function AppDashboard() {
             ))}
           </div>
         ) : disciplineProgress.length > 0 ? (
-          <div className="mt-4 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4EAF1] bg-white dark:divide-[#2B3A4F] dark:border-[#2B3A4F] dark:bg-[#111C2E]">
             {disciplineProgress.map((discipline, index) => (
               <Link
                 key={discipline.discipline_id}
@@ -473,12 +473,12 @@ function AppDashboard() {
             ))}
           </div>
         ) : (
-          <div className="muted-panel mt-3 rounded-xl p-7">
+          <div className="muted-panel mt-3 rounded-2xl border border-[#E4EAF1] p-7">
             <p className="text-sm font-semibold text-[#344154] dark:text-[#DCE5EE]">
-              Suas disciplinas aparecerão aqui.
+              {disciplines.length > 0 ? "Os tópicos das suas disciplinas aparecerão aqui." : "Suas disciplinas aparecerão aqui."}
             </p>
             <p className="mt-1 text-sm leading-6 text-[#7A8796] dark:text-[#97A7B8]">
-              Assim que houver uma disciplina disponível, seu percurso começa aqui.
+              {disciplines.length > 0 ? "Assim que os tópicos estiverem disponíveis, seu percurso começa aqui." : "Assim que houver uma disciplina disponível, seu percurso começa aqui."}
             </p>
           </div>
         )}
@@ -498,10 +498,10 @@ function AppDashboard() {
             <Link to="/app/disciplinas" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Minhas disciplinas
             </Link>
-            <Link to="/app/revisao" className="font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">
+            <Link to="/app/revisao" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Revisão
             </Link>
-            <Link to="/app/desempenho" className="font-semibold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">
+            <Link to="/app/desempenho" className="flex min-h-11 items-center justify-between rounded-xl border border-[#DCE5F0] bg-white px-4 font-semibold text-[#0242D7] shadow-[0_3px_12px_rgba(23,35,52,0.03)] hover:border-[#B8CAEA] dark:border-[#2B3A4F] dark:bg-[#111C2E] dark:text-[#7DB0FF]">
               Meu desempenho
             </Link>
           </div>
