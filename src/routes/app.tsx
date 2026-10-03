@@ -193,6 +193,20 @@ function AppLayout() {
     navigation[4],
   ];
 
+  const mobileFlowClass = useMemo(() => {
+    const pathname = location.pathname;
+    if (pathname.includes("/app/estudo/") || pathname.includes("/app/questoes/")) {
+      return " app-study-flow";
+    }
+    if (pathname.startsWith("/app/prova")) {
+      return " app-assessment-flow";
+    }
+    if (pathname === "/app/revisao") {
+      return " app-review-flow";
+    }
+    return "";
+  }, [location.pathname]);
+
   const mobileContext = useMemo(() => {
     const pathname = location.pathname;
     if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
@@ -210,7 +224,7 @@ function AppLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="app-shell min-h-[100dvh] bg-background text-foreground">
+    <div className={`app-shell min-h-[100dvh] bg-background text-foreground${mobileFlowClass}`}>
       <aside className="app-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
         <div className="flex h-[82px] items-center px-7">
           <Link to="/app/dashboard" aria-label="Ensina-me, início">
