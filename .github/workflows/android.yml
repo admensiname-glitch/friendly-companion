@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir -p assets
           cp public/icon-512.jpg assets/icon.jpg
+          convert assets/icon.jpg -resize 1024x1024! assets/icon.png
           test -f www/index.html
       - name: Generate Android project
         run: npx cap add android
