@@ -979,3 +979,35 @@
     border-radius: 20px;
   }
 }
+
+@media (max-width: 639px) {
+  .app-shell .app-exam-mode {
+    margin-inline: -4px;
+    width: calc(100% + 8px);
+  }
+
+  .app-shell .app-exam-mode > header {
+    margin-inline: 0;
+    border-radius: 18px;
+    border: 1px solid #E1E8F0;
+    background: rgba(255,255,255,.96);
+    padding: 12px;
+    box-shadow: 0 5px 18px rgba(15,23,42,.05);
+  }
+
+  .dark .app-shell .app-exam-mode > header {
+    border-color: #2B3B51;
+    background: rgba(23,36,55,.96);
+  }
+
+  .app-shell .app-exam-mode article {
+    border-radius: 22px !important;
+    border-color: #E1E8F0 !important;
+    box-shadow: 0 8px 28px rgba(15,23,42,.055);
+  }
+
+  .dark .app-shell .app-exam-mode article {
+    border-color: #2B3B51 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,.14);
+  }
+}
