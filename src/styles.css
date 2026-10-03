@@ -1186,13 +1186,11 @@
   font-weight: 600;
   line-height: 1.35;
 }
-@media (prefers-color-scheme: dark) {
-  .mobile-learning-flow { border-color: #2b3a4f; background: color-mix(in srgb, #111c2a 94%, transparent); }
-  .mobile-learning-step { color: #8797aa; }
-  .mobile-learning-step-active { background: #172b48; color: #7db0ff; }
-  .mobile-learning-step-mark { background: #263449; }
-  .mobile-learning-flow-caption { color: #7f90a3; }
-}
+.dark .mobile-learning-flow { border-color: #2b3a4f; background: color-mix(in srgb, #111c2a 94%, transparent); }
+.dark .mobile-learning-step { color: #8797aa; }
+.dark .mobile-learning-step-active { background: #172b48; color: #7db0ff; }
+.dark .mobile-learning-step-mark { background: #263449; }
+.dark .mobile-learning-flow-caption { color: #7f90a3; }
 @media (max-width: 639px) {
   #conteudo, #pratica, #revisao, #avaliacao { scroll-margin-top: 112px; }
 }
