@@ -85,7 +85,7 @@ interface ExerciseOption {
   feedback_correct: string | null;
   feedback_incorrect: string | null;
   position: number;
-  question_id?: string;
+  question_id: string;
 }
 
 interface ExerciseQuestion {
