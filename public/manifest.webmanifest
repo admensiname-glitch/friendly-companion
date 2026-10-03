@@ -1,0 +1,18 @@
+{
+  "name": "Ensina-me",
+  "short_name": "Ensina-me",
+  "description": "Estude, pratique, revise e acompanhe seu aprendizado em um só lugar.",
+  "lang": "pt-BR",
+  "start_url": "/app/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0242D7",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
