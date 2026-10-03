@@ -10,6 +10,7 @@ on:
       - "assets/**"
       - ".github/workflows/android.yml"
       - "public/icon-512.jpg"
+      - "public/icon-192.png"
       - "package.json"
 
 jobs:
@@ -36,8 +37,7 @@ jobs:
       - name: Prepare app assets
         run: |
           mkdir -p assets
-          cp public/icon-512.jpg assets/icon.jpg
-          convert assets/icon.jpg -resize 1024x1024! assets/icon.png
+          cp public/icon-192.png assets/icon.png
           test -f www/index.html
       - name: Generate Android project
         run: npx cap add android
