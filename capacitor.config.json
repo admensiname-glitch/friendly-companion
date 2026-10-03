@@ -1,0 +1,16 @@
+{
+  "appId": "com.ensiname.app",
+  "appName": "Ensina-me",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "backgroundColor": "#F8FAFC",
+  "android": {
+    "minWebViewVersion": 60,
+    "initialFocus": true
+  },
+  "server": {
+    "url": "https://ensina-me-sigma.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
+}
