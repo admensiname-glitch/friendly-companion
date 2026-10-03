@@ -1474,7 +1474,7 @@ function TutorSection({
               aria-label="Fechar Tutor"
               onClick={() => setOpened(false)}
             />
-            <div className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:border-[#304158] dark:bg-[#111C2A]">
+            <div className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 overflow-hidden rounded-2xl border border-[#DCE5F0] bg-[#FBFCFE] shadow-[0_24px_70px_rgba(15,23,42,0.22)] dark:border-[#304158] dark:bg-[#111C2A] sm:bottom-3">
               <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3 dark:border-[#2B3A4F]">
                 <div>
                   <p className="text-xs font-bold text-[#0242D7] dark:text-[#7DB0FF]">

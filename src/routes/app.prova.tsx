@@ -170,7 +170,7 @@ function ExamPage() {
                       </div>
                       <p className="mt-1 text-xs text-[#7A8796]">{item.correct_answers} de {item.total_questions} corretas</p>
                       {item.score < 70 && topic && (
-                        <Link to="/app/topicos/$topicoId" params={{ topicoId: topic.id }} className="mt-3 inline-block text-xs font-bold text-[#0242D7]">
+                        <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id, topicId: topic.id }} className="mt-3 inline-block text-xs font-bold text-[#0242D7]">
                           Revisar este tópico →
                         </Link>
                       )}
@@ -224,16 +224,16 @@ function ExamPage() {
           </div>
         </article>
 
-        <div className="mt-4 flex gap-2">
+        <div className="sticky bottom-[4.5rem] z-20 mt-4 flex gap-2 rounded-2xl border border-[#DCE5F0] bg-white/95 p-2 shadow-[0_-6px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/95 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
           <button disabled={current===0} onClick={()=>setCurrent((v)=>Math.max(0,v-1))} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-2 text-sm font-bold disabled:opacity-40">Anterior</button>
           <button onClick={()=>current<questions.length-1 ? setCurrent((v)=>v+1) : void finishExam()} className="min-h-11 flex-1 rounded-xl bg-[#0242D7] px-4 py-2 text-sm font-bold text-white">{current<questions.length-1 ? "Próxima questão" : "Entregar prova"}</button>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2" aria-label="Navegação das questões">
+        <div className="mt-5 flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Navegação das questões">
           {questions.map((q,i)=><button key={q.id} onClick={()=>setCurrent(i)} aria-label={`Ir para questão ${i+1}`} className={`h-9 w-9 rounded-full text-xs font-bold ${i===current?"bg-[#0242D7] text-white":answers[q.id]?"bg-[#E8F7EE] text-[#166534]":"bg-[#F1F5F9] text-[#687688]"}`}>{i+1}</button>)}
         </div>
 
-        <button type="button" onClick={()=>void finishExam()} className="mt-6 min-h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-bold text-[#475569]">Entregar prova agora</button>
+        <button type="button" onClick={()=>void finishExam()} className="mt-6 min-h-11 w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-bold text-[#475569] sm:mt-4">Entregar prova agora</button>
       </section>
     );
   }
