@@ -45,7 +45,7 @@ jobs:
         env:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
-        run: node e2e/smoke.mjs
+        run: node e2e/ci-smoke.mjs
       - name: Stop app
         if: always()
         run: |
