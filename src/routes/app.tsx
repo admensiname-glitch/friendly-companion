@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-type IconName = "home" | "book" | "library" | "review" | "chart" | "logout" | "spark" | "moon" | "sun" | "user" | "more" | "close";
+type IconName = "home" | "book" | "library" | "review" | "chart" | "exam" | "logout" | "spark" | "moon" | "sun" | "user" | "more" | "close";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -19,7 +19,7 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
     book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16" /><path d="M8 7h8" /></>,
     library: <><path d="M4 19V5" /><path d="M8 19V5" /><path d="M12 19V5" /><path d="M16 19V5" /><path d="M20 19V5" /></>,
     review: <><path d="M4 6h16" /><path d="M4 12h11" /><path d="M4 18h8" /><path d="m17 15 2 2 3-4" /></>,
-    chart: <><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 3-4 3 2 5-6" /></>,
+    chart: <><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 3-4 3 2 5-6" /></>,\n    exam: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8" /><path d="M8 11h8" /><path d="M8 15h5" /><path d="m15 15 1.5 1.5L19 14" /></>,
     logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 4v16" /></>,
     spark: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="m19 4 .7 2 2 .7-.2.7-2 .7-.7 2-.7-2-2-.7 2-.7z" /></>,
     moon: <><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z" /></>,
@@ -38,7 +38,7 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
 
 const navigation = [
   { to: "/app/dashboard" as const, label: "Início", icon: "home" as const },
-  { to: "/app/disciplinas" as const, label: "Disciplinas", icon: "book" as const },
+  { to: "/app/disciplinas" as const, label: "Disciplinas", icon: "book" as const },\n  { to: "/app/prova" as const, label: "Modo Prova", icon: "exam" as const },
   { to: "/app/catalogo" as const, label: "Catálogo", icon: "library" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
