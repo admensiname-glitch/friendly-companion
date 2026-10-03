@@ -331,6 +331,150 @@ export type Database = {
           },
         ]
       }
+      exam_attempt_answers: {
+        Row: {
+          answered_at: string
+          attempt_id: string
+          attempt_question_id: string
+          id: string
+          is_correct: boolean
+          selected_option_id: string | null
+        }
+        Insert: {
+          answered_at?: string
+          attempt_id: string
+          attempt_question_id: string
+          id?: string
+          is_correct: boolean
+          selected_option_id?: string | null
+        }
+        Update: {
+          answered_at?: string
+          attempt_id?: string
+          attempt_question_id?: string
+          id?: string
+          is_correct?: boolean
+          selected_option_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempt_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_attempt_answers_attempt_question_id_fkey"
+            columns: ["attempt_question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempt_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_attempt_answers_selected_option_id_fkey"
+            columns: ["selected_option_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_attempt_questions: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          id: string
+          position: number
+          question_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          id?: string
+          position: number
+          question_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempt_questions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_attempt_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_attempts: {
+        Row: {
+          answered_questions: number
+          completed_at: string | null
+          correct_answers: number
+          created_at: string
+          discipline_id: string | null
+          duration_seconds: number | null
+          id: string
+          score: number | null
+          started_at: string
+          status: string
+          total_questions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answered_questions?: number
+          completed_at?: string | null
+          correct_answers?: number
+          created_at?: string
+          discipline_id?: string | null
+          duration_seconds?: number | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          status?: string
+          total_questions: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answered_questions?: number
+          completed_at?: string | null
+          correct_answers?: number
+          created_at?: string
+          discipline_id?: string | null
+          duration_seconds?: number | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          status?: string
+          total_questions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_discipline_id_fkey"
+            columns: ["discipline_id"]
+            isOneToOne: false
+            referencedRelation: "disciplines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercise_answers: {
         Row: {
           answered_at: string
@@ -1755,6 +1899,7 @@ export type Database = {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
       }
+      finish_exam: { Args: { _attempt_id: string }; Returns: Json }
       finish_study_session: { Args: { _session_id: string }; Returns: Json }
       get_admin_content_overview: {
         Args: never
@@ -1865,6 +2010,19 @@ export type Database = {
           _source_id: string
         }
         Returns: string
+      }
+      save_exam_answer: {
+        Args: { _attempt_question_id: string; _selected_option_id: string }
+        Returns: Json
+      }
+      start_exam: {
+        Args: {
+          _discipline_id: string
+          _duration_seconds: number
+          _question_count: number
+          _topic_ids: string[]
+        }
+        Returns: Json
       }
       start_study_session: { Args: { _topic_id: string }; Returns: Json }
       start_topic_evaluation: { Args: { _topic_id: string }; Returns: Json }
