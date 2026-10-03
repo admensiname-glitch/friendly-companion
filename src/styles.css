@@ -462,6 +462,109 @@
 /* Ensina-me app shell — mobile-first product surface                          */
 /* -------------------------------------------------------------------------- */
 
+.app-route-stage {
+  min-width: 0;
+  animation: ensina-route-in 180ms ease-out both;
+  transform-origin: 50% 0;
+}
+
+@keyframes ensina-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-route-stage {
+    animation: none;
+  }
+}
+
+.app-mobile-header {
+  display: flex;
+}
+
+.app-back-button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-back-button:hover {
+  border-color: transparent;
+  background: #EEF4FF;
+}
+
+.dark .app-back-button:hover {
+  border-color: transparent;
+  background: #172B48;
+}
+
+.app-shell a,
+.app-shell button {
+  transition-property: transform, opacity, background-color, border-color, color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+
+@media (max-width: 639px) {
+  .app-shell {
+    overscroll-behavior-y: none;
+  }
+
+  .app-content {
+    min-height: calc(100dvh - 60px);
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .app-shell .app-native-screen > header {
+    padding-top: 4px;
+  }
+
+  .app-shell .app-native-screen > header h1,
+  .app-shell .app-native-screen > div > header h1 {
+    font-size: 24px !important;
+  }
+
+  .app-shell .app-native-screen > header p,
+  .app-shell .app-native-screen > div > header p {
+    max-width: 100%;
+  }
+
+  .app-shell .app-native-screen {
+    padding-bottom: 10px;
+  }
+
+  .app-shell .app-native-screen a:active,
+  .app-shell .app-native-screen button:active,
+  .app-mobile-tabbar a:active,
+  .app-mobile-tabbar button:active,
+  .app-sheet-item:active {
+    transform: scale(.985);
+  }
+
+  .app-mobile-tabbar {
+    padding-left: max(6px, env(safe-area-inset-left));
+    padding-right: max(6px, env(safe-area-inset-right));
+  }
+
+  .app-tab {
+    min-height: 58px;
+  }
+
+  .app-tab-icon {
+    height: 30px;
+  }
+}
+
+
 .app-stage {
   background:
     radial-gradient(circle at 50% -10%, rgba(2, 66, 215, 0.08), transparent 34%),
