@@ -149,7 +149,7 @@ function ExamPage() {
 
   if (result) {
     return (
-      <section className="max-w-3xl" aria-labelledby="exam-result">
+      <section className="app-native-screen max-w-3xl" aria-labelledby="exam-result">
         <p className="text-sm font-semibold text-[#0242D7]">Modo Prova</p>
         <h1 id="exam-result" className="mt-2 text-3xl font-bold text-[#172334] sm:text-4xl">Prova concluída</h1>
         <div className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-6 sm:p-8">
