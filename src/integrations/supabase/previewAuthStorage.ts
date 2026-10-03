@@ -36,6 +36,7 @@ export function brokeredPreviewStorage() {
       const requestId = newId();
       let done = false;
       let timer: ReturnType<typeof setTimeout>;
+      let onMessage: (event: MessageEvent) => void;
       const finish = (r: { ok: boolean; value?: string | null } | null) => {
         if (done) return;
         done = true;
@@ -43,9 +44,9 @@ export function brokeredPreviewStorage() {
         window.removeEventListener('message', onMessage);
         resolve(r);
       };
-      const onMessage = (e: MessageEvent) => {
-        if (editorOrigins.indexOf(e.origin) < 0) return;
-        const d = e.data;
+      onMessage = (event: MessageEvent) => {
+        if (editorOrigins.indexOf(event.origin) < 0) return;
+        const d = event.data;
         if (d && d.type === RESULT && d.requestId === requestId) finish(d);
       };
       window.addEventListener('message', onMessage);
