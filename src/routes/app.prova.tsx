@@ -13,11 +13,20 @@ type ExamQuestion = {
   options: Option[];
 };
 
+type ExamTopicResult = {
+  topic_id: string;
+  total_questions: number;
+  answered_questions: number;
+  correct_answers: number;
+  score: number;
+};
+
 type ExamResult = {
   score: number;
   correct_answers: number;
   total_questions: number;
   answered_questions: number;
+  topic_breakdown?: ExamTopicResult[];
 };
 
 export const Route = createFileRoute("/app/prova")({ component: ExamPage });
@@ -147,6 +156,30 @@ function ExamPage() {
           <p className="text-sm font-semibold text-[#687688]">Seu resultado</p>
           <p className="mt-2 text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p>
           <p className="mt-2 text-sm text-[#687688]">{result.correct_answers} de {result.total_questions} corretas · {result.answered_questions} respondidas</p>
+          {!!result.topic_breakdown?.length && (
+            <div className="mt-7">
+              <p className="text-sm font-bold text-[#344154]">Diagnóstico por tópico</p>
+              <div className="mt-3 space-y-2">
+                {result.topic_breakdown.map((item) => {
+                  const topic = topics.find((t) => t.id === item.topic_id);
+                  return (
+                    <div key={item.topic_id} className="rounded-xl border border-[#E2E8F0] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-[#344154]">{topic?.name ?? "Tópico"}</p>
+                        <span className="text-sm font-bold text-[#0242D7]">{Math.round(item.score)}%</span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#7A8796]">{item.correct_answers} de {item.total_questions} corretas</p>
+                      {item.score < 70 && topic && (
+                        <Link to="/app/topicos/$topicoId" params={{ topicoId: topic.id }} className="mt-3 inline-block text-xs font-bold text-[#0242D7]">
+                          Revisar este tópico →
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <Link to="/app/revisao" className="min-h-11 rounded-xl bg-[#0242D7] px-4 py-3 text-center text-sm font-bold text-white">Ir para revisão</Link>
             <button onClick={() => setResult(null)} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-3 text-sm font-bold text-[#344154]">Nova prova</button>
