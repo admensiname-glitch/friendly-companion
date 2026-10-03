@@ -9,6 +9,11 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 type IconName =
   | "home"
   | "book"
@@ -71,6 +76,9 @@ function AppLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const logoutPending = useRef(false);
 
   useEffect(() => {
@@ -125,6 +133,45 @@ function AppLayout() {
       active = false;
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsInstalled(standalone);
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
+    const onAppInstalled = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+    };
+  }, []);
+
+  async function installApp() {
+    if (!installPrompt || installing) return;
+    setInstalling(true);
+    try {
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === "accepted") setIsInstalled(true);
+      setInstallPrompt(null);
+    } finally {
+      setInstalling(false);
+    }
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -426,6 +473,36 @@ function AppLayout() {
               <button type="button" className="app-icon-button" onClick={() => setMoreOpen(false)} aria-label="Fechar">
                 <Icon name="close" className="h-5 w-5" />
               </button>
+            </div>
+
+            <div className="mb-3 rounded-2xl border border-[#D7E4F5] bg-[#F7FAFF] p-4 dark:border-[#304158] dark:bg-[#172437]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] text-white">
+                  <span className="text-lg">↓</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-extrabold text-[#172334] dark:text-[#E7EDF5]">
+                    {isInstalled ? "Ensina-me instalado" : "Instale o Ensina-me"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[#687688] dark:text-[#AAB7C7]">
+                    {isInstalled
+                      ? "Você já está usando a versão instalada."
+                      : installPrompt
+                        ? "Abra como aplicativo, sem a aba do navegador."
+                        : "Use o menu do Chrome e escolha “Instalar aplicativo” quando estiver disponível."}
+                  </p>
+                </div>
+              </div>
+              {!isInstalled && installPrompt && (
+                <button
+                  type="button"
+                  onClick={() => void installApp()}
+                  disabled={installing}
+                  className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60"
+                >
+                  {installing ? "Instalando..." : "Instalar aplicativo"}
+                </button>
+              )}
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2">
