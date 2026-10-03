@@ -976,8 +976,8 @@ function TutorSection({
     const maxX = Math.max(12, window.innerWidth - 64);
     const maxY = Math.max(12, window.innerHeight - 72);
     const fallback = {
-      x: Math.max(12, window.innerWidth - 72),
-      y: Math.max(12, window.innerHeight - 116),
+      x: Math.max(12, window.innerWidth - 64),
+      y: Math.max(12, window.innerHeight - 132),
     };
 
     try {
@@ -1005,7 +1005,7 @@ function TutorSection({
     const handleResize = () => {
       setTutorPosition((current) => ({
         x: Math.min(Math.max(12, current.x), Math.max(12, window.innerWidth - 64)),
-        y: Math.min(Math.max(12, current.y), Math.max(12, window.innerHeight - 72)),
+        y: Math.min(Math.max(12, current.y), Math.max(12, window.innerHeight - 132)),
       }));
     };
 
@@ -1033,7 +1033,7 @@ function TutorSection({
     );
     const nextY = Math.min(
       Math.max(12, event.clientY - dragStateRef.current.offsetY),
-      Math.max(12, window.innerHeight - 72),
+      Math.max(12, window.innerHeight - 132),
     );
 
     if (
@@ -1447,8 +1447,8 @@ function TutorSection({
           onPointerMove={moveTutor}
           onPointerUp={finishTutorPointer}
           onPointerCancel={finishTutorPointer}
-          className={`fixed z-50 flex h-12 w-12 touch-none select-none items-center justify-center rounded-full bg-[#0242D7] text-white shadow-[0_10px_28px_rgba(2,66,215,0.3)] transition-transform dark:bg-[#5D96F2] dark:text-[#091321] ${isDraggingTutor ? "scale-105" : "hover:scale-105"}`}
-          style={{ left: tutorPosition.x, top: tutorPosition.y }}
+          className={`fixed z-[80] flex h-12 w-12 touch-none select-none items-center justify-center rounded-full bg-[#0242D7] text-white shadow-[0_10px_28px_rgba(2,66,215,0.3)] transition-transform dark:bg-[#5D96F2] dark:text-[#091321] ${isDraggingTutor ? "scale-105" : "hover:scale-105"}`}
+          style={{ left: Math.min(tutorPosition.x, Math.max(12, window.innerWidth - 64)), top: Math.min(tutorPosition.y, Math.max(12, window.innerHeight - 132)) }}
           title="Arraste para reposicionar o Tutor"
         >
           <svg
