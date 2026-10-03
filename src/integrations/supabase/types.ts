@@ -84,6 +84,75 @@ export type Database = {
           },
         ]
       }
+      ai_micro_assessments: {
+        Row: {
+          answered_at: string | null
+          concept_tags: string[]
+          conversation_id: string | null
+          correct_option_index: number
+          created_at: string
+          difficulty: string
+          explanation: string
+          id: string
+          is_correct: boolean | null
+          options: Json
+          question_text: string
+          selected_option_index: number | null
+          status: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          concept_tags?: string[]
+          conversation_id?: string | null
+          correct_option_index: number
+          created_at?: string
+          difficulty?: string
+          explanation: string
+          id?: string
+          is_correct?: boolean | null
+          options: Json
+          question_text: string
+          selected_option_index?: number | null
+          status?: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          concept_tags?: string[]
+          conversation_id?: string | null
+          correct_option_index?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string
+          id?: string
+          is_correct?: boolean | null
+          options?: Json
+          question_text?: string
+          selected_option_index?: number | null
+          status?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_micro_assessments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_micro_assessments_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           created_at: string
@@ -143,32 +212,50 @@ export type Database = {
       disciplines: {
         Row: {
           code: string | null
+          component_kind: string
           course_id: string
           created_at: string
+          curriculum_area: string | null
+          curriculum_order: number | null
+          curriculum_status: string
           description: string | null
           id: string
+          is_core: boolean
           name: string
           published: boolean
+          reference_semester: number | null
           updated_at: string
         }
         Insert: {
           code?: string | null
+          component_kind?: string
           course_id: string
           created_at?: string
+          curriculum_area?: string | null
+          curriculum_order?: number | null
+          curriculum_status?: string
           description?: string | null
           id?: string
+          is_core?: boolean
           name: string
           published?: boolean
+          reference_semester?: number | null
           updated_at?: string
         }
         Update: {
           code?: string | null
+          component_kind?: string
           course_id?: string
           created_at?: string
+          curriculum_area?: string | null
+          curriculum_order?: number | null
+          curriculum_status?: string
           description?: string | null
           id?: string
+          is_core?: boolean
           name?: string
           published?: boolean
+          reference_semester?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -436,6 +523,116 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      formal_evaluation_answers: {
+        Row: {
+          answered_at: string
+          attempt_id: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_option_index: number
+        }
+        Insert: {
+          answered_at?: string
+          attempt_id: string
+          id?: string
+          is_correct: boolean
+          question_id: string
+          selected_option_index: number
+        }
+        Update: {
+          answered_at?: string
+          attempt_id?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_option_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formal_evaluation_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formal_evaluation_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "formal_evaluation_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formal_evaluation_questions: {
+        Row: {
+          attempt_id: string
+          concept_tags: string[]
+          correct_option_index: number
+          created_at: string
+          difficulty: string
+          explanation: string
+          id: string
+          options: Json
+          position: number
+          question_text: string
+        }
+        Insert: {
+          attempt_id: string
+          concept_tags?: string[]
+          correct_option_index: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string
+          id?: string
+          options: Json
+          position: number
+          question_text: string
+        }
+        Update: {
+          attempt_id?: string
+          concept_tags?: string[]
+          correct_option_index?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string
+          id?: string
+          options?: Json
+          position?: number
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formal_evaluation_questions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_content_rebuild_auth: {
+        Row: {
+          created_at: string
+          id: number
+          token: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id: number
+          token?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          token?: string | null
+          token_hash?: string
+        }
+        Relationships: []
       }
       licenses: {
         Row: {
@@ -798,6 +995,68 @@ export type Database = {
           },
         ]
       }
+      source_ingestion_jobs: {
+        Row: {
+          candidate_count: number
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json
+          provider: string
+          query_text: string
+          requested_by: string | null
+          selected_count: number
+          stage: string
+          started_at: string | null
+          status: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          provider: string
+          query_text: string
+          requested_by?: string | null
+          selected_count?: number
+          stage?: string
+          started_at?: string | null
+          status?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          provider?: string
+          query_text?: string
+          requested_by?: string | null
+          selected_count?: number
+          stage?: string
+          started_at?: string | null
+          status?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_ingestion_jobs_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_rights: {
         Row: {
           access_model: string
@@ -844,6 +1103,96 @@ export type Database = {
             foreignKeyName: "source_rights_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: true
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_search_candidates: {
+        Row: {
+          access_model: string | null
+          authors: Json
+          canonical_url: string
+          created_at: string
+          doi: string | null
+          external_id: string | null
+          id: string
+          job_id: string
+          language: string | null
+          metadata: Json
+          provider: string
+          publication_date: string | null
+          publisher: string | null
+          relevance_score: number | null
+          rights_class: string | null
+          rights_evidence_note: string | null
+          rights_evidence_url: string | null
+          source_id: string | null
+          source_type: string
+          title: string
+          updated_at: string
+          validation_status: string
+        }
+        Insert: {
+          access_model?: string | null
+          authors?: Json
+          canonical_url: string
+          created_at?: string
+          doi?: string | null
+          external_id?: string | null
+          id?: string
+          job_id: string
+          language?: string | null
+          metadata?: Json
+          provider: string
+          publication_date?: string | null
+          publisher?: string | null
+          relevance_score?: number | null
+          rights_class?: string | null
+          rights_evidence_note?: string | null
+          rights_evidence_url?: string | null
+          source_id?: string | null
+          source_type?: string
+          title: string
+          updated_at?: string
+          validation_status?: string
+        }
+        Update: {
+          access_model?: string | null
+          authors?: Json
+          canonical_url?: string
+          created_at?: string
+          doi?: string | null
+          external_id?: string | null
+          id?: string
+          job_id?: string
+          language?: string | null
+          metadata?: Json
+          provider?: string
+          publication_date?: string | null
+          publisher?: string | null
+          relevance_score?: number | null
+          rights_class?: string | null
+          rights_evidence_note?: string | null
+          rights_evidence_url?: string | null
+          source_id?: string | null
+          source_type?: string
+          title?: string
+          updated_at?: string
+          validation_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_search_candidates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "source_ingestion_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_search_candidates_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
             referencedRelation: "sources"
             referencedColumns: ["id"]
           },
@@ -997,7 +1346,7 @@ export type Database = {
           onboarding_completed?: boolean
           semester?: number | null
           updated_at?: string
-          user_id?: string
+          user_id: string
         }
         Update: {
           course_id?: string | null
@@ -1072,7 +1421,13 @@ export type Database = {
           completed_at: string | null
           exercises_completed: number
           id: string
+          last_learning_activity_at: string | null
           last_position: number | null
+          micro_current_difficulty: string
+          micro_mastery_level: string
+          micro_questions_attempted: number
+          micro_questions_correct: number
+          next_micro_review_at: string | null
           started_at: string | null
           status: string
           topic_id: string
@@ -1085,7 +1440,13 @@ export type Database = {
           completed_at?: string | null
           exercises_completed?: number
           id?: string
+          last_learning_activity_at?: string | null
           last_position?: number | null
+          micro_current_difficulty?: string
+          micro_mastery_level?: string
+          micro_questions_attempted?: number
+          micro_questions_correct?: number
+          next_micro_review_at?: string | null
           started_at?: string | null
           status?: string
           topic_id: string
@@ -1098,7 +1459,13 @@ export type Database = {
           completed_at?: string | null
           exercises_completed?: number
           id?: string
+          last_learning_activity_at?: string | null
           last_position?: number | null
+          micro_current_difficulty?: string
+          micro_mastery_level?: string
+          micro_questions_attempted?: number
+          micro_questions_correct?: number
+          next_micro_review_at?: string | null
           started_at?: string | null
           status?: string
           topic_id?: string
@@ -1192,6 +1559,72 @@ export type Database = {
           },
         ]
       }
+      topic_videos: {
+        Row: {
+          channel_name: string | null
+          created_at: string
+          description: string | null
+          duration_label: string | null
+          embed_url: string
+          id: string
+          platform: string
+          position: number
+          published: boolean
+          source_id: string | null
+          title: string
+          topic_id: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          channel_name?: string | null
+          created_at?: string
+          description?: string | null
+          duration_label?: string | null
+          embed_url: string
+          id?: string
+          platform?: string
+          position?: number
+          published?: boolean
+          source_id?: string | null
+          title: string
+          topic_id: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          channel_name?: string | null
+          created_at?: string
+          description?: string | null
+          duration_label?: string | null
+          embed_url?: string
+          id?: string
+          platform?: string
+          position?: number
+          published?: boolean
+          source_id?: string | null
+          title?: string
+          topic_id?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_videos_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_videos_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topics: {
         Row: {
           created_at: string
@@ -1259,11 +1692,65 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_source_ingestion_job: {
+        Args: { _provider?: string; _query_text: string; _topic_id: string }
+        Returns: string
+      }
+      admin_get_source_ingestion_jobs: {
+        Args: { _limit?: number }
+        Returns: {
+          candidate_count: number
+          completed_at: string
+          created_at: string
+          error_message: string
+          id: string
+          provider: string
+          query_text: string
+          selected_count: number
+          stage: string
+          started_at: string
+          status: string
+          topic_id: string
+          updated_at: string
+        }[]
+      }
+      admin_get_source_search_candidates: {
+        Args: { _job_id: string; _limit?: number }
+        Returns: {
+          access_model: string
+          authors: Json
+          canonical_url: string
+          doi: string
+          external_id: string
+          id: string
+          language: string
+          metadata: Json
+          provider: string
+          publication_date: string
+          publisher: string
+          relevance_score: number
+          rights_class: string
+          rights_evidence_note: string
+          rights_evidence_url: string
+          source_id: string
+          source_type: string
+          title: string
+          validation_status: string
+        }[]
+      }
       admin_set_publication: {
         Args: { _entity_id: string; _entity_type: string; _published: boolean }
         Returns: Json
       }
       auth_role: { Args: never; Returns: string }
+      create_formal_evaluation_attempt: {
+        Args: { _questions: Json; _topic_id: string; _user_id: string }
+        Returns: Json
+      }
+      finalize_formal_evaluation: {
+        Args: { _answers: Json; _attempt_id: string }
+        Returns: Json
+      }
       finalize_topic_evaluation: {
         Args: { _answers: Json; _attempt_id: string }
         Returns: Json
@@ -1294,6 +1781,14 @@ export type Database = {
           topic_count: number
           verified_at: string
         }[]
+      }
+      get_formal_evaluation_history: {
+        Args: { _topic_id: string }
+        Returns: Json
+      }
+      get_formal_evaluation_state: {
+        Args: { _topic_id: string }
+        Returns: Json
       }
       get_student_dashboard_topics: {
         Args: never
@@ -1339,6 +1834,14 @@ export type Database = {
       }
       get_student_study_recommendation: { Args: never; Returns: Json }
       get_student_today_study: { Args: never; Returns: Json }
+      get_student_topic_application_progress: {
+        Args: { _topic_id: string }
+        Returns: {
+          answered_questions: number
+          progress: number
+          total_questions: number
+        }[]
+      }
       has_role: { Args: { required_role: string }; Returns: boolean }
       mark_material_section_complete: {
         Args: { _section_id: string }
@@ -1346,6 +1849,10 @@ export type Database = {
           completed_sections: number
           total_sections: number
         }[]
+      }
+      record_micro_assessment_answer: {
+        Args: { _assessment_id: string; _selected_option_index: number }
+        Returns: Json
       }
       record_topic_difficulty: {
         Args: { _difficulty_tag: string; _topic_id: string }
