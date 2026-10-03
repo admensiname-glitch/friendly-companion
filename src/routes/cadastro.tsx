@@ -78,9 +78,9 @@ function Cadastro() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setStatus("error");
-      setMessage("A senha deve ter pelo menos 6 caracteres.");
+      setMessage("A senha deve ter pelo menos 8 caracteres.");
       return;
     }
 
@@ -240,13 +240,13 @@ function Cadastro() {
                   name="senha"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Crie uma senha com pelo menos 6 caracteres"
+                  placeholder="Crie uma senha com pelo menos 8 caracteres"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   disabled={isLoading}
                   className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -277,7 +277,7 @@ function Cadastro() {
                   disabled={isLoading}
                   className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
