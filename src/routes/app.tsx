@@ -56,7 +56,11 @@ function AppLayout() {
       setAuthChecking(true);
       setAuthError(null);
 
-      const { data, error } = await supabase.auth.getSession();
+      const sessionResult = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AUTH_CHECK_TIMEOUT")), 8000)),
+      ]).catch((caughtError) => ({ data: { session: null }, error: caughtError }));
+      const { data, error } = sessionResult;
 
       if (!active) return;
 
