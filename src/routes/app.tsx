@@ -94,10 +94,6 @@ function AppLayout() {
     };
   }, [navigate]);
 
-    return () => {
-      active = false;
-    };
-  }, [navigate]);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = window.localStorage.getItem("ensina-me-theme");
