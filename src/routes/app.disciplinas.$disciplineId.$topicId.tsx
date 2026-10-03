@@ -3098,6 +3098,17 @@ function TopicDetailPage() {
       {/* ── Topic learning content ── */}
       {!loading && !error && !notFound && (
         <div className="mt-8">
+          {!loading && !error && !notFound && (
+            <MobileLearningFlow
+              contentDone={contentProgress.total > 0 && contentProgress.completed >= contentProgress.total}
+              practiceDone={
+                (applicationProgress.total > 0 && applicationProgress.answered >= applicationProgress.total) ||
+                tutorPracticeDone
+              }
+              reviewNeeded={difficulties.length > 0}
+              evaluationCompleted={evaluationCompleted}
+            />
+          )}
           {material ? (
             <section id="conteudo" aria-labelledby="guided-study-heading">
               <div className="max-w-4xl">
