@@ -11,6 +11,7 @@ on:
       - ".github/workflows/android.yml"
       - "public/icon-512.jpg"
       - "public/icon-192.png"
+      - "public/ensina-me-icon.svg"
       - "package.json"
 
 jobs:
@@ -37,7 +38,8 @@ jobs:
       - name: Prepare app assets
         run: |
           mkdir -p assets
-          cp public/icon-192.png assets/icon.png
+          cp public/ensina-me-icon.svg assets/icon.svg
+          convert assets/icon.svg -resize 1024x1024! assets/icon.png
           test -f www/index.html
       - name: Generate Android project
         run: npx cap add android
