@@ -94,7 +94,7 @@ function Index(){
 
     <footer className="border-t border-[#DCE4ED] bg-[#F4F7FA]">
       <div className="mx-auto flex max-w-[1180px] flex-col gap-2 px-4 py-7 text-xs text-[#8A95A3] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <BrandLogo compact /><span>Aprendizagem com clareza.</span>
+        <div className="flex items-center gap-4"><BrandLogo compact /><span>Aprendizagem com clareza.</span></div><nav className="flex items-center gap-4" aria-label="Links legais"><Link to="/termos" className="hover:text-[#0242D7]">Termos de uso</Link><Link to="/privacidade" className="hover:text-[#0242D7]">Privacidade</Link></nav>
       </div>
     </footer>
   </main>;
