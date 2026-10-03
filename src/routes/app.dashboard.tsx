@@ -100,9 +100,9 @@ function AppDashboard() {
       if (disciplinesResult.data) setDisciplines(disciplinesResult.data as StudentDiscipline[]);
       if (!topicsResult.error) setTopicsProgress((topicsResult.data ?? []) as DashboardTopic[]);
       if (!recommendationResult.error && recommendationResult.data) {
-        setRecommendation(recommendationResult.data as StudyRecommendation);
+        setRecommendation(recommendationResult.data as unknown as StudyRecommendation);
       }
-      if (!todayResult.error && todayResult.data) setTodayStudy(todayResult.data as TodayStudy);
+      if (!todayResult.error && todayResult.data) setTodayStudy(todayResult.data as unknown as TodayStudy);
 
       const today = new Date().toISOString().slice(0, 10);
       const { data: exams } = await supabase

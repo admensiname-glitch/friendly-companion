@@ -2285,7 +2285,7 @@ function EvaluationSection({
     setQuestions([]);
     setAnswers({});
     setStarted(false);
-    setResult(data as FormalEvaluationResult);
+    setResult(data as unknown as FormalEvaluationResult);
     onCompletedChange(true);
     await onDifficultyUpdate();
   }
@@ -2499,8 +2499,8 @@ function TopicDetailPage() {
     async (questionId: string, selectedOptionId: string | null, openText: string | null) => {
       const { data, error: answerError } = await supabase.rpc("submit_application_answer", {
         _question_id: questionId,
-        _selected_option_id: selectedOptionId,
-        _open_text: openText,
+        _selected_option_id: selectedOptionId as string,
+        _open_text: openText as string,
       });
       if (answerError) {
         console.error("[Ensina-me] Erro ao salvar resposta:", answerError);
