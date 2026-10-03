@@ -37,16 +37,28 @@ try {
 
   await page.goto(`${baseURL}/app/disciplinas`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: /minhas disciplinas/i }).waitFor();
-  const discipline = page.locator('a[href^="/app/disciplinas/"]').first();
-  await discipline.waitFor();
-  await discipline.click();
+  const disciplineHref = await page.locator('a[href^="/app/disciplinas/"]').evaluateAll((links) => {
+    const match = links.find((link) => {
+      const href = link.getAttribute("href") ?? "";
+      return /^\/app\/disciplinas\/[^/]+$/.test(href);
+    });
+    return match?.getAttribute("href") ?? null;
+  });
+  if (!disciplineHref) throw new Error("No discipline link found.");
+  await page.locator(`a[href="${disciplineHref}"]`).click();
   await page.waitForURL(/\/app\/disciplinas\/[^/]+$/, { timeout: 10000 });
   await page.getByRole("heading", { name: /tópicos de aprendizagem/i }).waitFor();
   console.log("PASS: discipline");
 
-  const topic = page.locator('a[href^="/app/disciplinas/"][href*="/"]').first();
-  await topic.waitFor();
-  await topic.click();
+  const topicHref = await page.locator('a[href^="/app/disciplinas/"]').evaluateAll((links) => {
+    const match = links.find((link) => {
+      const href = link.getAttribute("href") ?? "";
+      return /^\/app\/disciplinas\/[^/]+\/[^/]+$/.test(href);
+    });
+    return match?.getAttribute("href") ?? null;
+  });
+  if (!topicHref) throw new Error("No topic link found.");
+  await page.locator(`a[href="${topicHref}"]`).click();
   await page.waitForURL(/\/app\/disciplinas\/[^/]+\/[^/]+$/, { timeout: 10000 });
   await page.getByRole("heading", { name: /estudo guiado/i }).waitFor();
   console.log("PASS: topic/material");
