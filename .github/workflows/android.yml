@@ -29,6 +29,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Install image tooling
+        run: sudo apt-get update -qq && sudo apt-get install -y imagemagick
       - name: Install Capacitor toolchain
         run: npm install --no-save @capacitor/cli@8.5.2 @capacitor/core@8.5.2 @capacitor/android@8.5.2 @capacitor/assets@3.0.5
       - name: Prepare app assets
