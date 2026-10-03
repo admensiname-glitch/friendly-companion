@@ -29,6 +29,7 @@ import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppProvaRouteImport } from './routes/app.prova'
 import { Route as AppRevisaoRouteImport } from './routes/app.revisao'
 import { Route as AppCatalogoDisciplineIdRouteImport } from './routes/app.catalogo.$disciplineId'
 import { Route as AppDisciplinasDisciplineIdRouteImport } from './routes/app.disciplinas.$disciplineId'
@@ -134,6 +135,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProvaRoute = AppProvaRouteImport.update({
+  id: '/prova',
+  path: '/prova',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRevisaoRoute = AppRevisaoRouteImport.update({
   id: '/revisao',
   path: '/revisao',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
+    | '/app/prova'
     | '/app/revisao'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
+    | '/app/prova'
     | '/app/revisao'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
+    | '/app/prova'
     | '/app/revisao'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
@@ -473,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/prova': {
+      id: '/app/prova'
+      path: '/prova'
+      fullPath: '/app/prova'
+      preLoaderRoute: typeof AppProvaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/revisao': {
       id: '/app/revisao'
       path: '/revisao'
@@ -564,6 +583,7 @@ interface AppRouteChildren {
   AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
   AppEstudeAgoraRoute: typeof AppEstudeAgoraRoute
   AppPerfilRoute: typeof AppPerfilRoute
+  AppProvaRoute: typeof AppProvaRoute
   AppRevisaoRoute: typeof AppRevisaoRoute
 }
 
@@ -574,6 +594,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
   AppEstudeAgoraRoute: AppEstudeAgoraRoute,
   AppPerfilRoute: AppPerfilRoute,
+  AppProvaRoute: AppProvaRoute,
   AppRevisaoRoute: AppRevisaoRoute,
 }
 
