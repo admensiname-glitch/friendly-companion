@@ -987,7 +987,7 @@ function TutorSection({
         if (typeof parsed.x === "number" && typeof parsed.y === "number") {
           setTutorPosition({
             x: Math.min(maxX, Math.max(12, parsed.x)),
-            y: Math.min(maxY, Math.max(12, parsed.y)),
+            y: Math.min(Math.max(12, parsed.y), Math.max(12, window.innerHeight - 132)),
           });
           return;
         }
@@ -1448,7 +1448,7 @@ function TutorSection({
           onPointerUp={finishTutorPointer}
           onPointerCancel={finishTutorPointer}
           className={`fixed z-[80] flex h-12 w-12 touch-none select-none items-center justify-center rounded-full bg-[#0242D7] text-white shadow-[0_10px_28px_rgba(2,66,215,0.3)] transition-transform dark:bg-[#5D96F2] dark:text-[#091321] ${isDraggingTutor ? "scale-105" : "hover:scale-105"}`}
-          style={{ left: Math.min(tutorPosition.x, Math.max(12, window.innerWidth - 64)), top: Math.min(tutorPosition.y, Math.max(12, window.innerHeight - 132)) }}
+          style={{ left: tutorPosition.x, top: tutorPosition.y }}
           title="Arraste para reposicionar o Tutor"
         >
           <svg
