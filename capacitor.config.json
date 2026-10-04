@@ -9,7 +9,7 @@
     "initialFocus": true
   },
   "server": {
-    "url": "https://project--f5760db6-77d8-43e9-8892-8305a32cf202.lovable.app",
+    "url": "https://ensina-me-sigma.vercel.app",
     "cleartext": false,
     "androidScheme": "https"
   }
