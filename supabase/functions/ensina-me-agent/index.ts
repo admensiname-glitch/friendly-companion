@@ -1,77 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-type Principal = "HUMAN_OWNER" | "ORCHESTRATOR";
-type Risk = "low" | "medium" | "high" | "critical";
-
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-
-function classify(text: string): Risk {
-  const m = text.toLowerCase();
-  if (/(drop|delete|truncate|production|secret|service[._ -]?role|permission|irreversible|destructive)/.test(m)) return "critical";
-  if (/(migration|update|rewrite|edit|fix|commit|push|bulk|mass|deploy)/.test(m)) return "high";
-  if (/(research|audit|analy[sz]|test|inspect|verify|report|read|check)/.test(m)) return "low";
-  return "medium";
-}
-function principal(v: unknown): v is Principal { return v === "HUMAN_OWNER" || v === "ORCHESTRATOR"; }
-function approvals(risk: Risk) { return risk === "critical" ? 2 : risk === "high" ? 1 : 0; }
-
-async function createRun(mission: string, requestedBy: Principal, scope: Record<string, unknown>) {
-  const risk = classify(mission);
-  const { data: run, error } = await supabase.from("agent_runs").insert({ requested_by: requestedBy, mission, scope, status: "planned", risk_level: risk }).select("id,mission,requested_by,status,risk_level,created_at").single();
-  if (error) throw error;
-  const gated = approvals(risk) > 0;
-  const { error: taskError } = await supabase.from("agent_tasks").insert([
-    { run_id: run.id, task_key: "inspect", title: "Inspect current state", description: "Read relevant state before mutation.", status: "pending", risk_level: "low" },
-    { run_id: run.id, task_key: "plan", title: "Build execution plan", description: "Break the mission into bounded, reversible steps.", status: "pending", risk_level: "low" },
-    { run_id: run.id, task_key: "execute", title: "Execute authorized work", description: "Execute only inside approved scope.", status: gated ? "blocked" : "pending", risk_level: risk, requires_human_approval: risk === "critical", requires_orchestrator_approval: gated },
-    { run_id: run.id, task_key: "validate", title: "Validate", description: "Run relevant tests and consistency checks.", status: "pending", risk_level: "low" },
-    { run_id: run.id, task_key: "report", title: "Report evidence", description: "Record exact results and remaining work.", status: "pending", risk_level: "low" }
-  ]);
-  if (taskError) throw taskError;
-  await supabase.from("agent_actions").insert({ run_id: run.id, actor: "AGENT", action_type: "RUN_CREATED", target: "agent", input_summary: mission, output_summary: gated ? "Execution gated by approval." : "Controlled execution run created.", status: "succeeded", risk_level: risk });
-  return run;
-}
-
-async function requestTool(runId: string, taskId: string | null, toolName: string, purpose: string, args: unknown, risk: Risk) {
-  const gated = approvals(risk) > 0;
-  const { data, error } = await supabase.from("agent_tool_requests").insert({ run_id: runId, task_id: taskId, tool_name: toolName, purpose, arguments: args ?? {}, risk_level: risk, requested_by: "AGENT", status: gated ? "blocked" : "pending" }).select("id,tool_name,purpose,risk_level,status,created_at").single();
-  if (error) throw error;
-  return data;
-}
-
-async function approve(runId: string, taskId: string | null, role: Principal, decision: "approved" | "rejected", note?: string) {
-  const { data, error } = await supabase.from("agent_approvals").insert({ run_id: runId, task_id: taskId, approver_role: role, decision, note: note ?? null }).select("id,run_id,task_id,approver_role,decision,created_at").single();
-  if (error) throw error;
-  return data;
-}
-
-Deno.serve(async (req) => {
-  if (req.method !== "POST") return json({ error: "POST required" }, 405);
-  if (!req.headers.get("authorization")?.startsWith("Bearer ")) return json({ error: "Authorization required" }, 401);
-  let body: any;
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-
-  try {
-    if (body.action === "create_run") {
-      if (!body.mission || !principal(body.requested_by)) return json({ error: "mission and valid requested_by are required" }, 400);
-      if (body.requested_by === "ORCHESTRATOR") {
-        const expected = Deno.env.get("ENSINA_AGENT_ORCHESTRATOR_KEY");
-        if (!expected || req.headers.get("x-ensina-orchestrator-key") !== expected) return json({ error: "orchestrator authorization required" }, 403);
-      }
-      return json({ run: await createRun(body.mission, body.requested_by, body.scope ?? {}), authority: { human_owner: "trusted", orchestrator: "trusted", agent: "subordinate" } }, 201);
-    }
-    if (body.action === "request_tool") {
-      if (!body.run_id || !body.tool_name || !body.purpose || !body.risk_level) return json({ error: "run_id, tool_name, purpose and risk_level are required" }, 400);
-      return json({ request: await requestTool(body.run_id, body.task_id ?? null, body.tool_name, body.purpose, body.arguments ?? {}, body.risk_level) }, 201);
-    }
-    if (body.action === "approve") {
-      if (!body.run_id || !principal(body.approver_role) || !["approved","rejected"].includes(body.decision)) return json({ error: "run_id, approver_role and decision are required" }, 400);
-      return json({ approval: await approve(body.run_id, body.task_id ?? null, body.approver_role, body.decision, body.note) }, 201);
-    }
-    return json({ error: "Unknown action" }, 400);
-  } catch (e) {
-    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
-  }
-});
+type Principal="HUMAN_OWNER"|"ORCHESTRATOR"; type Risk="low"|"medium"|"high"|"critical";
+const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const out=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{"content-type":"application/json"}});
+const principal=(x:unknown):x is Principal=>x==="HUMAN_OWNER"||x==="ORCHESTRATOR";
+const risk=(x:string):Risk=>{const m=x.toLowerCase();if(/(drop|delete|truncate|production|secret|service[._ -]?role|permission|irreversible|destructive)/.test(m))return"critical";if(/(migration|update|rewrite|edit|fix|commit|push|bulk|mass|deploy)/.test(m))return"high";if(/(research|audit|analy[sz]|test|inspect|verify|report|read|check)/.test(m))return"low";return"medium"};
+const hash=async(v:unknown)=>{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(v)));return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,"0")).join("")};
+async function auth(req:Request){const a=req.headers.get("authorization");if(!a?.startsWith("Bearer "))return null;const{data,error}=await db.auth.getUser(a.slice(7));return error||!data.user?null:data.user}
+async function owner(id:string){const e=Deno.env.get("ENSINA_AGENT_OWNER_USER_ID");return!!e&&e===id}
+async function approvals(run:string,scope:string,r:Risk){const roles:Principal[]=r==="critical"?["HUMAN_OWNER","ORCHESTRATOR"]:["ORCHESTRATOR"];for(const role of roles){const{count,error}=await db.from("agent_approvals").select("id",{count:"exact",head:true}).eq("run_id",run).eq("approver_role",role).eq("decision","approved").eq("scope_hash",scope);if(error||!count)return false}return true}
+async function native(tool:string){if(tool==="agent_health"){const names=["agent_runs","agent_tasks","agent_actions","agent_approvals","agent_findings","agent_memory","agent_tool_requests"];const checks=await Promise.all(names.map(async table=>{const{count,error}=await db.from(table).select("*",{count:"exact",head:true});return{table,ok:!error,count:count??0,error:error?.message??null}}));return{tool,checks,timestamp:new Date().toISOString()}}if(tool==="content_audit_summary"){const names=["materials","material_sections","sources","source_documents","source_chunks","material_chunk_citations"];const counts=await Promise.all(names.map(async table=>{const{count,error}=await db.from(table).select("id",{count:"exact",head:true});return{table,count:count??0,error:error?.message??null}}));return{tool,counts}}if(tool==="exercise_audit_summary"){const{data,count,error}=await db.from("exercise_questions").select("question_text,feedback_hint",{count:"exact"});if(error)throw error;const rows=data??[];return{tool,total_questions:count??rows.length,short_stems_lt_140:rows.filter((x:any)=>(x.question_text?.length??0)<140).length,very_short_stems_lt_100:rows.filter((x:any)=>(x.question_text?.length??0)<100).length,weak_feedback_lt_90:rows.filter((x:any)=>(x.feedback_hint?.length??0)<90).length}}throw new Error("Native tool not allowlisted: "+tool)}
+Deno.serve(async req=>{if(req.method!=="POST")return out({error:"POST required"},405);const user=await auth(req);if(!user)return out({error:"Valid authenticated user required"},401);let b:any;try{b=await req.json()}catch{return out({error:"Invalid JSON"},400)}try{
+if(b.action==="create_run"){if(!b.mission||!principal(b.requested_by))return out({error:"mission and valid requested_by are required"},400);if(b.requested_by==="HUMAN_OWNER"&&!await owner(user.id))return out({error:"HUMAN_OWNER identity not configured"},403);if(b.requested_by==="ORCHESTRATOR"&&req.headers.get("x-ensina-orchestrator-key")!==Deno.env.get("ENSINA_AGENT_ORCHESTRATOR_KEY"))return out({error:"orchestrator authorization required"},403);const r=risk(b.mission);const{data:run,error}=await db.from("agent_runs").insert({requested_by:b.requested_by,mission:b.mission.trim(),scope:b.scope??{},status:"planned",risk_level:r}).select("id,mission,requested_by,status,risk_level,created_at").single();if(error)throw error;const gated=r==="high"||r==="critical";const{error:te}=await db.from("agent_tasks").insert([{run_id:run.id,task_key:"inspect",title:"Inspect",description:"Read state",status:"pending",risk_level:"low"},{run_id:run.id,task_key:"plan",title:"Plan",description:"Bounded reversible plan",status:"pending",risk_level:"low"},{run_id:run.id,task_key:"execute",title:"Execute",description:"Authorized execution",status:gated?"blocked":"pending",risk_level:r,requires_human_approval:r==="critical",requires_orchestrator_approval:gated},{run_id:run.id,task_key:"validate",title:"Validate",description:"Verify result",status:"pending",risk_level:"low"},{run_id:run.id,task_key:"report",title:"Report",description:"Evidence and outcome",status:"pending",risk_level:"low"}]);if(te)throw te;return out({run,policy:{risk:r,approval_required:gated,critical_requires_both:r==="critical",conflict_policy:"STOP_AND_ESCALATE"}},201)}
+if(b.action==="request_tool"){if(!b.run_id||!b.tool_name||!b.purpose||!b.risk_level)return out({error:"run_id, tool_name, purpose and risk_level required"},400);const allow=["native:agent_health","native:content_audit_summary","native:exercise_audit_summary"];if(b.tool_name.startsWith("native:")&&!allow.includes(b.tool_name))return out({error:"Native tool not allowlisted"},403);const scope_hash=await hash({run_id:b.run_id,task_id:b.task_id??null,tool_name:b.tool_name,purpose:b.purpose,arguments:b.arguments??{},risk_level:b.risk_level});const gated=b.risk_level==="high"||b.risk_level==="critical";const{data,error}=await db.from("agent_tool_requests").insert({run_id:b.run_id,task_id:b.task_id??null,tool_name:b.tool_name,purpose:b.purpose,arguments:b.arguments??{},risk_level:b.risk_level,requested_by:"AGENT",status:gated?"blocked":"pending",evidence:[{scope_hash}]}).select("id,tool_name,purpose,risk_level,status,created_at").single();if(error)throw error;return out({request:data,scope_hash},201)}
+if(b.action==="approve"){if(!b.run_id||!principal(b.approver_role)||!["approved","rejected"].includes(b.decision)||!b.scope_hash)return out({error:"approval fields required"},400);if(b.approver_role==="HUMAN_OWNER"&&!await owner(user.id))return out({error:"HUMAN_OWNER identity not configured"},403);const{data,error}=await db.from("agent_approvals").insert({run_id:b.run_id,task_id:b.task_id??null,approver_role:b.approver_role,decision:b.decision,scope_hash:b.scope_hash,note:b.note??null}).select("id,run_id,approver_role,decision,scope_hash,created_at").single();if(error)throw error;return out({approval:data},201)}
+if(b.action==="execute_tool"){if(!b.request_id)return out({error:"request_id required"},400);const{data:row,error}=await db.from("agent_tool_requests").select("id,run_id,task_id,tool_name,purpose,arguments,risk_level,status,evidence").eq("id",b.request_id).single();if(error||!row)return out({error:"tool request not found"},404);const scope=row.evidence?.find?.((x:any)=>x.scope_hash)?.scope_hash;if(!scope)return out({error:"missing immutable scope"},409);if(row.status==="running"||row.status==="completed")return out({error:"already running/completed",status:row.status},409);if(row.risk_level!=="low"&&row.risk_level!=="medium"&&!await approvals(row.run_id,scope,row.risk_level))return out({error:"approval gate not satisfied"},403);if(!row.tool_name.startsWith("native:"))return out({authorized:true,execution:"ORCHESTRATOR_REQUIRED",scope_hash:scope});const{error:start}=await db.from("agent_tool_requests").update({status:"running",updated_at:new Date().toISOString()}).eq("id",row.id).eq("status",row.status);if(start)throw start;try{const result=await native(row.tool_name.slice(7));const result_hash=await hash(result);const{error}=await db.from("agent_tool_requests").update({status:"completed",result,evidence:[...(row.evidence??[]),{completed_at:new Date().toISOString(),result_hash}],updated_at:new Date().toISOString()}).eq("id",row.id);if(error)throw error;return out({authorized:true,completed:true,tool:row.tool_name,result,scope_hash:scope})}catch(e){await db.from("agent_tool_requests").update({status:"failed",result:{error:String(e)},updated_at:new Date().toISOString()}).eq("id",row.id);throw e}}return out({error:"Unknown action"},400)}catch(e){return out({error:e instanceof Error?e.message:String(e)},500)}});
