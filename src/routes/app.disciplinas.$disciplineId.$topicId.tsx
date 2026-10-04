@@ -141,13 +141,13 @@ class TopicRuntimeBoundary extends Component<
   { children: React.ReactNode; topicId: string },
   { hasError: boolean }
 > {
-  state = { hasError: false };
+  override state = { hasError: false };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown) {
+  override componentDidCatch(error: unknown) {
     console.error("[Ensina-me] Erro de renderização na página de tópico:", error);
     reportLovableError(error, {
       boundary: "topic_runtime_boundary",
@@ -155,7 +155,7 @@ class TopicRuntimeBoundary extends Component<
     });
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div
@@ -722,8 +722,8 @@ function renderTutorContent(text: string): React.ReactNode[] {
       const match = trimmed.match(/^(\d+)\.\s(.+)$/);
       return match ? (
         <div key={index} className="flex gap-2">
-          <span className="font-semibold text-[#0242D7]">{match[1]}.</span>
-          <span>{renderTutorInline(match[2])}</span>
+          <span className="font-semibold text-[#0242D7]">{match[1] ?? ""}.</span>
+          <span>{renderTutorInline(match[2] ?? "")}</span>
         </div>
       ) : null;
     }
@@ -1767,7 +1767,7 @@ function ExerciseSection({
 
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
 
     setQuestionOrder(shuffled);
@@ -1796,7 +1796,7 @@ function ExerciseSection({
         const ids = question.options.map((option) => option.id);
         for (let i = ids.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [ids[i], ids[j]] = [ids[j], ids[i]];
+          [ids[i], ids[j]] = [ids[j]!, ids[i]!];
         }
 
         next[question.id] = ids;
@@ -1863,7 +1863,7 @@ function ExerciseSection({
 
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
 
     setQuestionOrder(shuffled);
@@ -1877,7 +1877,7 @@ function ExerciseSection({
         const options = question.options?.map((option) => option.id) ?? [];
         for (let i = options.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [options[i], options[j]] = [options[j], options[i]];
+          [options[i], options[j]] = [options[j]!, options[i]!];
         }
         if (options.length > 0) next[question.id] = options;
       }
@@ -2079,7 +2079,7 @@ function shuffle<T>(items: T[]): T[] {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1));
-    [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
+    [next[index], next[randomIndex]] = [next[randomIndex]!, next[index]!];
   }
   return next;
 }

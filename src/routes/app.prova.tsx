@@ -199,7 +199,7 @@ function ExamPage() {
     );
   }
 
-  if (questions.length) {
+  if (questions.length && question) {
     return (
       <section className="app-native-screen app-exam-mode max-w-3xl" aria-labelledby="exam-title">
         <header className="sticky top-0 z-20 -mx-4 border-b border-[#DCE5F0] bg-white/95 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:px-0">
