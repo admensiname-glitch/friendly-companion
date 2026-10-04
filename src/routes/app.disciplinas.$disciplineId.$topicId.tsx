@@ -2679,7 +2679,7 @@ function TopicDetailPage() {
         const { data: officialDiscData, error: officialError } = await supabase
           .from("disciplines")
           .select("id, name")
-          .eq("id", aliasData[0].discipline_id)
+          .eq("id", aliasData[0]!.discipline_id)
           .eq("published", true)
           .maybeSingle();
 
@@ -2811,10 +2811,12 @@ function TopicDetailPage() {
             sourcesMap[src.id] = src as Source;
           });
 
-          const enriched = rawCitations.map((cit) => ({
-            ...cit,
-            source: sourcesMap[cit.source_id],
-          }));
+          const enriched = rawCitations
+            .map((cit) => ({
+              ...cit,
+              source: sourcesMap[cit.source_id],
+            }))
+            .filter((cit): cit is MaterialCitation => cit.source !== undefined);
 
           setCitations(enriched);
         }
@@ -2864,8 +2866,7 @@ function TopicDetailPage() {
             .order("position", { ascending: true });
 
           for (const opt of (evalOptionsData ?? []) as ExerciseOption[]) {
-            if (!evalOptionsByQuestion[opt.question_id]) evalOptionsByQuestion[opt.question_id] = [];
-            evalOptionsByQuestion[opt.question_id].push(opt);
+            (evalOptionsByQuestion[opt.question_id] ??= []).push(opt);
           }
         }
 
@@ -2903,10 +2904,7 @@ function TopicDetailPage() {
         // Group questions by exercise
         const questionsByExercise: Record<string, ExerciseQuestion[]> = {};
         for (const q of questions) {
-          if (!questionsByExercise[q.exercise_id]) {
-            questionsByExercise[q.exercise_id] = [];
-          }
-          questionsByExercise[q.exercise_id].push(q);
+          (questionsByExercise[q.exercise_id] ??= []).push(q);
         }
 
         // Fetch options for questions with multiple choice
@@ -2924,10 +2922,7 @@ function TopicDetailPage() {
 
           const allOptions = (optionsData ?? []) as ExerciseOption[];
           for (const opt of allOptions) {
-            if (!optionsByQuestion[opt.question_id]) {
-              optionsByQuestion[opt.question_id] = [];
-            }
-            optionsByQuestion[opt.question_id].push(opt);
+            (optionsByQuestion[opt.question_id] ??= []).push(opt);
           }
         }
 
@@ -3193,7 +3188,7 @@ function TopicDetailPage() {
                       index={activeSectionIndex}
                       total={sections.length}
                       completed={completedSectionIds.includes(sections[activeSectionIndex].id)}
-                      onComplete={() => void markSectionComplete(sections[activeSectionIndex].id)}
+                      onComplete={() => void markSectionComplete(sections[activeSectionIndex]!.id)}
                       onPrevious={() =>
                         setActiveSectionIndex((current) => Math.max(0, current - 1))
                       }
