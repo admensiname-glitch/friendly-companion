@@ -203,7 +203,7 @@ function Login() {
       });
 
       if (error) {
-        const details = getAuthErrorDetails(error);
+        const details = getAuthErrorDetails(error as AuthErrorLike);
         setMessage(details.userMessage);
         setAuthDiagnostic(details.diagnostic);
         setCanResend(details.canResend);

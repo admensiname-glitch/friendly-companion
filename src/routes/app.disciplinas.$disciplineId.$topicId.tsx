@@ -2857,12 +2857,10 @@ function TopicDetailPage() {
             sourcesMap[src.id] = src as Source;
           });
 
-          const enriched = rawCitations
-            .map((cit) => ({
-              ...cit,
-              source: sourcesMap[cit.source_id],
-            }))
-            .filter((cit): cit is MaterialCitation => cit.source !== undefined);
+          const enriched: MaterialCitation[] = rawCitations.map((cit) => {
+            const source = sourcesMap[cit.source_id];
+            return source ? { ...cit, source } : { ...cit };
+          });
 
           setCitations(enriched);
         }
