@@ -111,10 +111,6 @@ function AppDashboard() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
-  const [teacherAssignments, setTeacherAssignments] = useState<Array<{ id: string; title: string; message: string | null; due_at: string | null; topic_id: string | null; topic_name: string | null; discipline_name: string | null; class_name: string }>>([]);
-  const [joinCode, setJoinCode] = useState("");
-  const [joinMessage, setJoinMessage] = useState("");
-  const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -135,7 +131,6 @@ function AppDashboard() {
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
-          supabase.rpc("get_student_teacher_assignments"),
         ]);
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
@@ -225,7 +220,7 @@ function AppDashboard() {
             Olá, {firstName}! 👋
           </h1>
           <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">
-            Seu professor indicou o Ensina-me para acompanhar sua jornada de aprendizagem — vamos continuar de onde você parou.
+            Vamos continuar de onde você parou — estude, pratique e revise no seu ritmo.
           </p>
         </div>
         <Link to="/app/desempenho" className="app-icon-button hidden sm:inline-flex" aria-label="Ver meu desempenho">

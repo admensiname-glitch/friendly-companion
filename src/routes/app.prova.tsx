@@ -66,27 +66,28 @@ function ExamPage() {
     [topics, disciplineId],
   );
 
-  const question = questions[current];
+  const question = questions[current] as ExamQuestion | undefined;
   const answeredCount = Object.keys(answers).length;
 
   async function startExam() {
     setError("");
     setLoading(true);
     const { data, error: rpcError } = await supabase.rpc("start_exam", {
-      _discipline_id: disciplineId || null,
+      _discipline_id: (disciplineId || null) as unknown as string,
       _topic_ids: selectedTopics,
       _question_count: count,
       _duration_seconds: duration * 60,
     });
-    if (rpcError || !data?.attempt_id || !Array.isArray(data.questions)) {
+    const payload = data as { attempt_id?: string; questions?: ExamQuestion[] } | null;
+    if (rpcError || !payload?.attempt_id || !Array.isArray(payload.questions)) {
       setError(rpcError?.message?.includes("NOT_ENOUGH_QUESTIONS")
         ? "Não há questões suficientes para esta configuração. Reduza a quantidade ou amplie os tópicos."
         : "Não foi possível preparar a prova. Tente novamente.");
       setLoading(false);
       return;
     }
-    setAttemptId(String(data.attempt_id));
-    setQuestions(data.questions as ExamQuestion[]);
+    setAttemptId(String(payload.attempt_id));
+    setQuestions(payload.questions);
     setAnswers({});
     setFlagged([]);
     setCurrent(0);
