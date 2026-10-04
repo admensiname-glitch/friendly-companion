@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-rebuild-token",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -680,7 +680,9 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const providedToken = url.searchParams.get("token") ?? "";
+    // O token administrativo trafega apenas por header — nunca em query string,
+    // para não vazar em logs, histórico de navegador ou caches de proxy.
+    const providedToken = req.headers.get("x-rebuild-token") ?? "";
 
     const authRow = await admin
       .from("internal_content_rebuild_auth")

@@ -17,9 +17,9 @@ type AuthDiagnostic = {
 } | null;
 
 type AuthErrorLike = {
-  code?: string;
+  code?: string | null;
   message: string;
-  status?: number;
+  status?: number | null;
 };
 
 function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
@@ -203,7 +203,7 @@ function Login() {
       });
 
       if (error) {
-        const details = getAuthErrorDetails(error);
+        const details = getAuthErrorDetails(error as AuthErrorLike);
         setMessage(details.userMessage);
         setAuthDiagnostic(details.diagnostic);
         setCanResend(details.canResend);

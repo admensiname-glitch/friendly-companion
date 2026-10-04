@@ -133,7 +133,7 @@ function DisciplineDetailPage(){
           const {data:resolvedData,error:resolvedError}=await supabase
             .from("disciplines")
             .select("id,name")
-            .eq("id",aliasData[0].discipline_id)
+            .eq("id",aliasData[0]!.discipline_id)
             .eq("published",true)
             .maybeSingle();
 

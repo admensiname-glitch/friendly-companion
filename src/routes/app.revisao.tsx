@@ -400,6 +400,8 @@ function ReviewPage() {
           <div className="mt-4 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
             {grouped.map((topicItems) => {
               const first = topicItems[0];
+              if (!first) return null;
+
 
               return (
                 <article

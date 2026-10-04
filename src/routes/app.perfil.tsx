@@ -139,7 +139,7 @@ function ProfilePage() {
 
     const user = sessionData.session.user;
     const fullName =
-      user.user_metadata?.full_name || user.user_metadata?.name;
+      user.user_metadata?.["full_name"] || user.user_metadata?.["name"];
     setName(fullName?.split(" ")[0] || "Aluno");
     setEmail(user.email || "");
 

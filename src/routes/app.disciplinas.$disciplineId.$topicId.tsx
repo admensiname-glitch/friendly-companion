@@ -141,13 +141,13 @@ class TopicRuntimeBoundary extends Component<
   { children: React.ReactNode; topicId: string },
   { hasError: boolean }
 > {
-  state = { hasError: false };
+  override state = { hasError: false };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown) {
+  override componentDidCatch(error: unknown) {
     console.error("[Ensina-me] Erro de renderização na página de tópico:", error);
     reportLovableError(error, {
       boundary: "topic_runtime_boundary",
@@ -155,7 +155,7 @@ class TopicRuntimeBoundary extends Component<
     });
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div
@@ -722,8 +722,8 @@ function renderTutorContent(text: string): React.ReactNode[] {
       const match = trimmed.match(/^(\d+)\.\s(.+)$/);
       return match ? (
         <div key={index} className="flex gap-2">
-          <span className="font-semibold text-[#0242D7]">{match[1]}.</span>
-          <span>{renderTutorInline(match[2])}</span>
+          <span className="font-semibold text-[#0242D7]">{match[1] ?? ""}.</span>
+          <span>{renderTutorInline(match[2] ?? "")}</span>
         </div>
       ) : null;
     }
@@ -1767,7 +1767,7 @@ function ExerciseSection({
 
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
 
     setQuestionOrder(shuffled);
@@ -1796,7 +1796,7 @@ function ExerciseSection({
         const ids = question.options.map((option) => option.id);
         for (let i = ids.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [ids[i], ids[j]] = [ids[j], ids[i]];
+          [ids[i], ids[j]] = [ids[j]!, ids[i]!];
         }
 
         next[question.id] = ids;
@@ -1863,7 +1863,7 @@ function ExerciseSection({
 
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
 
     setQuestionOrder(shuffled);
@@ -1877,7 +1877,7 @@ function ExerciseSection({
         const options = question.options?.map((option) => option.id) ?? [];
         for (let i = options.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [options[i], options[j]] = [options[j], options[i]];
+          [options[i], options[j]] = [options[j]!, options[i]!];
         }
         if (options.length > 0) next[question.id] = options;
       }
@@ -2079,9 +2079,55 @@ function shuffle<T>(items: T[]): T[] {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1));
-    [next[index], next[randomIndex]] = [next[randomIndex], next[index]];
+    [next[index], next[randomIndex]] = [next[randomIndex]!, next[index]!];
   }
   return next;
+}
+
+function MobileLearningFlow({
+  contentDone,
+  practiceDone,
+  reviewNeeded,
+  evaluationCompleted,
+}: {
+  contentDone: boolean;
+  practiceDone: boolean;
+  reviewNeeded: boolean;
+  evaluationCompleted: boolean;
+}) {
+  const steps = [
+    { label: "Estudar", done: contentDone },
+    { label: "Praticar", done: practiceDone },
+    { label: "Revisar", done: !reviewNeeded },
+    { label: "Avaliação", done: evaluationCompleted },
+  ];
+  const completedCount = steps.filter((step) => step.done).length;
+
+  return (
+    <div className="rounded-[20px] border border-[#DCE7F8] bg-white p-4 shadow-sm dark:border-[#263A55] dark:bg-[#142238]" aria-label="Progresso neste tópico">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
+        <span className="text-[11px] font-extrabold text-[#718096] dark:text-[#9EADBD]">{completedCount} de {steps.length}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {steps.map((step) => (
+          <div key={step.label} className="flex flex-col items-center gap-1.5">
+            <span
+              className={
+                step.done
+                  ? "flex h-8 w-8 items-center justify-center rounded-full bg-[#0242D7] text-white dark:bg-[#0B3FA8]"
+                  : "flex h-8 w-8 items-center justify-center rounded-full border border-[#DCE7F8] text-[#9AA7B8] dark:border-[#31445F] dark:text-[#6B7A8F]"
+              }
+              aria-hidden="true"
+            >
+              {step.done ? "✓" : "•"}
+            </span>
+            <span className="text-[10px] font-bold text-[#536174] dark:text-[#9EADBD]">{step.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function prepareQuestionPresentation(
@@ -2679,7 +2725,7 @@ function TopicDetailPage() {
         const { data: officialDiscData, error: officialError } = await supabase
           .from("disciplines")
           .select("id, name")
-          .eq("id", aliasData[0].discipline_id)
+          .eq("id", aliasData[0]!.discipline_id)
           .eq("published", true)
           .maybeSingle();
 
@@ -2811,10 +2857,10 @@ function TopicDetailPage() {
             sourcesMap[src.id] = src as Source;
           });
 
-          const enriched = rawCitations.map((cit) => ({
-            ...cit,
-            source: sourcesMap[cit.source_id],
-          }));
+          const enriched: MaterialCitation[] = rawCitations.map((cit) => {
+            const source = sourcesMap[cit.source_id];
+            return source ? { ...cit, source } : { ...cit };
+          });
 
           setCitations(enriched);
         }
@@ -2864,8 +2910,7 @@ function TopicDetailPage() {
             .order("position", { ascending: true });
 
           for (const opt of (evalOptionsData ?? []) as ExerciseOption[]) {
-            if (!evalOptionsByQuestion[opt.question_id]) evalOptionsByQuestion[opt.question_id] = [];
-            evalOptionsByQuestion[opt.question_id].push(opt);
+            (evalOptionsByQuestion[opt.question_id] ??= []).push(opt);
           }
         }
 
@@ -2903,10 +2948,7 @@ function TopicDetailPage() {
         // Group questions by exercise
         const questionsByExercise: Record<string, ExerciseQuestion[]> = {};
         for (const q of questions) {
-          if (!questionsByExercise[q.exercise_id]) {
-            questionsByExercise[q.exercise_id] = [];
-          }
-          questionsByExercise[q.exercise_id].push(q);
+          (questionsByExercise[q.exercise_id] ??= []).push(q);
         }
 
         // Fetch options for questions with multiple choice
@@ -2924,10 +2966,7 @@ function TopicDetailPage() {
 
           const allOptions = (optionsData ?? []) as ExerciseOption[];
           for (const opt of allOptions) {
-            if (!optionsByQuestion[opt.question_id]) {
-              optionsByQuestion[opt.question_id] = [];
-            }
-            optionsByQuestion[opt.question_id].push(opt);
+            (optionsByQuestion[opt.question_id] ??= []).push(opt);
           }
         }
 
@@ -3193,7 +3232,7 @@ function TopicDetailPage() {
                       index={activeSectionIndex}
                       total={sections.length}
                       completed={completedSectionIds.includes(sections[activeSectionIndex].id)}
-                      onComplete={() => void markSectionComplete(sections[activeSectionIndex].id)}
+                      onComplete={() => void markSectionComplete(sections[activeSectionIndex]!.id)}
                       onPrevious={() =>
                         setActiveSectionIndex((current) => Math.max(0, current - 1))
                       }
