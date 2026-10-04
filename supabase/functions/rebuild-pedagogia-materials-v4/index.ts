@@ -682,7 +682,9 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     // O token administrativo trafega apenas por header — nunca em query string,
     // para não vazar em logs, histórico de navegador ou caches de proxy.
-    const providedToken = req.headers.get("x-rebuild-token") ?? "";
+    // Preferred: "Authorization: Bearer <token>"; x-rebuild-token kept for the internal runner.
+    const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const headerToken = req.headers.get("x-rebuild-token") ?? "";
 
     const authRow = await admin
       .from("internal_content_rebuild_auth")
@@ -690,7 +692,15 @@ Deno.serve(async (req) => {
       .eq("id", 1)
       .maybeSingle();
 
-    if (!authRow.data || providedToken !== authRow.data.token) {
+    const expected = authRow.data?.token ?? "";
+    const safeEqual = (a: string, b: string) => {
+      if (!a || !b || a.length !== b.length) return false;
+      let diff = 0;
+      for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return diff === 0;
+    };
+
+    if (!expected || !(safeEqual(headerToken, expected) || safeEqual(bearer, expected))) {
       return new Response(JSON.stringify({ error: "not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
