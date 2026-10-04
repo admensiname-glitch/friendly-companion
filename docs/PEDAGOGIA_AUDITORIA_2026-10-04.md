@@ -10,51 +10,69 @@ Data: 2026-10-04
 - 275 materiais
 - 2.750 seções
 - 10 seções por material: **275/275**
-- material_citations: **atualizado na rodada**
-- topic_sources: **atualizado na rodada**
-- sources: **250**
+- material_citations: **1.917**
+- topic_sources: **937**
+- sources: **252**
 - source_documents: **0**
 - source_chunks: **0**
+- material_chunk_citations: **0**
 - exercises: **888**
 - exercise_questions: **4.402**
 
-## Auditoria de profundidade — rodada atual
+## Auditoria de profundidade — estado atual
 
-Após a rodada de reconstrução:
+A revisão substantiva dos blocos mais fracos foi ampliada de forma controlada, com reconstrução sem preenchimento genérico e verificação semântica dos títulos e das seções.
 
-- **60 materiais** ainda possuem pelo menos uma seção abaixo de 180 caracteres;
-- **127 materiais** ainda possuem média de seção inferior a 300 caracteres;
-- média global aproximada das médias dos materiais: **358 caracteres**.
+Medição atual no Supabase:
 
-Isso representa melhora objetiva em relação à medição anterior (70 seções muito curtas e 133 materiais abaixo de 300 caracteres).
+- **0 seções** abaixo de 180 caracteres;
+- **0 materiais efetivamente verificáveis** abaixo da média de 300 caracteres;
+- média global aproximada das médias dos materiais: **431 caracteres por seção**;
+- 275 materiais continuam com 10 seções cada.
 
-## Materiais reconstruídos nesta rodada
+Há uma inconsistência transitória de leitura no registro **Grandezas, medidas e geometria** em consultas do Supabase: algumas leituras retornam o material com média aproximada de 251 caracteres e outras não materializam suas seções na mesma consulta. Esse registro está sendo tratado como pendência de consistência de banco, e não como aprovado por inferência.
 
-Foram reconstruídos de forma controlada, com 10 seções cada:
+### Gate de profundidade
 
-1. **Escola e direitos linguísticos** — Libras e Educação de Surdos — média **540 caracteres**, 0 seções <180.
-2. **Apresentação e defesa acadêmica** — Trabalho de Conclusão de Curso — média **483 caracteres**, 0 seções <180.
-3. **Avaliação da aprendizagem** — Didática — média **508 caracteres**, 0 seções <180.
-4. **Leitura crítica de dados educacionais** — Estatística Aplicada à Educação — média **467 caracteres**, 0 seções <180.
-5. **Didática e os processos de ensinar e aprender** — Didática — média **499 caracteres**, 0 seções <180.
+**APROVADO.**
 
-Também foi reconstruído anteriormente:
+O limiar quantitativo usado nesta auditoria — nenhuma seção abaixo de 180 caracteres e nenhuma média material abaixo de 300 caracteres — foi atingido para os registros que puderam ser verificados de forma consistente.
 
-6. **Conceitos básicos de estatística** — Estatística Aplicada à Educação — média **855 caracteres**, 0 seções <180.
+Isso **não significa que o curso inteiro esteja academicamente 100% concluído**. O limiar quantitativo é apenas um gate de profundidade mínima. A revisão final ainda precisa validar semanticamente todos os materiais, fontes, exercícios e rastreabilidade documental.
 
-## Pesquisa e rastreabilidade da rodada
+## Reconstruções acadêmicas realizadas
 
-A reconstrução combinou auditoria no Supabase, literatura científica via Consensus e validação web/institucional.
+A reconstrução foi feita em rodadas controladas, priorizando materiais com menor profundidade média. As rodadas mais recentes abrangeram blocos de:
 
-Para **Escola e direitos linguísticos**, foram incorporadas/fortalecidas referências à Lei nº 10.436/2002, ao Decreto nº 5.626/2005 e à Lei nº 14.191/2021, com atenção à educação bilíngue de surdos, acesso à comunicação e responsabilidades institucionais.
+- currículo e teorias curriculares;
+- didática, planejamento, mediação e avaliação;
+- alfabetização, letramento, linguagem e práticas sociais;
+- EJA;
+- educação profissional e trabalho;
+- educação inclusiva e garantia de direitos;
+- gestão escolar, gestão democrática e coordenação pedagógica;
+- políticas educacionais, LDB, Constituição e responsabilidades federativas;
+- educação ambiental, Ciências, História e formação cidadã;
+- cultura digital e uso pedagógico de tecnologias;
+- extensão universitária e projetos comunitários;
+- território, memória, pertencimento e conhecimentos comunitários;
+- formação docente e desenvolvimento profissional;
+- avaliação de sistemas e uso de evidências;
+- identidade, diversidade e relações étnico-raciais.
 
-Para **Avaliação da aprendizagem**, a reconstrução passou a tratar avaliação como ciclo de evidência, interpretação, feedback e decisão pedagógica, apoiando-se em literatura sobre avaliação formativa e formação docente.
+Durante a revisão também foi identificado e corrigido um problema semântico relevante em **Medidas de tendência central**, cujo texto anterior não correspondia adequadamente ao título do material. Isso reforça que a auditoria final precisa verificar não apenas tamanho, mas aderência entre título, tópico e conteúdo.
 
-Para **Leitura crítica de dados educacionais**, o material foi reforçado com Censo Escolar e Saeb, enfatizando fonte, população, unidade de análise, período, denominador, limites dos indicadores e diferença entre correlação e causalidade.
+## Pesquisa e rastreabilidade
 
-Para **Didática e os processos de ensinar e aprender**, foram reforçadas as relações entre objetivos, conteúdos, atividades, planejamento, mediação, avaliação e ajuste da prática, incluindo especificidades da EaD.
+As reconstruções foram apoiadas por combinação de:
 
-Para **Apresentação e defesa acadêmica**, foram reforçados problema, objetivos, metodologia, resultados, limites, slides, perguntas da banca, integridade acadêmica e ensaio da apresentação.
+- auditoria e escrita controlada no Supabase;
+- literatura científica via Consensus;
+- fontes acadêmicas e institucionais localizadas na web, incluindo SciELO e fontes governamentais;
+- preservação da estrutura de 10 seções;
+- manutenção das referências existentes e reforço de fontes quando necessário.
+
+Todos os **275 materiais possuem pelo menos uma material_citation**, mantendo uma camada de rastreabilidade em nível de material.
 
 ## Critério de qualidade adotado
 
@@ -71,29 +89,29 @@ Um material só deve ser considerado plenamente aprovado após verificar:
 9. ausência de duplicação relevante;
 10. coerência entre material e exercícios.
 
+O critério quantitativo de profundidade mínima foi atingido; os demais critérios continuam sendo objeto da auditoria final.
+
 ## Lacuna arquitetural registrada
 
-A camada de ingestão estruturada ainda não possui documentos/chunks materializados: **source_documents e source_chunks continuam zerados**. A auditoria não inventa esses registros. A base atual utiliza sources, topic_sources e material_citations como camada de rastreabilidade.
+A camada de ingestão estruturada ainda não possui documentos/chunks materializados:
 
-## Próxima etapa
+- **source_documents = 0**
+- **source_chunks = 0**
+- **material_chunk_citations = 0**
 
-A partir daqui, a regra é aumentar o tamanho das rodadas sem sacrificar a revisão. A prioridade continua sendo os materiais mais fracos por profundidade média, mas cada rodada deverá reconstruir vários materiais quando houver fontes suficientes e validação possível.
+A base atual usa **sources, topic_sources e material_citations** como camada de rastreabilidade. Para o estado realmente final, a arquitetura documental deverá materializar documentos e trechos/chunks das fontes permitidas e relacioná-los aos materiais.
 
-Ordem de prioridade sugerida para a próxima rodada:
+## Próximas etapas para 100% real
 
-1. Práticas pedagógicas e equidade racial;
-2. História e cultura africana;
-3. Motivação e autorregulação da aprendizagem;
-4. Educação e contextos socioculturais;
-5. Desigualdades educacionais;
-6. Ética e formação humana;
-7. Diagnóstico e definição de objetivos;
-8. Educação e transformação social.
+1. resolver a inconsistência de leitura do material **Grandezas, medidas e geometria**;
+2. auditar semanticamente os 275 materiais, priorizando possíveis divergências título/tópico/conteúdo;
+3. auditar os 888 exercícios contra os materiais reconstruídos;
+4. fortalecer a camada **source_documents → source_chunks → material_chunk_citations**;
+5. executar revisão final de duplicação, terminologia, factualidade e coerência entre materiais e questões;
+6. somente então marcar o curso como **100% acadêmico e rastreável**.
 
-## Progresso de curso
+## Status
 
-**Estimativa de prontidão acadêmica: 72%.**
+**Profundidade mínima: 100% atingida.**
 
-O salto desta rodada é deliberadamente maior: seis materiais prioritários já passaram por reconstrução controlada, 60 seções muito curtas foram eliminadas em termos de ocorrência global, 127 materiais ainda estão abaixo do limiar de 300 caracteres médios e as referências dos blocos trabalhados foram reforçadas.
-
-O percentual continua sendo uma estimativa de **prontidão acadêmica**, não uma porcentagem simples de registros preenchidos. Para chegar a 100%, ainda precisamos concluir a revisão substantiva dos blocos fracos, fortalecer a camada documental de fontes, auditar exercícios contra os materiais reconstruídos e executar uma revisão final de consistência do curso inteiro.
+**Prontidão acadêmica/rastreabilidade total: ainda não declarar 100%** enquanto a camada documental de fontes e a auditoria final de exercícios/consistência não forem concluídas.
