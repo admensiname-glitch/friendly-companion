@@ -2084,6 +2084,52 @@ function shuffle<T>(items: T[]): T[] {
   return next;
 }
 
+function MobileLearningFlow({
+  contentDone,
+  practiceDone,
+  reviewNeeded,
+  evaluationCompleted,
+}: {
+  contentDone: boolean;
+  practiceDone: boolean;
+  reviewNeeded: boolean;
+  evaluationCompleted: boolean;
+}) {
+  const steps = [
+    { label: "Estudar", done: contentDone },
+    { label: "Praticar", done: practiceDone },
+    { label: "Revisar", done: !reviewNeeded },
+    { label: "Avaliação", done: evaluationCompleted },
+  ];
+  const completedCount = steps.filter((step) => step.done).length;
+
+  return (
+    <div className="rounded-[20px] border border-[#DCE7F8] bg-white p-4 shadow-sm dark:border-[#263A55] dark:bg-[#142238]" aria-label="Progresso neste tópico">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
+        <span className="text-[11px] font-extrabold text-[#718096] dark:text-[#9EADBD]">{completedCount} de {steps.length}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {steps.map((step) => (
+          <div key={step.label} className="flex flex-col items-center gap-1.5">
+            <span
+              className={
+                step.done
+                  ? "flex h-8 w-8 items-center justify-center rounded-full bg-[#0242D7] text-white dark:bg-[#0B3FA8]"
+                  : "flex h-8 w-8 items-center justify-center rounded-full border border-[#DCE7F8] text-[#9AA7B8] dark:border-[#31445F] dark:text-[#6B7A8F]"
+              }
+              aria-hidden="true"
+            >
+              {step.done ? "✓" : "•"}
+            </span>
+            <span className="text-[10px] font-bold text-[#536174] dark:text-[#9EADBD]">{step.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function prepareQuestionPresentation(
   sourceQuestions: FormalEvaluationQuestion[],
 ): FormalEvaluationQuestion[] {
