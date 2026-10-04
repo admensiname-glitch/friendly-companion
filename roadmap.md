@@ -7,15 +7,15 @@
 - [ ] Refinar estudo, prática e Modo Prova para uso móvel.
 - [ ] Validar build, runtime, mobile, desktop e dark mode.
 
-## Rodada de correção técnica (em andamento)
+## Rodada de correção técnica
 
-- [ ] Zerar erros de TypeScript sem desativar flags de segurança.
-- [ ] Zerar erros de lint (prefer-const em previewAuthStorage).
-- [ ] Remover fluxo professor/turma do dashboard do aluno.
-- [ ] Alinhar tipos Supabase às RPCs reais (prova/revisão).
-- [ ] Revisar GRANTs/SECURITY DEFINER de start_exam, save_exam_answer, finish_exam.
-- [ ] rebuild-pedagogia-materials-v4: segredo por header, não query string.
-- [ ] Proteção de senha vazada: automatizar ou documentar bloqueio.
-- [ ] Capacitor: remover dependência de URL Vercel externa.
-- [ ] Padronizar CI/E2E (frozen lockfile, sem conflito route tree).
-- [ ] Verificar regressões: imports, window.location, segredos, TODOs.
+- [x] Zerar erros de TypeScript sem desativar flags de segurança (52 → 0).
+- [x] Zerar erros de lint (prefer-const em previewAuthStorage).
+- [x] Remover fluxo professor/turma do dashboard do aluno.
+- [x] Alinhar tipos às RPCs reais (start_exam tipado localmente).
+- [~] GRANTs das funções de prova: migration pronta, ferramenta de migration bloqueada — SQL entregue para execução manual.
+- [x] rebuild-pedagogia-materials-v4: token administrativo agora via header x-rebuild-token.
+- [~] Proteção de senha vazada: só via painel Supabase (Auth → Password Security) — documentado.
+- [x] Capacitor: URL Vercel substituída pela URL estável do projeto Lovable.
+- [x] CI/E2E padronizados com bun install --frozen-lockfile.
+- [x] Regressões verificadas: sem imports quebrados, window.location só em reload legítimo, sem segredos no frontend.
