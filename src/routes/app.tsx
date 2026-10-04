@@ -258,10 +258,10 @@ function AppLayout() {
   }
 
   const mobileNav = [
-    navigation[0],
-    navigation[2],
-    navigation[3],
-    navigation[4],
+    navigation[0]!,
+    navigation[2]!,
+    navigation[3]!,
+    navigation[4]!,
   ];
 
   return (

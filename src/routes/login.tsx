@@ -17,9 +17,9 @@ type AuthDiagnostic = {
 } | null;
 
 type AuthErrorLike = {
-  code?: string;
+  code?: string | null;
   message: string;
-  status?: number;
+  status?: number | null;
 };
 
 function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
