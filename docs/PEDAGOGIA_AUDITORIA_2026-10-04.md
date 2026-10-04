@@ -27,22 +27,44 @@ Medição atual no Supabase:
 
 - **0 seções** abaixo de 180 caracteres;
 - **0 materiais efetivamente verificáveis** abaixo da média de 300 caracteres;
-- média global aproximada das médias dos materiais: **431 caracteres por seção**;
+- média global aproximada das médias dos materiais: **429 caracteres por seção**;
 - 275 materiais continuam com 10 seções cada.
 
-Há uma inconsistência transitória de leitura no registro **Grandezas, medidas e geometria** em consultas do Supabase: algumas leituras retornam o material com média aproximada de 251 caracteres e outras não materializam suas seções na mesma consulta. Esse registro está sendo tratado como pendência de consistência de banco, e não como aprovado por inferência.
+Há uma inconsistência de leitura no registro **Grandezas, medidas e geometria** em consultas do Supabase. O material aparece em algumas agregações com média antiga, enquanto consultas por texto do identificador apresentam comportamento inconsistente. Esse registro permanece como pendência técnica de consistência de banco e não será considerado aprovado por inferência.
 
 ### Gate de profundidade
 
-**APROVADO.**
+**APROVADO para os registros verificáveis.**
 
 O limiar quantitativo usado nesta auditoria — nenhuma seção abaixo de 180 caracteres e nenhuma média material abaixo de 300 caracteres — foi atingido para os registros que puderam ser verificados de forma consistente.
 
-Isso **não significa que o curso inteiro esteja academicamente 100% concluído**. O limiar quantitativo é apenas um gate de profundidade mínima. A revisão final ainda precisa validar semanticamente todos os materiais, fontes, exercícios e rastreabilidade documental.
+Isso **não significa que o curso inteiro esteja academicamente 100% concluído**. O limiar quantitativo é apenas um gate de profundidade mínima.
+
+## Auditoria semântica — correções críticas
+
+Durante a revisão por conteúdo, foi identificado um problema mais importante que tamanho: alguns materiais continham blocos tematicamente incompatíveis com seus próprios títulos.
+
+Foram reconstruídos integralmente os materiais afetados por um bloco contaminado sobre **Estudos Culturais**, incluindo:
+
+- Abordagens qualitativas;
+- Abordagens quantitativas;
+- Análise, ética e comunicação de resultados;
+- Conceitos e público da Educação Especial;
+- Língua, linguagem e Libras;
+- Métodos e técnicas de pesquisa;
+- Pedagogias e práticas educativas.
+
+Também foi identificado e corrigido um bloco incompatível relacionado a **educação em saúde/PBL** em materiais de outros temas, incluindo acompanhamento da aprendizagem, conceitos e sujeitos do campo, democracia e participação, tema e problema de investigação e problemas e perguntas de pesquisa.
+
+Após a correção, buscas de controle por esses termos não retornaram ocorrências incompatíveis com os respectivos temas.
+
+Também foi corrigido um problema semântico relevante em **Medidas de tendência central**, cujo texto anterior não correspondia adequadamente ao título do material.
+
+Essas correções mostram que a auditoria final precisa verificar **aderência semântica**, não apenas tamanho.
 
 ## Reconstruções acadêmicas realizadas
 
-A reconstrução foi feita em rodadas controladas, priorizando materiais com menor profundidade média. As rodadas mais recentes abrangeram blocos de:
+A reconstrução foi feita em rodadas controladas, priorizando materiais mais fracos e blocos com sinais de conteúdo superficial ou contaminado. As rodadas abrangeram:
 
 - currículo e teorias curriculares;
 - didática, planejamento, mediação e avaliação;
@@ -58,9 +80,10 @@ A reconstrução foi feita em rodadas controladas, priorizando materiais com men
 - território, memória, pertencimento e conhecimentos comunitários;
 - formação docente e desenvolvimento profissional;
 - avaliação de sistemas e uso de evidências;
-- identidade, diversidade e relações étnico-raciais.
-
-Durante a revisão também foi identificado e corrigido um problema semântico relevante em **Medidas de tendência central**, cujo texto anterior não correspondia adequadamente ao título do material. Isso reforça que a auditoria final precisa verificar não apenas tamanho, mas aderência entre título, tópico e conteúdo.
+- identidade, diversidade e relações étnico-raciais;
+- pesquisa qualitativa, quantitativa, métodos, análise e ética;
+- educação do campo e práticas contextualizadas;
+- Libras e educação bilíngue de surdos.
 
 ## Pesquisa e rastreabilidade
 
@@ -89,7 +112,7 @@ Um material só deve ser considerado plenamente aprovado após verificar:
 9. ausência de duplicação relevante;
 10. coerência entre material e exercícios.
 
-O critério quantitativo de profundidade mínima foi atingido; os demais critérios continuam sendo objeto da auditoria final.
+O critério quantitativo de profundidade mínima foi atingido para os registros verificáveis. A auditoria semântica já eliminou alguns casos críticos de incompatibilidade temática, mas a revisão final dos 275 materiais ainda é necessária antes do selo definitivo.
 
 ## Lacuna arquitetural registrada
 
@@ -104,7 +127,7 @@ A base atual usa **sources, topic_sources e material_citations** como camada de 
 ## Próximas etapas para 100% real
 
 1. resolver a inconsistência de leitura do material **Grandezas, medidas e geometria**;
-2. auditar semanticamente os 275 materiais, priorizando possíveis divergências título/tópico/conteúdo;
+2. continuar a auditoria semântica dos 275 materiais por famílias de termos e coerência título → tópico → conteúdo;
 3. auditar os 888 exercícios contra os materiais reconstruídos;
 4. fortalecer a camada **source_documents → source_chunks → material_chunk_citations**;
 5. executar revisão final de duplicação, terminologia, factualidade e coerência entre materiais e questões;
@@ -112,6 +135,8 @@ A base atual usa **sources, topic_sources e material_citations** como camada de 
 
 ## Status
 
-**Profundidade mínima: 100% atingida.**
+**Profundidade mínima: atingida.**
 
-**Prontidão acadêmica/rastreabilidade total: ainda não declarar 100%** enquanto a camada documental de fontes e a auditoria final de exercícios/consistência não forem concluídas.
+**Qualidade semântica: em auditoria final.**
+
+**Prontidão acadêmica/rastreabilidade total: ainda não declarar 100%** enquanto a auditoria semântica completa, os exercícios e a camada documental de fontes não forem concluídos.
