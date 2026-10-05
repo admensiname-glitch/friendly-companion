@@ -1503,3 +1503,269 @@
 @media (max-width: 639px) and (prefers-reduced-motion: reduce) {
   .app-route-stage { animation: none !important; transform: none !important; }
 }
+
+
+/* Desktop readability and navigation hierarchy — 2026-10 */
+@media (min-width: 1024px) {
+  .app-shell {
+    --desktop-sidebar-blue: #0242D7;
+    --desktop-sidebar-blue-dark: #0038B8;
+  }
+
+  /* Branded desktop navigation rail. Mobile is intentionally untouched. */
+  .app-desktop-sidebar {
+    width: 280px;
+    border-right: 0;
+    border-color: transparent;
+    background: linear-gradient(180deg, var(--desktop-sidebar-blue) 0%, var(--desktop-sidebar-blue-dark) 100%);
+    box-shadow: 12px 0 34px rgba(2, 66, 215, .16);
+    color: #FFFFFF;
+  }
+
+  .dark .app-desktop-sidebar {
+    border-color: transparent;
+    background: linear-gradient(180deg, #0139B8 0%, #002D91 100%);
+  }
+
+  .app-desktop-sidebar > div:first-child {
+    height: 96px;
+    padding-inline: 28px;
+  }
+
+  .app-desktop-sidebar > div:nth-child(2) {
+    padding-inline: 18px;
+    padding-top: 20px;
+  }
+
+  .app-desktop-sidebar > div:nth-child(2) > p {
+    padding-inline: 14px;
+    color: rgba(255,255,255,.72) !important;
+    font-size: 12px !important;
+    letter-spacing: .16em;
+  }
+
+  .app-desktop-sidebar nav {
+    margin-top: 10px;
+    gap: 7px;
+  }
+
+  .app-desktop-sidebar .app-sidebar-item {
+    min-height: 56px;
+    gap: 14px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    padding-inline: 14px;
+    color: rgba(255,255,255,.90);
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .app-desktop-sidebar .app-sidebar-item:hover {
+    background: rgba(255,255,255,.14);
+    color: #FFFFFF;
+  }
+
+  .app-desktop-sidebar .app-sidebar-item-active {
+    background: rgba(255,255,255,.98);
+    color: #0242D7;
+    box-shadow: 0 8px 22px rgba(0, 34, 120, .18);
+  }
+
+  .dark .app-desktop-sidebar .app-sidebar-item {
+    color: rgba(255,255,255,.92);
+  }
+
+  .dark .app-desktop-sidebar .app-sidebar-item:hover {
+    background: rgba(255,255,255,.14);
+    color: #FFFFFF;
+  }
+
+  .dark .app-desktop-sidebar .app-sidebar-item-active {
+    background: #FFFFFF;
+    color: #0242D7;
+    box-shadow: 0 8px 22px rgba(0, 20, 80, .24);
+  }
+
+  .app-desktop-sidebar .app-nav-icon {
+    height: 40px;
+    width: 40px;
+    border-radius: 12px;
+    color: rgba(255,255,255,.84);
+  }
+
+  .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon {
+    background: #EAF1FC;
+    color: #0242D7;
+    box-shadow: none;
+  }
+
+  .app-desktop-sidebar .app-sidebar-profile {
+    gap: 10px;
+    border-color: rgba(255,255,255,.18);
+    border-radius: 17px;
+    padding: 11px;
+    color: #FFFFFF;
+    background: rgba(0, 30, 110, .24);
+  }
+
+  .dark .app-desktop-sidebar .app-sidebar-profile {
+    border-color: rgba(255,255,255,.18);
+    color: #FFFFFF;
+    background: rgba(0, 20, 80, .28);
+  }
+
+  .app-desktop-sidebar .app-sidebar-profile .text-sm {
+    font-size: 14px !important;
+  }
+
+  .app-desktop-sidebar .app-sidebar-profile .text-xs {
+    font-size: 12px !important;
+  }
+
+  .app-desktop-sidebar .app-icon-button {
+    border-color: rgba(255,255,255,.20);
+    color: #FFFFFF;
+    background: rgba(255,255,255,.10);
+  }
+
+  .app-desktop-sidebar .app-icon-button:hover {
+    border-color: rgba(255,255,255,.30);
+    color: #FFFFFF;
+    background: rgba(255,255,255,.18);
+  }
+
+  /* Larger desktop brand. */
+  .app-desktop-sidebar .app-brand-mark,
+  .app-desktop-sidebar a > span {
+    font-size: inherit;
+  }
+
+  .app-desktop-sidebar .inline-flex.items-center {
+    gap: 12px;
+  }
+
+  .app-desktop-sidebar .inline-flex.items-center > svg {
+    height: 40px !important;
+    width: 50px !important;
+  }
+
+  .app-desktop-sidebar .inline-flex.items-center > span {
+    font-size: 28px !important;
+    line-height: 1 !important;
+  }
+
+  /* Desktop header controls and supporting copy. */
+  .app-desktop-header .mx-auto {
+    height: 82px;
+    padding-inline: 34px;
+  }
+
+  .app-desktop-header .text-xs {
+    font-size: 14px !important;
+  }
+
+  .app-desktop-header .text-sm {
+    font-size: 16px !important;
+  }
+
+  .app-desktop-header .app-top-action {
+    height: 48px;
+    min-width: 48px;
+    border-radius: 14px;
+    padding-inline: 15px;
+    font-size: 15px;
+  }
+
+  .app-desktop-header .app-top-action svg {
+    height: 19px !important;
+    width: 19px !important;
+  }
+
+  .app-desktop-header .app-primary-button {
+    min-height: 48px;
+    padding-inline: 18px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .app-desktop-header .app-primary-button svg {
+    height: 19px !important;
+    width: 19px !important;
+  }
+
+  /* Main desktop study area: raise the base scale and common Tailwind text sizes. */
+  .app-content {
+    min-height: calc(100dvh - 82px);
+    padding-inline: 34px;
+    padding-top: 34px;
+  }
+
+  .app-content .text-xs {
+    font-size: 14px !important;
+  }
+
+  .app-content .text-sm {
+    font-size: 16px !important;
+  }
+
+  .app-content .text-base {
+    font-size: 18px !important;
+  }
+
+  .app-content .text-lg {
+    font-size: 21px !important;
+  }
+
+  .app-content .text-xl {
+    font-size: 25px !important;
+  }
+
+  .app-content .text-2xl {
+    font-size: 30px !important;
+  }
+
+  .app-content .text-3xl {
+    font-size: 36px !important;
+  }
+
+  .app-content h1 {
+    line-height: 1.15;
+  }
+
+  .app-content h2 {
+    line-height: 1.2;
+  }
+
+  /* Common arbitrary small labels used throughout the student desktop UI. */
+  .app-content [class*="text-[10px]"] {
+    font-size: 13px !important;
+  }
+
+  .app-content [class*="text-[11px]"] {
+    font-size: 14px !important;
+  }
+
+  .app-content [class*="text-[12px]"] {
+    font-size: 15px !important;
+  }
+
+  /* Buttons, fields and interactive controls should feel desktop-sized. */
+  .app-content button,
+  .app-content a[role="button"],
+  .app-content input,
+  .app-content select,
+  .app-content textarea {
+    font-size: 16px;
+  }
+
+  .app-content button:not(.app-icon-button),
+  .app-content a[role="button"] {
+    min-height: 48px;
+  }
+
+  .app-content input,
+  .app-content select,
+  .app-content textarea {
+    min-height: 48px;
+  }
+}
