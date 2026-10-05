@@ -1513,6 +1513,11 @@
   }
 
   /* Branded desktop navigation rail. Mobile is intentionally untouched. */
+  .app-desktop-header,
+  .app-shell > main {
+    margin-left: 280px !important;
+  }
+
   .app-desktop-sidebar {
     width: 280px;
     border-right: 0;
