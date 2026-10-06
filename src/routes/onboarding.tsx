@@ -900,6 +900,9 @@ function Onboarding() {
         .map((d) => d.trim())
         .filter(Boolean);
 
+      const trialStartedNow = new Date().toISOString();
+      const trialEndsNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
       const { error } = await supabase
         .from("student_profiles")
         .upsert(
@@ -923,7 +926,7 @@ function Onboarding() {
           { onConflict: "user_id" },
         );
 
-      setStatus(error ? "error" : "saved");
+      if (!error && !trialStartedAt) setTrialStartedAt(trialStartedNow);\n      setStatus(error ? "error" : "saved");
     }, 800);
   }
 
