@@ -39,6 +39,7 @@ function Icon({ name, className = "" }: { name: "book" | "arrow" | "chevron"; cl
         <path d="m13 6 6 6-6 6" />
       </>
     ),
+    chevron: <path d="m7 10 5 5 5-5" />,
   } as const;
 
   return (
