@@ -133,6 +133,12 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* Prevent the browser/document background from flashing gray before the app mounts. */
+html,
+body {
+  background: #FFFFFF;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
