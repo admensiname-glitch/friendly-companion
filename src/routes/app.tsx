@@ -269,7 +269,7 @@ function AppLayout() {
       <aside className="app-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
         <div className="flex h-[82px] items-center px-7">
           <Link to="/app/dashboard" aria-label="Ensina-me, início">
-            <BrandLogo tone="light" />
+            <BrandLogo tone="blue" />
           </Link>
         </div>
 
