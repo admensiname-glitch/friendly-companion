@@ -353,7 +353,7 @@ function AppLayout() {
         </div>
       </header>
 
-      <header className="app-desktop-header sticky top-0 z-30 hidden border-b lg:block lg:ml-[252px]">
+      <header className="app-desktop-header fixed right-0 top-0 z-30 hidden w-[calc(100%-252px)] border-b lg:block">
         <div className="mx-auto flex h-[74px] max-w-[1280px] items-center justify-between px-8">
           <div>
             <p className="text-xs font-semibold text-[#8B97A7] dark:text-[#91A1B2]">Seu espaço de aprendizagem</p>
@@ -423,7 +423,7 @@ function AppLayout() {
         </div>
       )}
 
-      <main className="lg:ml-[252px]">
+      <main className="lg:ml-[252px] lg:pt-[74px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
