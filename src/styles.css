@@ -1554,31 +1554,32 @@
     gap: 8px;
   }
 
-  /* Desktop navigation: white rail + clearly defined blue buttons. */
+  /* Desktop navigation: clean white rail; blue is the interaction state. */
   .app-desktop-sidebar .app-sidebar-item {
     min-height: 54px;
     gap: 12px;
-    border: 0;
-    border-radius: 14px;
+    border: 1px solid transparent;
+    border-radius: 13px;
     padding-inline: 14px;
-    color: #FFFFFF;
-    background: var(--desktop-sidebar-blue);
+    color: #1746A2;
+    background: #FFFFFF;
     font-size: 15px;
-    font-weight: 800;
-    box-shadow: 0 4px 12px rgba(2, 66, 215, .10);
+    font-weight: 750;
+    box-shadow: none;
+    transition: background-color .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease;
   }
 
   .app-desktop-sidebar .app-sidebar-item:hover {
-    background: var(--desktop-sidebar-blue-dark);
+    background: var(--desktop-sidebar-blue);
     color: #FFFFFF;
-    transform: translateY(-1px);
-    box-shadow: 0 7px 16px rgba(2, 66, 215, .15);
+    transform: translateX(2px);
+    box-shadow: 0 6px 16px rgba(2, 66, 215, .16);
   }
 
   .app-desktop-sidebar .app-sidebar-item-active {
-    background: var(--desktop-sidebar-blue-dark);
+    background: var(--desktop-sidebar-blue);
     color: #FFFFFF;
-    box-shadow: 0 7px 18px rgba(2, 66, 215, .18);
+    box-shadow: 0 6px 16px rgba(2, 66, 215, .14);
   }
 
   .app-desktop-sidebar .app-nav-icon,
@@ -1586,14 +1587,15 @@
     height: 36px;
     width: 36px;
     border-radius: 10px;
-    color: #FFFFFF;
-    background: rgba(255,255,255,.13);
+    color: #1746A2;
+    background: #F2F6FF;
     box-shadow: none;
+    transition: background-color .18s ease, color .18s ease;
   }
 
   .app-desktop-sidebar .app-sidebar-item:hover .app-nav-icon,
   .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon {
-    background: rgba(255,255,255,.18);
+    background: rgba(255,255,255,.16);
     color: #FFFFFF;
   }
 
