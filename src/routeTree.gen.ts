@@ -26,7 +26,6 @@ import { Route as AdminFontesRouteImport } from './routes/admin.fontes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
-import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppProvaRouteImport } from './routes/app.prova'
@@ -120,11 +119,6 @@ const AppDesempenhoRoute = AppDesempenhoRouteImport.update({
   path: '/desempenho',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
-  id: '/disciplinas',
-  path: '/disciplinas',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppEstudeAgoraRoute = AppEstudeAgoraRouteImport.update({
   id: '/estude-agora',
   path: '/estude-agora',
@@ -152,9 +146,9 @@ const AppCatalogoDisciplineIdRoute = AppCatalogoDisciplineIdRouteImport.update({
 } as any)
 const AppDisciplinasDisciplineIdRoute =
   AppDisciplinasDisciplineIdRouteImport.update({
-    id: '/$disciplineId',
-    path: '/$disciplineId',
-    getParentRoute: () => AppDisciplinasRoute,
+    id: '/disciplinas/$disciplineId',
+    path: '/disciplinas/$disciplineId',
+    getParentRoute: () => AppRoute,
   } as any)
 const AppDisciplinasDisciplineIdTopicIdRoute =
   AppDisciplinasDisciplineIdTopicIdRouteImport.update({
@@ -181,7 +175,6 @@ export interface FileRoutesByFullPath {
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
-  '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
@@ -208,7 +201,6 @@ export interface FileRoutesByTo {
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
-  '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
@@ -236,7 +228,6 @@ export interface FileRoutesById {
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
-  '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
@@ -265,7 +256,6 @@ export interface FileRouteTypes {
     | '/app/catalogo'
     | '/app/dashboard'
     | '/app/desempenho'
-    | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
     | '/app/prova'
@@ -292,7 +282,6 @@ export interface FileRouteTypes {
     | '/app/catalogo'
     | '/app/dashboard'
     | '/app/desempenho'
-    | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
     | '/app/prova'
@@ -319,7 +308,6 @@ export interface FileRouteTypes {
     | '/app/catalogo'
     | '/app/dashboard'
     | '/app/desempenho'
-    | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/perfil'
     | '/app/prova'
@@ -464,13 +452,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDesempenhoRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/disciplinas': {
-      id: '/app/disciplinas'
-      path: '/disciplinas'
-      fullPath: '/app/disciplinas'
-      preLoaderRoute: typeof AppDisciplinasRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/estude-agora': {
       id: '/app/estude-agora'
       path: '/estude-agora'
@@ -508,10 +489,10 @@ declare module '@tanstack/react-router' {
     }
     '/app/disciplinas/$disciplineId': {
       id: '/app/disciplinas/$disciplineId'
-      path: '/$disciplineId'
+      path: '/disciplinas/$disciplineId'
       fullPath: '/app/disciplinas/$disciplineId'
       preLoaderRoute: typeof AppDisciplinasDisciplineIdRouteImport
-      parentRoute: typeof AppDisciplinasRoute
+      parentRoute: typeof AppRoute
     }
     '/app/disciplinas/$disciplineId/$topicId': {
       id: '/app/disciplinas/$disciplineId/$topicId'
@@ -564,38 +545,26 @@ const AppDisciplinasDisciplineIdRouteWithChildren =
     AppDisciplinasDisciplineIdRouteChildren,
   )
 
-interface AppDisciplinasRouteChildren {
-  AppDisciplinasDisciplineIdRoute: typeof AppDisciplinasDisciplineIdRouteWithChildren
-}
-
-const AppDisciplinasRouteChildren: AppDisciplinasRouteChildren = {
-  AppDisciplinasDisciplineIdRoute: AppDisciplinasDisciplineIdRouteWithChildren,
-}
-
-const AppDisciplinasRouteWithChildren = AppDisciplinasRoute._addFileChildren(
-  AppDisciplinasRouteChildren,
-)
-
 interface AppRouteChildren {
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
-  AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
   AppEstudeAgoraRoute: typeof AppEstudeAgoraRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppProvaRoute: typeof AppProvaRoute
   AppRevisaoRoute: typeof AppRevisaoRoute
+  AppDisciplinasDisciplineIdRoute: typeof AppDisciplinasDisciplineIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
-  AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
   AppEstudeAgoraRoute: AppEstudeAgoraRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppProvaRoute: AppProvaRoute,
   AppRevisaoRoute: AppRevisaoRoute,
+  AppDisciplinasDisciplineIdRoute: AppDisciplinasDisciplineIdRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
