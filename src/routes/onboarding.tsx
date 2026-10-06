@@ -918,15 +918,16 @@ function Onboarding() {
             ...(trialStartedAt
               ? {}
               : {
-                  trial_started_at: new Date().toISOString(),
-                  trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                  trial_started_at: trialStartedNow,
+                  trial_ends_at: trialEndsNow,
                 }),
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id" },
         );
 
-      if (!error && !trialStartedAt) setTrialStartedAt(trialStartedNow);\n      setStatus(error ? "error" : "saved");
+      if (!error && !trialStartedAt) setTrialStartedAt(trialStartedNow);
+      setStatus(error ? "error" : "saved");
     }, 800);
   }
 
