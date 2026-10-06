@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/brand-logo";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -138,10 +139,32 @@ function Index() {
   const [showTrialOffer, setShowTrialOffer] = useState(false);
 
   useEffect(() => {
-    const storageKey = "ensina-me:landing-trial-offer-seen";
-    const hasSeenLanding = window.localStorage.getItem(storageKey) === "1";
-    setShowTrialOffer(!hasSeenLanding);
-    window.localStorage.setItem(storageKey, "1");
+    let cancelled = false;
+
+    const loadTrialStatus = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
+        if (!cancelled) setShowTrialOffer(true);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("student_profiles")
+        .select("trial_started_at")
+        .eq("user_id", sessionData.session.user.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setShowTrialOffer(!profile?.trial_started_at);
+      }
+    };
+
+    void loadTrialStatus();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
