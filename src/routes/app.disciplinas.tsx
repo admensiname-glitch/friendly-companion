@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,7 +24,7 @@ interface CourseGroup {
   disciplines: CourseDiscipline[];
 }
 
-function Icon({ name, className = "" }: { name: "book" | "arrow"; className?: string }) {
+function Icon({ name, className = "" }: { name: "book" | "arrow" | "chevron"; className?: string }) {
   const paths = {
     book: (
       <>
@@ -54,45 +54,6 @@ function Icon({ name, className = "" }: { name: "book" | "arrow"; className?: st
     >
       {paths[name]}
     </svg>
-  );
-}
-
-function DisciplineRow({
-  discipline,
-  index,
-}: {
-  discipline: StudentDiscipline;
-  index: number;
-}) {
-  return (
-    <Link
-      to="/app/disciplinas/$disciplineId"
-      params={{ disciplineId: discipline.id }}
-      className="group grid gap-3 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[46px_minmax(0,1fr)_auto] sm:items-center"
-    >
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F0F5FF] text-[#0242D7] dark:bg-[#1B2638] dark:text-[#7DB0FF]">
-        <Icon name="book" className="h-[18px] w-[18px]" />
-      </span>
-
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-[16px] font-bold text-[#273547] dark:text-[#E0E8F1]">
-            {discipline.discipline_name}
-          </h2>
-          <span className="text-xs text-[#8A96A5] dark:text-[#8293A6]">
-            {discipline.course || "Curso"}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-[#718093] dark:text-[#95A6B8]">
-          Continue seu percurso de aprendizagem.
-        </p>
-      </div>
-
-      <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
-        Entrar
-        <Icon name="arrow" className="h-4 w-4" />
-      </span>
-    </Link>
   );
 }
 
