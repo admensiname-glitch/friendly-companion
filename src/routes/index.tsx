@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/brand-logo";
 
@@ -134,6 +135,15 @@ const journey = [
 ];
 
 function Index() {
+  const [showTrialOffer, setShowTrialOffer] = useState(false);
+
+  useEffect(() => {
+    const storageKey = "ensina-me:landing-trial-offer-seen";
+    const hasSeenLanding = window.localStorage.getItem(storageKey) === "1";
+    setShowTrialOffer(!hasSeenLanding);
+    window.localStorage.setItem(storageKey, "1");
+  }, []);
+
   return (
     <main className="min-h-screen overflow-hidden bg-white text-[#172334]">
       <header className="sticky top-0 z-40 border-b border-[#E6ECF4] bg-white/90 backdrop-blur-xl">
@@ -185,7 +195,7 @@ function Index() {
                 to="/cadastro"
                 className="inline-flex min-h-13 items-center justify-center gap-2 rounded-xl bg-[#0242D7] px-6 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(2,66,215,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0038B8]"
               >
-                Testar por 7 dias grátis
+                {showTrialOffer ? "Testar por 7 dias grátis" : "Começar agora"}
                 <Icon name="arrow" className="h-4 w-4" />
               </Link>
               <Link
@@ -336,29 +346,35 @@ function Index() {
 
       <section className="border-y border-[#DCE6F3] bg-white">
         <div className="mx-auto max-w-[1000px] px-4 py-14 text-center sm:px-6 lg:py-16">
-          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0242D7]">Comece sem compromisso</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#0242D7]">
+            {showTrialOffer ? "Comece sem compromisso" : "Pronto para estudar melhor?"}
+          </p>
           <h2 className="mx-auto mt-2 max-w-2xl text-3xl font-extrabold tracking-[-0.045em] text-[#172334] sm:text-4xl">
-            Sete dias para descobrir se o seu estudo pode ser melhor.
+            {showTrialOffer ? "Sete dias para descobrir se o seu estudo pode ser melhor." : "Dê o próximo passo no seu estudo."}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-[#718093] sm:text-base">
-            Experimente a plataforma, conheça seu fluxo de estudo e veja como conteúdo, prática, feedback e revisão funcionam juntos. Os valores dos planos serão apresentados antes da assinatura.
+            {showTrialOffer
+              ? "Experimente a plataforma, conheça seu fluxo de estudo e veja como conteúdo, prática, feedback e revisão funcionam juntos. Os valores dos planos serão apresentados antes da assinatura."
+              : "Conheça o Ensina-me e veja como conteúdo, prática, feedback e revisão podem trabalhar juntos para deixar seu estudo mais claro."}
           </p>
 
           <Link
             to="/cadastro"
             className="mt-7 inline-flex min-h-13 items-center justify-center gap-2 rounded-xl bg-[#0242D7] px-7 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(2,66,215,0.2)] transition hover:-translate-y-0.5 hover:bg-[#0038B8]"
           >
-            Quero testar por 7 dias
+            {showTrialOffer ? "Quero testar por 7 dias" : "Começar agora"}
             <Icon name="arrow" className="h-4 w-4" />
           </Link>
 
-          <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-bold text-[#8793A0]">
-            <span>7 dias grátis</span>
-            <span>•</span>
-            <span>Plano e valor apresentados antes da cobrança</span>
-            <span>•</span>
-            <span>Cancele quando quiser</span>
-          </div>
+          {showTrialOffer && (
+            <div className="mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-bold text-[#8793A0]">
+              <span>7 dias grátis</span>
+              <span>•</span>
+              <span>Plano e valor apresentados antes da cobrança</span>
+              <span>•</span>
+              <span>Cancele quando quiser</span>
+            </div>
+          )}
         </div>
       </section>
 
