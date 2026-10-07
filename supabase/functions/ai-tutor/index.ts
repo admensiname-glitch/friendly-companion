@@ -431,6 +431,21 @@ async function findPublicDomainImage(queries: string[]): Promise<VisualAid["imag
   return searchWikimediaImage(queries);
 }
 
+
+async function findKnownPublicDomainImage(topicName: string): Promise<VisualAid["image"]> {
+  const normalized = normalizeForComparison(topicName);
+  if (!/(fotossintese|photosynthesis)/.test(normalized)) return null;
+
+  return {
+    enabled: true,
+    url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Process%20of%20Photosynthesis.jpg?width=1200",
+    title: "Process of Photosynthesis",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Process_of_Photosynthesis.jpg",
+    license: "CC0 1.0",
+    attribution: "Ndennis99 · Wikimedia Commons",
+  };
+}
+
 function detectLearningSignals(message: string): string[] {
   const normalized = message
     .toLowerCase()
@@ -1687,12 +1702,14 @@ Deno.serve(async (req: Request) => {
 
     if (tutorResult.visualAid.enabled) {
       const imageQueries = [
-        topic.name + " photosynthesis diagram",
+        topic.name + " diagram",
         topic.name + " process diagram",
         topic.name + " biology diagram",
         topic.name,
       ].map((query) => query.trim()).filter(Boolean);
-      tutorResult.visualAid.image = await findPublicDomainImage(imageQueries);
+      tutorResult.visualAid.image =
+        await findPublicDomainImage(imageQueries) ??
+        await findKnownPublicDomainImage(topic.name);
       if (tutorResult.visualAid.image) {
         tutorResult.visualAid.caption = tutorResult.visualAid.caption
           ? tutorResult.visualAid.caption + " Imagem pública licenciada encontrada pelo Tutor."
