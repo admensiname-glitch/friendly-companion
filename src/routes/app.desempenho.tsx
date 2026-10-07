@@ -58,6 +58,13 @@ function PerformancePage() {
     })();
   }, []);
 
+  const recentTrend = evaluations.length >= 2
+    ? Math.round((Number(evaluations[0].score) - Number(evaluations[evaluations.length - 1].score)) * 10) / 10
+    : null;
+  const domainLabel = summary?.micro_accuracy == null
+    ? "Ainda construindo"
+    : summary.micro_accuracy >= 85 ? "Muito firme" : summary.micro_accuracy >= 70 ? "Em consolidação" : "Precisa de prática";
+
   return (
     <section aria-labelledby="performance-title" className="app-native-screen max-w-4xl">
       <header className="border-b border-[#DCE5F0] pb-7 dark:border-[#2B3A4F]">
@@ -79,12 +86,13 @@ function PerformancePage() {
         <div className="mt-6 h-28 animate-pulse border-y border-[#E4EAF1] dark:border-[#2B3A4F]" />
       ) : (
         <>
-          <div className="mt-6 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-4">
+          <div className="mt-6 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-5">
             {[
               ["Tópicos concluídos", summary?.topics_completed ?? 0],
               ["Média", summary?.average_score == null ? "—" : summary.average_score + "%"],
               ["Melhor resultado", summary?.best_score == null ? "—" : summary.best_score + "%"],
               ["Revisões", summary?.pending_review ?? 0],
+              ["Domínio", domainLabel],
             ].map(([label, value]) => (
               <div
                 key={String(label)}
@@ -122,6 +130,16 @@ function PerformancePage() {
               ) : (
                 <Link to="/app/estude-agora" className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Estudar agora</Link>
               )}
+            </div>
+          </section>
+
+          <section className="mt-8 rounded-[18px] border border-[#DCE5F0] bg-white p-5 dark:border-[#2B3A4F] dark:bg-[#111B2A]" aria-labelledby="evolution-heading">
+            <p className="text-sm font-semibold text-[#0242D7]">Evolução acadêmica</p>
+            <h2 id="evolution-heading" className="mt-1 text-xl font-bold text-[#172334] dark:text-[#E7EDF5]">Seu desempenho conta uma história, não só uma nota.</h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <div><p className="text-xs text-[#7A8796]">Domínio atual</p><p className="mt-1 text-2xl font-black text-[#172334] dark:text-[#E7EDF5]">{domainLabel}</p></div>
+              <div><p className="text-xs text-[#7A8796]">Tendência recente</p><p className={`mt-1 text-2xl font-black ${recentTrend == null ? "text-[#172334]" : recentTrend >= 0 ? "text-[#187A59]" : "text-[#B42318]"}`}>{recentTrend == null ? "—" : `${recentTrend > 0 ? "+" : ""}${recentTrend}%`}</p></div>
+              <div><p className="text-xs text-[#7A8796]">Leitura</p><p className="mt-1 text-sm font-bold leading-6 text-[#475569] dark:text-[#C5D0DE]">{recentTrend != null && recentTrend > 0 ? "Você está avançando nas avaliações mais recentes." : recentTrend != null && recentTrend < 0 ? "Vale revisar os tópicos que perderam desempenho." : "Continue praticando para criar uma tendência confiável."}</p></div>
             </div>
           </section>
 
