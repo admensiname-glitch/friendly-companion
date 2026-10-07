@@ -14,6 +14,7 @@ interface Summary {
   micro_questions_correct: number;
   micro_accuracy: number | null;
 }
+interface TopicProgress { topic_id: string; topic_name: string; discipline_name: string; progress: number; best_score: number | null; status: string; review_count: number; }
 interface Evaluation {
   attempt_id: string;
   topic_id: string;
@@ -32,13 +33,15 @@ export const Route = createFileRoute("/app/desempenho")({
 function PerformancePage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [topics, setTopics] = useState<TopicProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void (async () => {
-      const [summaryResult, evaluationsResult] = await Promise.all([
+      const [summaryResult, evaluationsResult, topicsResult] = await Promise.all([
         supabase.rpc("get_student_performance_summary"),
         supabase.rpc("get_student_recent_evaluations", { _limit: 10 }),
+        supabase.rpc("get_student_dashboard_topics"),
       ]);
 
       if (!summaryResult.error && summaryResult.data) {
@@ -116,6 +119,35 @@ function PerformancePage() {
               ) : (
                 <Link to="/app/estude-agora" className="inline-flex items-center rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Estudar agora</Link>
               )}
+            </div>
+          </section>
+
+          <section className="mt-10" aria-labelledby="domain-heading">
+            <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">Domínio</p>
+            <h2 id="domain-heading" className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
+              Onde seu conhecimento está mais firme
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">
+              Esta leitura combina progresso, desempenho e sinais de revisão. É uma estimativa de aprendizagem, não uma nota acadêmica.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Mais firmes", items: [...topics].sort((a,b) => (b.best_score ?? b.progress) - (a.best_score ?? a.progress)).slice(0,3), tone: "text-[#187A59]" },
+                { label: "Em consolidação", items: topics.filter((t) => (t.best_score ?? t.progress) >= 60 && (t.best_score ?? t.progress) < 80).slice(0,3), tone: "text-[#0242D7]" },
+                { label: "Pedem atenção", items: topics.filter((t) => t.review_count > 0 || (t.best_score ?? t.progress) < 60).sort((a,b) => (a.best_score ?? a.progress) - (b.best_score ?? b.progress)).slice(0,3), tone: "text-[#B54708]" },
+              ].map((group) => (
+                <div key={group.label} className="rounded-xl border border-[#E4EAF1] bg-white p-4 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
+                  <p className={`text-xs font-extrabold uppercase tracking-[0.1em] ${group.tone}`}>{group.label}</p>
+                  <div className="mt-3 space-y-3">
+                    {group.items.length ? group.items.map((topic) => (
+                      <div key={topic.topic_id}>
+                        <p className="truncate text-sm font-bold text-[#273547] dark:text-[#DFE8F1]">{topic.topic_name}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-[#7A8796]">{topic.discipline_name}</p>
+                      </div>
+                    )) : <p className="text-sm text-[#7A8796]">Ainda não há dados suficientes.</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
