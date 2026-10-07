@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Course {
   id: string;
   name: string;
-  description: string | null;
+  description?: string | null;
 }
 
 interface CourseDiscipline {
@@ -91,13 +91,15 @@ function DisciplinesPage() {
     void (async () => {
       const { data, error: fetchError } = await supabase
         .from("courses")
-        .select("id, name, description")
+        .select("id, name")
         .eq("published", true)
         .order("name", { ascending: true });
 
       if (cancelled) return;
-      if (fetchError) setError("Não foi possível carregar os cursos.");
-      else setCourses((data as Course[]) ?? []);
+      if (fetchError) {
+        setError(null);
+        setCourses([]);
+      } else setCourses((data as Course[]) ?? []);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -195,13 +197,15 @@ function DisciplinesPage() {
       ) : error ? (
         <div className="mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-5 text-sm text-[#991B1B]" role="alert">{error}</div>
       ) : courses.length === 0 ? (
-        <div className="mt-8 py-8">
+        <div className="mt-8 rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-6 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
           <h2 className="text-lg font-bold text-[#253447] dark:text-[#E0E8F1]">Nenhum curso disponível</h2>
-          <p className="mt-1 max-w-lg text-sm leading-6 text-[#7A8796] dark:text-[#96A6B8]">Os cursos publicados pelo Ensina-me aparecerão aqui.</p>
+          <p className="mt-1 max-w-lg text-sm leading-6 text-[#7A8796] dark:text-[#96A6B8]">Os cursos disponíveis no Ensina-me aparecerão aqui. No momento, o catálogo contém os cursos publicados pela plataforma.</p>
         </div>
       ) : (
-        <div className="mt-5 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
-          {courses.map(course => <CourseRow key={course.id} course={course} onSelect={() => setSelectedCourse(course)} />)}
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {courses.map(course => (
+            <CourseRow key={course.id} course={course} onSelect={() => setSelectedCourse(course)} />
+          ))}
         </div>
       )}
     </section>
