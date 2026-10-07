@@ -24,6 +24,7 @@ import { Route as AdminConteudoRouteImport } from './routes/admin.conteudo'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminFontesRouteImport } from './routes/admin.fontes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
+import { Route as AppComunidadeRouteImport } from './routes/app.comunidade'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
@@ -111,6 +112,11 @@ const AppCatalogoRoute = AppCatalogoRouteImport.update({
   path: '/catalogo',
   getParentRoute: () => AppRoute,
 } as any)
+const AppComunidadeRoute = AppComunidadeRouteImport.update({
+  id: '/comunidade',
+  path: '/comunidade',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fontes': typeof AdminFontesRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
+  '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fontes': typeof AdminFontesRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
+  '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fontes': typeof AdminFontesRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
+  '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/fontes'
     | '/app/catalogo'
+    | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
     | '/app/disciplinas'
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/fontes'
     | '/app/catalogo'
+    | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
     | '/app/disciplinas'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/fontes'
     | '/app/catalogo'
+    | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
     | '/app/disciplinas'
@@ -460,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/catalogo'
       fullPath: '/app/catalogo'
       preLoaderRoute: typeof AppCatalogoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/comunidade': {
+      id: '/app/comunidade'
+      path: '/comunidade'
+      fullPath: '/app/comunidade'
+      preLoaderRoute: typeof AppComunidadeRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -597,6 +616,7 @@ const AppDisciplinasRouteWithChildren = AppDisciplinasRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
+  AppComunidadeRoute: typeof AppComunidadeRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
   AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
@@ -609,6 +629,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
+  AppComunidadeRoute: AppComunidadeRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
   AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
