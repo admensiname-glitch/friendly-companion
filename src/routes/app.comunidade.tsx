@@ -21,7 +21,19 @@ type Post = {
   topics?: { name: string } | null;
 };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string; authorName?: string; authorAvatar?: string | null };
-const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
+
+async function prepareProfileImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) throw new Error("AVATAR_TYPE");
+  if (file.size > 5 * 1024 * 1024) throw new Error("AVATAR_SIZE");
+  const bitmap = await createImageBitmap(file);
+  try {
+    if (bitmap.width < 720 || bitmap.height < 720) throw new Error("AVATAR_RESOLUTION");
+    return file;
+  } finally {
+    bitmap.close();
+  }
+}
+\nconst COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
 
 
 function CommunityPage() {
@@ -142,10 +154,10 @@ function CommunityPage() {
     try {
       let nextAvatar = avatarUrl;
       if (avatarFile) {
-        if (!avatarFile.type.startsWith("image/") || avatarFile.size > 5 * 1024 * 1024) throw new Error("AVATAR");
-        const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const preparedFile = await prepareProfileImage(avatarFile);
+        const ext = preparedFile.name.split(".").pop()?.toLowerCase() || "jpg";
         const path = currentUserId + "/avatar-" + crypto.randomUUID() + "." + ext;
-        const upload = await supabase.storage.from("profile-media").upload(path, avatarFile, { contentType: avatarFile.type, upsert: false });
+        const upload = await supabase.storage.from("profile-media").upload(path, preparedFile, { contentType: preparedFile.type, upsert: false, cacheControl: "31536000" });
         if (upload.error) throw upload.error;
         nextAvatar = supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
       }
