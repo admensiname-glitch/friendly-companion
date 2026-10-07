@@ -18,6 +18,9 @@ interface Topic {
   name: string;
   description: string | null;
   position: number;
+  discipline_id?: string;
+  discipline_name?: string;
+  course_name?: string;
 }
 
 export const Route = createFileRoute("/app/catalogo")({
@@ -51,6 +54,8 @@ function CatalogPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [topicsError, setTopicsError] = useState<string | null>(null);
+  const [topicResults, setTopicResults] = useState<Topic[]>([]);
+  const [searchingTopics, setSearchingTopics] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +131,33 @@ function CatalogPage() {
       cancelled = true;
     };
   }, [selectedDiscipline]);
+
+  useEffect(() => {
+    const normalized = query.trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    if (normalized.length < 2) {
+      setTopicResults([]);
+      setSearchingTopics(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setSearchingTopics(true);
+        const { data: topicData } = await supabase
+          .from("topics")
+          .select("id,name,description,position,discipline_id,disciplines(name,courses(name))")
+          .eq("published", true)
+          .or(`name.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%`)
+          .order("name")
+          .limit(12);
+        if (cancelled) return;
+        const rows = (topicData ?? []) as Array<Topic & { disciplines?: { name: string; courses?: { name: string } | null } | null }>;
+        setTopicResults(rows.map((row) => ({ ...row, discipline_name: row.disciplines?.name ?? "Disciplina", course_name: row.disciplines?.courses?.name ?? "Curso" })));
+        setSearchingTopics(false);
+      })();
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [query]);
 
   const filteredDisciplines = useMemo(() => {
     const normalized = query
@@ -271,10 +303,30 @@ function CatalogPage() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar por disciplina ou curso..."
+          placeholder="Buscar disciplina, curso ou tópico..."
           className="min-w-0 flex-1 bg-transparent text-sm text-[#243245] outline-none placeholder:text-[#96A3B3] dark:text-[#E1E9F2]"
         />
       </label>
+
+      {query.trim().length >= 2 && (
+        <section className="mt-7" aria-labelledby="academic-search-results">
+          <div className="flex items-end justify-between gap-3">
+            <div><p className="text-sm font-semibold text-[#0242D7]">Busca acadêmica</p><h2 id="academic-search-results" className="mt-1 text-xl font-bold text-[#172334] dark:text-[#E7EDF5]">Tópicos relacionados</h2></div>
+            {searchingTopics && <span className="text-xs text-[#7A8796]">Buscando…</span>}
+          </div>
+          {!searchingTopics && topicResults.length === 0 ? <p className="mt-4 text-sm text-[#7A8796]">Nenhum tópico encontrado para esse termo.</p> : (
+            <div className="mt-4 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
+              {topicResults.map((topic) => (
+                <Link key={topic.id} to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id!, topicId: topic.id }} className="block border-b border-[#E4EAF1] py-4 last:border-0 dark:border-[#2B3A4F]">
+                  <p className="text-xs font-bold text-[#0242D7]">{topic.course_name} · {topic.discipline_name}</p>
+                  <p className="mt-1 text-sm font-bold text-[#273547] dark:text-[#DFE8F1]">{topic.name}</p>
+                  {topic.description && <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7A8796]">{topic.description}</p>}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {loading ? (
         <div className="mt-6 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
