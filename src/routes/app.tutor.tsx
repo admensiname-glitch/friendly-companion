@@ -26,6 +26,11 @@ type Message = {
   content: string;
   shareable?: boolean;
   visualAid?: VisualAid | null;
+  videoRecommendation?: {
+    enabled: boolean;
+    reason: string;
+    video?: TopicVideo | null;
+  } | null;
 };
 
 type TopicVideo = {
@@ -109,7 +114,6 @@ function TutorPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
-  const [topicVideos, setTopicVideos] = useState<TopicVideo[]>([]);
 
   async function downloadVisualImage(image: NonNullable<VisualAid["image"]>) {
     try {
@@ -129,48 +133,48 @@ function TutorPage() {
     }
   }
 
-  function VideoRecommendations({ videos }: { videos: TopicVideo[] }) {
-    if (!videos.length) return null;
+  function VideoRecommendation({ recommendation }: { recommendation: NonNullable<Message["videoRecommendation"]> }) {
+    const video = recommendation.video;
+    if (!recommendation.enabled || !video) return null;
 
     return (
       <div className="mt-5 rounded-2xl border border-[#DCE5F0] bg-white p-4 sm:p-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Para aprofundar</p>
-        <h3 className="mt-1 text-sm font-black text-[#172334]">Veja também estes vídeos sobre o assunto</h3>
-        <div className="mt-4 space-y-5">
-          {videos.slice(0, 2).map((video) => (
-            <article key={video.id} className="overflow-hidden rounded-xl border border-[#E3EAF3] bg-[#F8FAFC]">
-              <div className="aspect-video bg-black">
-                <iframe
-                  src={video.embed_url}
-                  title={video.title}
-                  className="h-full w-full"
-                  loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-              <div className="p-4">
-                <p className="text-sm font-black text-[#172334]">{video.title}</p>
-                {(video.channel_name || video.duration_label) && (
-                  <p className="mt-1 text-xs text-[#687688]">
-                    {[video.channel_name, video.duration_label].filter(Boolean).join(" · ")}
-                  </p>
-                )}
-                {video.description && (
-                  <p className="mt-2 text-xs leading-5 text-[#687688]">{video.description}</p>
-                )}
-                <a
-                  href={video.video_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex text-xs font-black text-[#0242D7] hover:underline"
-                >
-                  Abrir vídeo na fonte original ↗
-                </a>
-              </div>
-            </article>
-          ))}
-        </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Vídeo recomendado</p>
+        <h3 className="mt-1 text-sm font-black text-[#172334]">Quer aprofundar exatamente o que você perguntou?</h3>
+        {recommendation.reason && (
+          <p className="mt-2 text-xs leading-5 text-[#687688]">{recommendation.reason}</p>
+        )}
+        <article className="mt-4 overflow-hidden rounded-xl border border-[#E3EAF3] bg-[#F8FAFC]">
+          <div className="aspect-video bg-black">
+            <iframe
+              src={video.embed_url}
+              title={video.title}
+              className="h-full w-full"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+          <div className="p-4">
+            <p className="text-sm font-black text-[#172334]">{video.title}</p>
+            {(video.channel_name || video.duration_label) && (
+              <p className="mt-1 text-xs text-[#687688]">
+                {[video.channel_name, video.duration_label].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            {video.description && (
+              <p className="mt-2 text-xs leading-5 text-[#687688]">{video.description}</p>
+            )}
+            <a
+              href={video.video_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex text-xs font-black text-[#0242D7] hover:underline"
+            >
+              Abrir vídeo na fonte original ↗
+            </a>
+          </div>
+        </article>
       </div>
     );
   }
@@ -320,25 +324,6 @@ function TutorPage() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!topicId) {
-      setTopicVideos([]);
-      return;
-    }
-
-    void (async () => {
-      const { data } = await supabase
-        .from("topic_videos")
-        .select("id, title, description, video_url, embed_url, channel_name, duration_label")
-        .eq("topic_id", topicId)
-        .eq("published", true)
-        .order("position", { ascending: true })
-        .limit(2);
-
-      setTopicVideos((data ?? []) as TopicVideo[]);
-    })();
-  }, [topicId]);
-
   const contextLabel = useMemo(
     () => recommendation?.topic_name
       ? `Estudando: ${recommendation.topic_name}${recommendation.discipline_name ? ` · ${recommendation.discipline_name}` : ""}`
@@ -420,8 +405,8 @@ function TutorPage() {
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
                 )}
-                {message.role === "assistant" && message.shareable === true && topicVideos.length > 0 && (
-                  <VideoRecommendations videos={topicVideos} />
+                {message.role === "assistant" && message.videoRecommendation?.enabled && (
+                  <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
