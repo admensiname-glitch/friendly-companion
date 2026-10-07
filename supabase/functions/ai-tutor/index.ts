@@ -438,11 +438,11 @@ async function findKnownPublicDomainImage(topicName: string): Promise<VisualAid[
 
   return {
     enabled: true,
-    url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Process%20of%20Photosynthesis.jpg?width=1200",
-    title: "Process of Photosynthesis",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Process_of_Photosynthesis.jpg",
-    license: "CC0 1.0",
-    attribution: "Ndennis99 · Wikimedia Commons",
+    url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Photosynthesis%20pt.svg?width=1280",
+    title: "Diagrama com o processo geral da fotossíntese",
+    sourceUrl: "https://commons.wikimedia.org/wiki/File:Photosynthesis_pt.svg",
+    license: "CC BY-SA 4.0",
+    attribution: "Wikimedia Commons",
   };
 }
 
@@ -1702,9 +1702,11 @@ Deno.serve(async (req: Request) => {
 
     if (tutorResult.visualAid.enabled) {
       const imageQueries = [
-        topic.name + " diagram",
+        topic.name + " em português diagrama",
+        topic.name + " português esquema",
+        topic.name + " em português processo",
+        topic.name + " diagrama",
         topic.name + " process diagram",
-        topic.name + " biology diagram",
         topic.name,
       ].map((query) => query.trim()).filter(Boolean);
       tutorResult.visualAid.image =
