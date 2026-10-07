@@ -89,6 +89,7 @@ function ReviewPage() {
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [microReviews, setMicroReviews] = useState<ScheduledMicroReview[]>([]);
   const [fallbackErrors, setFallbackErrors] = useState(0);
+  const [wrongAnswers, setWrongAnswers] = useState<Array<{ id: string; question_text: string; selected: string | null; correct: string | null; feedback: string; topic_id: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -170,6 +171,53 @@ function ReviewPage() {
           reviewItems = Array.from(groupedFallback.values());
           setFallbackErrors(reviewItems.reduce((sum, item) => sum + item.count, 0));
         }
+      }
+
+      const { data: recentWrong } = await supabase
+        .from("exercise_answers")
+        .select("id,question_id,selected_option_id,feedback,answered_at")
+        .eq("user_id", sessionData.session.user.id)
+        .eq("is_correct", false)
+        .order("answered_at", { ascending: false })
+        .limit(8);
+      const wrongQuestionIds = [...new Set((recentWrong ?? []).map((row) => row.question_id))];
+      if (wrongQuestionIds.length) {
+        const { data: wrongQuestions } = await supabase
+          .from("exercise_questions")
+          .select("id,question_text,feedback_hint,exercise_id")
+          .in("id", wrongQuestionIds);
+        const { data: wrongOptions } = await supabase
+          .from("exercise_options")
+          .select("id,question_id,content,is_correct")
+          .in("question_id", wrongQuestionIds);
+        const questionMap = new Map((wrongQuestions ?? []).map((q) => [q.id, q]));
+        const optionsByQuestion = new Map<string, Array<{ id: string; content: string; is_correct: boolean }>>();
+        for (const option of wrongOptions ?? []) {
+          const list = optionsByQuestion.get(option.question_id) ?? [];
+          list.push(option);
+          optionsByQuestion.set(option.question_id, list);
+        }
+        const wrongExerciseIds = [...new Set((wrongQuestions ?? []).map((q) => q.exercise_id))];
+        const { data: wrongExercises } = wrongExerciseIds.length
+          ? await supabase.from("exercises").select("id,topic_id").in("id", wrongExerciseIds)
+          : { data: [] };
+        const exerciseTopic = new Map((wrongExercises ?? []).map((e) => [e.id, e.topic_id]));
+        setWrongAnswers((recentWrong ?? []).map((answer) => {
+          const q = questionMap.get(answer.question_id);
+          const options = optionsByQuestion.get(answer.question_id) ?? [];
+          const selected = options.find((o) => o.id === answer.selected_option_id);
+          const correct = options.find((o) => o.is_correct);
+          return {
+            id: answer.id,
+            question_text: q?.question_text ?? "Questão",
+            selected: selected?.content ?? null,
+            correct: correct?.content ?? null,
+            feedback: answer.feedback || q?.feedback_hint || "Revise o conceito central e tente novamente.",
+            topic_id: q ? (exerciseTopic.get(q.exercise_id) ?? "") : "",
+          };
+        }).filter((item) => item.topic_id));
+      } else {
+        setWrongAnswers([]);
       }
 
       setItems(reviewItems);
@@ -355,6 +403,27 @@ function ReviewPage() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {!loading && wrongAnswers.length > 0 && (
+        <section className="mt-10" aria-labelledby="why-wrong-heading">
+          <p className="text-sm font-semibold text-[#0242D7]">Aprenda com seus erros</p>
+          <h2 id="why-wrong-heading" className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">Por que eu errei?</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">Seus erros recentes viram explicações práticas para você não repetir o mesmo raciocínio.</p>
+          <div className="mt-4 space-y-3">
+            {wrongAnswers.map((wrong, index) => (
+              <details key={wrong.id} className="rounded-xl border border-[#E4EAF1] bg-white p-4 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
+                <summary className="cursor-pointer list-none text-sm font-bold text-[#273547] dark:text-[#DFE8F1]">Erro {index + 1}: {wrong.question_text}</summary>
+                <div className="mt-3 space-y-2 text-sm leading-6">
+                  <p className="text-[#B42318]"><strong>Você marcou:</strong> {wrong.selected ?? "—"}</p>
+                  <p className="text-[#187A59]"><strong>O correto:</strong> {wrong.correct ?? "—"}</p>
+                  <p className="text-[#475569] dark:text-[#C5D0DE]"><strong>Por que:</strong> {wrong.feedback}</p>
+                  <Link to="/app/tutor" className="inline-flex mt-2 rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-bold text-white">Levar este erro ao Tutor</Link>
+                </div>
+              </details>
+            ))}
           </div>
         </section>
       )}
