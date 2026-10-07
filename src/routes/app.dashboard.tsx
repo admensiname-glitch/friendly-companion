@@ -229,8 +229,8 @@ function AppDashboard() {
       </header>
 
 
-      <section className="mt-5 overflow-hidden rounded-[24px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8]" aria-labelledby="next-study-title">
-        <div className="relative p-5 sm:p-7">
+      <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
+        <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
           <div className="relative">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
@@ -240,22 +240,22 @@ function AppDashboard() {
               {recommendationLabel}
             </div>
 
-            <h2 id="next-study-title" className="mt-4 max-w-xl text-[23px] font-black leading-7 tracking-[-0.035em] text-white sm:text-[29px]">
+            <h2 id="next-study-title" className="mt-5 max-w-3xl text-[28px] font-black leading-9 tracking-[-0.035em] text-white sm:text-[34px] lg:text-[40px] lg:leading-[1.08]">
               {recommendation?.topic_name ?? activeTopics[0]?.topic_name ?? "Seu próximo passo começa aqui"}
             </h2>
-            <p className="mt-1 text-sm font-bold text-white/75">
+            <p className="mt-2 text-base font-bold text-white/80 lg:text-lg">
               {recommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? "Escolha uma disciplina para começar."}
             </p>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/80 lg:text-[17px] lg:leading-7">
               {recommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-7 flex flex-wrap gap-3">
               {recommendation?.topic_id && recommendation.discipline_id ? (
                 <Link
                   to="/app/disciplinas/$disciplineId/$topicId"
                   params={{ disciplineId: recommendation.discipline_id, topicId: recommendation.topic_id }}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-[#0242D7] shadow-sm"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#0242D7] shadow-sm"
                 >
                   {recommendation.reason === "review" ? "Revisar agora" : "Continuar estudo"}
                   <Icon name="arrow" className="h-4 w-4" />
@@ -266,7 +266,7 @@ function AppDashboard() {
                   <Icon name="arrow" className="h-4 w-4" />
                 </Link>
               )}
-              <Link to="/app/prova" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white/12 px-4 py-2.5 text-sm font-extrabold text-white ring-1 ring-inset ring-white/25">
+              <Link to="/app/prova" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white/12 px-5 py-3 text-sm font-extrabold text-white ring-1 ring-inset ring-white/30">
                 Praticar questões
               </Link>
             </div>
@@ -274,26 +274,26 @@ function AppDashboard() {
         </div>
       </section>
 
-      <section className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumo do seu aprendizado">
+      <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4" aria-label="Resumo do seu aprendizado">
         {[
           { label: "Progresso", value: `${overallProgress}%`, icon: "target" as const },
           { label: "Hoje", value: `${todayStudy?.minutes ?? 0} min`, icon: "clock" as const },
           { label: "Revisões", value: topicsProgress.reduce((sum, topic) => sum + topic.review_count, 0).toString(), icon: "review" as const },
           { label: "Melhor nota", value: bestScore === null ? "—" : `${bestScore}%`, icon: "chart" as const },
         ].map((item) => (
-          <div key={item.label} className="app-card flex min-h-[96px] flex-col justify-between p-3.5 sm:p-4">
+          <div key={item.label} className="app-card flex min-h-[118px] flex-col justify-between p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
                 <Icon name={item.icon} className="h-3.5 w-3.5" />
               </span>
               <span className="text-[10px] font-extrabold text-[#9AA5B3] dark:text-[#8091A5]">{item.label}</span>
             </div>
-            <p className="mt-2 text-[21px] font-black tracking-[-0.04em] text-[#172334] dark:text-[#E7EDF5]">{item.value}</p>
+            <p className="mt-3 text-[25px] font-black tracking-[-0.04em] text-[#172334] dark:text-[#E7EDF5]">{item.value}</p>
           </div>
         ))}
       </section>
 
-      <section className="mt-7" aria-labelledby="continue-heading">
+      <section className="mt-10" aria-labelledby="continue-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
@@ -304,16 +304,16 @@ function AppDashboard() {
           <Link to="/app/disciplinas" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Ver tudo</Link>
         </div>
 
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-4 space-y-3">
           {activeTopics.length > 0 ? (
             activeTopics.slice(0, 3).map((topic) => (
               <Link
                 key={topic.topic_id}
                 to="/app/disciplinas/$disciplineId/$topicId"
                 params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }}
-                className="app-card group flex items-center gap-3 p-3.5 transition-transform hover:-translate-y-px"
+                className="app-card group flex items-center gap-4 p-4 sm:p-5 transition-transform hover:-translate-y-px"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
                   <Icon name="book" className="h-[19px] w-[19px]" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -342,7 +342,7 @@ function AppDashboard() {
         </div>
       </section>
 
-      <section className="mt-7 grid gap-3 sm:grid-cols-2" aria-label="Resumo diário">
+      <section className="mt-10 grid gap-4 sm:grid-cols-2" aria-label="Resumo diário">
         <div className="app-card flex items-center gap-4 p-4">
           <ProgressRing value={todayPercent} size={70} />
           <div className="min-w-0">
@@ -379,7 +379,7 @@ function AppDashboard() {
         </div>
       </section>
 
-      <section className="mt-7" aria-labelledby="disciplines-heading">
+      <section className="mt-10" aria-labelledby="disciplines-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Organização</p>
@@ -424,7 +424,7 @@ function AppDashboard() {
         )}
       </section>
 
-      <section className="mt-7 pb-3">
+      <section className="mt-10 pb-3">
         <div className="grid grid-cols-3 gap-2">
           <Link to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="spark" className="h-4 w-4" /></span>
