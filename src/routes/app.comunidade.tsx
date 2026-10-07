@@ -21,6 +21,8 @@ type Post = {
   topics?: { name: string } | null;
 };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
+const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
+
 
 function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -48,6 +50,7 @@ function CommunityPage() {
   const [profileNameDraft, setProfileNameDraft] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState<"post" | string | null>(null);
 
   async function loadFeed() {
     setLoading(true);
