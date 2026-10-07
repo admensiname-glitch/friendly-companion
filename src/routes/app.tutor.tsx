@@ -370,6 +370,7 @@ function TutorPage() {
           content: data.message,
           shareable: data.shareable === true,
           visualAid,
+          videoRecommendation: data.video_recommendation ?? null,
         },
       ]);
     }
