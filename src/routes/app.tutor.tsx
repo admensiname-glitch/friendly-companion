@@ -11,6 +11,14 @@ type VisualAid = {
   title: string;
   items: string[];
   caption: string;
+  image?: {
+    enabled: boolean;
+    url: string;
+    title: string;
+    sourceUrl: string;
+    license: string;
+    attribution: string;
+  } | null;
 };
 
 type Message = {
@@ -19,6 +27,37 @@ type Message = {
   shareable?: boolean;
   visualAid?: VisualAid | null;
 };
+
+function TutorMessageContent({ content }: { content: string }) {
+  const lines = content.replace(/\\*\\*/g, "**").split("\\n");
+  return (
+    <div className="space-y-2">
+      {lines.map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={index} className="h-1" />;
+        const heading = trimmed.match(/^#{1,3}\\s+(.+)$/);
+        const bullet = trimmed.match(/^[-•]\\s+(.+)$/);
+        const numbered = trimmed.match(/^\\d+[.)]\\s+(.+)$/);
+        const renderInline = (value: string) =>
+          value.split(/(\\*\\*[^*]+\\*\\*)/g).map((part, partIndex) =>
+            part.startsWith("**") && part.endsWith("**")
+              ? <strong key={partIndex}>{part.slice(2, -2)}</strong>
+              : <span key={partIndex}>{part}</span>
+          );
+        if (heading) {
+          return <p key={index} className="pt-1 font-black text-[#172334]">{renderInline(heading[1])}</p>;
+        }
+        if (bullet) {
+          return <div key={index} className="flex gap-2 pl-1"><span aria-hidden="true">•</span><span>{renderInline(bullet[1])}</span></div>;
+        }
+        if (numbered) {
+          return <div key={index} className="flex gap-2 pl-1"><span className="font-bold">{trimmed.match(/^\\d+/)?.[0]}.</span><span>{renderInline(numbered[1])}</span></div>;
+        }
+        return <p key={index}>{renderInline(trimmed)}</p>;
+      })}
+    </div>
+  );
+}
 
 function TutorPage() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
@@ -63,6 +102,16 @@ function TutorPage() {
             </div>
           )}
           {visualAid.caption && <p className="mt-3 text-xs leading-5 text-[#687688]">{visualAid.caption}</p>}
+          {visualAid.image?.enabled && visualAid.image.url && (
+            <figure className="mt-4 overflow-hidden rounded-xl border border-[#DCE5F0] bg-white">
+              <img src={visualAid.image.url} alt={visualAid.image.title || visualAid.title} className="block h-auto w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
+              <figcaption className="border-t border-[#E5EAF0] px-3 py-2 text-[11px] leading-5 text-[#687688]">
+                {visualAid.image.attribution} · {visualAid.image.license}
+                {" · "}
+                <a href={visualAid.image.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">Fonte da imagem</a>
+              </figcaption>
+            </figure>
+          )}
         </div>
       </div>
     );
@@ -192,7 +241,7 @@ function TutorPage() {
 
             {messages.map((message, index) => (
               <div key={`${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
-                {message.content}
+                {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : message.content}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
                 )}
