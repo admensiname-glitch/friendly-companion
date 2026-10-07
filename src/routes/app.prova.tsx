@@ -190,8 +190,9 @@ function ExamPage() {
               </div>
             </div>
           )}
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <Link to="/app/revisao" className="min-h-11 rounded-xl bg-[#0242D7] px-4 py-3 text-center text-sm font-bold text-white">Ir para revisão</Link>
+            <a href={`/app/comunidade?share_text=${encodeURIComponent(`Terminei uma prova no Ensina-me e tive ${Math.round(result.score)}% de aproveitamento. O que mais me ajudou foi revisar os tópicos em que tive dificuldade.`)}${disciplineId ? `&discipline_id=${encodeURIComponent(disciplineId)}` : ""}`} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-3 text-center text-sm font-bold text-[#0242D7] hover:border-[#0242D7]">Compartilhar na comunidade</a>
             <button onClick={() => setResult(null)} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-3 text-sm font-bold text-[#344154]">Nova prova</button>
           </div>
         </div>
