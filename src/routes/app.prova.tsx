@@ -27,6 +27,7 @@ type ExamResult = {
   total_questions: number;
   answered_questions: number;
   topic_breakdown?: ExamTopicResult[];
+  wrong_answers?: Array<{ question_id: string; question_text: string; selected_option: string | null; correct_option: string | null; feedback_incorrect: string; feedback_hint: string | null }>;
 };
 
 export const Route = createFileRoute("/app/prova")({ component: ExamPage });
@@ -42,6 +43,9 @@ function ExamPage() {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<string[]>([]);
+  const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [points, setPoints] = useState(0);
   const [current, setCurrent] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [result, setResult] = useState<ExamResult | null>(null);
@@ -90,6 +94,9 @@ function ExamPage() {
     setQuestions(payload.questions);
     setAnswers({});
     setFlagged([]);
+    setStreak(0);
+    setBestStreak(0);
+    setPoints(0);
     setCurrent(0);
     setRemaining(duration * 60);
     setResult(null);
@@ -104,8 +111,27 @@ function ExamPage() {
       _attempt_question_id: question.attempt_question_id,
       _selected_option_id: optionId,
     });
-    if (answerError) setError(answerError.message.includes("EXAM_EXPIRED") ? "O tempo da prova terminou. Entregue a prova para ver o resultado." : "Não foi possível registrar esta resposta.");
-    else setAnswers((old) => ({ ...old, [question.id]: optionId }));
+    if (answerError) {
+      setError(answerError.message.includes("EXAM_EXPIRED") ? "O tempo da prova terminou. Entregue a prova para ver o resultado." : "Não foi possível registrar esta resposta.");
+    } else {
+      setAnswers((old) => ({ ...old, [question.id]: optionId }));
+      const { data: savedAnswer } = await supabase
+        .from("exam_attempt_answers")
+        .select("is_correct")
+        .eq("attempt_question_id", question.attempt_question_id)
+        .maybeSingle();
+      if (savedAnswer?.is_correct) {
+        setStreak((value) => {
+          const next = value + 1;
+          setBestStreak((best) => Math.max(best, next));
+          return next;
+        });
+        setPoints((value) => value + 100);
+      } else {
+        setStreak(0);
+        setPoints((value) => Math.max(0, value - 25));
+      }
+    }
     setSaving(false);
   }
 
@@ -164,7 +190,7 @@ function ExamPage() {
         <h1 id="exam-result" className="mt-2 text-3xl font-bold text-[#172334] sm:text-4xl">Prova concluída</h1>
         <div className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-6 sm:p-8">
           <p className="text-sm font-semibold text-[#687688]">Seu resultado</p>
-          <p className="mt-2 text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p>
+          <div className="flex flex-wrap items-end gap-6"><p className="text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A8796]">Pontuação</p><p className="mt-1 text-2xl font-black text-[#172334]">{Math.round(result.score * 10)} pts</p></div></div>
           <p className="mt-2 text-sm text-[#687688]">{result.correct_answers} de {result.total_questions} corretas · {result.answered_questions} respondidas</p>
           {!!result.topic_breakdown?.length && (
             <div className="mt-7">
@@ -190,6 +216,25 @@ function ExamPage() {
               </div>
             </div>
           )}
+          {!!result.wrong_answers?.length && (
+            <div className="mt-8 rounded-2xl border border-[#FDE2C0] bg-[#FFF9F1] p-5">
+              <p className="text-sm font-black text-[#9A5A00]">Por que eu errei?</p>
+              <p className="mt-1 text-sm leading-6 text-[#6B4A1B]">Transforme cada erro em uma pista para a próxima prova.</p>
+              <div className="mt-4 space-y-3">
+                {result.wrong_answers.map((wrong, index) => (
+                  <details key={wrong.question_id} className="rounded-xl border border-[#F1DFC4] bg-white p-4">
+                    <summary className="cursor-pointer list-none text-sm font-bold text-[#273547]">Questão {index + 1}: {wrong.question_text}</summary>
+                    <div className="mt-3 space-y-2 text-sm leading-6">
+                      <p className="text-[#B42318]"><strong>Sua resposta:</strong> {wrong.selected_option ?? "Não respondida"}</p>
+                      <p className="text-[#187A59]"><strong>Resposta correta:</strong> {wrong.correct_option ?? "—"}</p>
+                      <p className="text-[#475569]"><strong>Entenda:</strong> {wrong.feedback_incorrect}</p>
+                      {wrong.feedback_hint && <p className="text-[#64748B]"><strong>Pista:</strong> {wrong.feedback_hint}</p>}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <Link to="/app/revisao" className="min-h-11 rounded-xl bg-[#0242D7] px-4 py-3 text-center text-sm font-bold text-white">Ir para revisão</Link>
             <a href={`/app/comunidade?share_text=${encodeURIComponent(`Terminei uma prova no Ensina-me e tive ${Math.round(result.score)}% de aproveitamento. O que mais me ajudou foi revisar os tópicos em que tive dificuldade.`)}${disciplineId ? `&discipline_id=${encodeURIComponent(disciplineId)}` : ""}`} className="min-h-11 rounded-xl border border-[#DCE5F0] px-4 py-3 text-center text-sm font-bold text-[#0242D7] hover:border-[#0242D7]">Compartilhar na comunidade</a>
@@ -212,7 +257,7 @@ function ExamPage() {
             {duration > 0 && <span className="rounded-full bg-[#F1F5F9] px-3 py-1.5 text-sm font-bold tabular-nums">{formatTime(remaining)}</span>}
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E8EDF3]"><div className="h-full bg-[#0242D7]" style={{width:`${((current+1)/questions.length)*100}%`}} /></div>
-          <p className="mt-2 text-xs text-[#7A8796]">Questão {current+1} de {questions.length} · {answeredCount} respondidas</p>
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-[#7A8796]"><span>Questão {current+1} de {questions.length} · {answeredCount} respondidas</span><span className="font-bold text-[#0242D7]">⚡ {points} pts</span><span className="font-bold text-[#187A59]">🔥 sequência {streak}</span>{flagged.length > 0 && <span>{flagged.length} marcada(s)</span>}</div>
         </header>
 
         <article className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-8">
