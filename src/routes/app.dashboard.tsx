@@ -8,6 +8,7 @@ export const Route = createFileRoute("/app/dashboard")({
 });
 
 interface Profile {
+  display_name: string | null;
   institution: string | null;
   semester: number | null;
   daily_study_minutes: number | null;
@@ -114,6 +115,19 @@ function AppDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const refreshIdentity = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) return;
+      const { data } = await supabase.from("student_profiles").select("display_name").eq("user_id", userId).maybeSingle();
+      if (data) setProfile((current) => current ? { ...current, display_name: data.display_name ?? null } : { display_name: data.display_name ?? null, institution: null, semester: null, daily_study_minutes: null, difficulties: null });
+    };
+    const onProfileUpdated = () => { void refreshIdentity(); };
+    window.addEventListener("ensina-me-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ensina-me-profile-updated", onProfileUpdated);
+  }, []);
+
+  useEffect(() => {
     const loadData = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -126,7 +140,7 @@ function AppDashboard() {
 
       const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult] =
         await Promise.all([
-          supabase.from("student_profiles").select("institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
+          supabase.from("student_profiles").select("display_name, institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
@@ -160,8 +174,8 @@ function AppDashboard() {
   }, []);
 
   const firstName = useMemo(
-    () => user?.user_metadata?.full_name?.split(" ")[0] || user?.user_metadata?.name?.split(" ")[0] || "Aluno",
-    [user],
+    () => profile?.display_name?.trim()?.split(/\\s+/)[0] || user?.user_metadata?.full_name?.split(" ")[0] || user?.user_metadata?.name?.split(" ")[0] || "Aluno",
+    [profile?.display_name, user],
   );
 
   const activeTopics = topicsProgress.filter(
