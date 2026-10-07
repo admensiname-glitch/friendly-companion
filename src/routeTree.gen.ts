@@ -33,7 +33,6 @@ import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppProvaRouteImport } from './routes/app.prova'
 import { Route as AppRevisaoRouteImport } from './routes/app.revisao'
 import { Route as AppTutorRouteImport } from './routes/app.tutor'
-import { Route as AppComunidadeRouteImport } from './routes/app.comunidade'
 import { Route as AppCatalogoDisciplineIdRouteImport } from './routes/app.catalogo.$disciplineId'
 import { Route as AppDisciplinasDisciplineIdRouteImport } from './routes/app.disciplinas.$disciplineId'
 import { Route as AppDisciplinasDisciplineIdTopicIdRouteImport } from './routes/app.disciplinas.$disciplineId.$topicId'
@@ -158,11 +157,6 @@ const AppTutorRoute = AppTutorRouteImport.update({
   path: '/tutor',
   getParentRoute: () => AppRoute,
 } as any)
-const AppComunidadeRoute = AppComunidadeRouteImport.update({
-  id: '/comunidade',
-  path: '/comunidade',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCatalogoDisciplineIdRoute = AppCatalogoDisciplineIdRouteImport.update({
   id: '/$disciplineId',
   path: '/$disciplineId',
@@ -206,7 +200,6 @@ export interface FileRoutesByFullPath {
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
   '/app/tutor': typeof AppTutorRoute
-  '/app/comunidade': typeof AppComunidadeRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
   '/app/disciplinas/$disciplineId/$topicId': typeof AppDisciplinasDisciplineIdTopicIdRoute
@@ -544,13 +537,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTutorRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/comunidade': {
-      id: '/app/comunidade'
-      path: '/comunidade'
-      fullPath: '/app/comunidade'
-      preLoaderRoute: typeof AppComunidadeRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/catalogo/$disciplineId': {
       id: '/app/catalogo/$disciplineId'
       path: '/$disciplineId'
@@ -639,7 +625,6 @@ interface AppRouteChildren {
   AppProvaRoute: typeof AppProvaRoute
   AppRevisaoRoute: typeof AppRevisaoRoute
   AppTutorRoute: typeof AppTutorRoute
-  AppComunidadeRoute: typeof AppComunidadeRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -653,7 +638,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppProvaRoute: AppProvaRoute,
   AppRevisaoRoute: AppRevisaoRoute,
   AppTutorRoute: AppTutorRoute,
-  AppComunidadeRoute: AppComunidadeRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
