@@ -15,6 +15,7 @@ function TutorPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [courseNames, setCourseNames] = useState<string[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -22,7 +23,52 @@ function TutorPage() {
       if (!data.session) return;
       const recommendationData = await LearningEngine.getRecommendation().catch(() => null);
       setRecommendation(recommendationData);
-      setTopicId(recommendationData?.topic_id ?? null);
+
+      const { data: memberships } = await supabase
+        .from("student_courses")
+        .select("course_id")
+        .order("created_at", { ascending: true });
+
+      const courseIds = (memberships ?? []).map((item) => item.course_id).filter(Boolean);
+      if (courseIds.length > 0) {
+        const { data: courses } = await supabase
+          .from("courses")
+          .select("id, name")
+          .in("id", courseIds)
+          .eq("published", true)
+          .order("name", { ascending: true });
+        setCourseNames((courses ?? []).map((course) => course.name));
+
+        if (!recommendationData?.topic_id) {
+          const { data: disciplines } = await supabase
+            .from("disciplines")
+            .select("id")
+            .in("course_id", courseIds)
+            .eq("published", true)
+            .order("curriculum_order", { ascending: true, nullsFirst: false })
+            .limit(1);
+
+          const disciplineId = disciplines?.[0]?.id;
+          if (disciplineId) {
+            const { data: topics } = await supabase
+              .from("topics")
+              .select("id")
+              .eq("discipline_id", disciplineId)
+              .eq("published", true)
+              .order("position", { ascending: true })
+              .limit(1);
+            setTopicId(topics?.[0]?.id ?? null);
+          } else {
+            setTopicId(null);
+          }
+        } else {
+          setTopicId(recommendationData.topic_id);
+        }
+      } else {
+        setCourseNames([]);
+        setTopicId(recommendationData?.topic_id ?? null);
+      }
+
       setLoading(false);
     })();
   }, []);
@@ -30,7 +76,9 @@ function TutorPage() {
   const contextLabel = useMemo(
     () => recommendation?.topic_name
       ? `Estudando: ${recommendation.topic_name}${recommendation.discipline_name ? ` · ${recommendation.discipline_name}` : ""}`
-      : "Escolha um tópico para dar contexto ao Tutor.",
+      : courseNames.length
+        ? `Seu percurso: ${courseNames.join(" · ")}. Escolha uma disciplina para aprofundar.`
+        : "Adicione um curso ao seu perfil para começar a personalizar o Tutor.",
     [recommendation],
   );
 
@@ -67,7 +115,7 @@ function TutorPage() {
         <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7]">Tutor</p>
         <h1 id="tutor-title" className="mt-2 text-[32px] font-black tracking-[-0.04em] text-[#172334] sm:text-[42px]">Aprenda com contexto.</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">
-          O Tutor usa o tópico atual e o seu percurso para explicar, comparar, corrigir raciocínios e orientar a próxima prática.
+          O Tutor usa os cursos do seu perfil, seu percurso e seu desempenho para explicar, comparar, corrigir raciocínios e orientar a próxima prática.
         </p>
       </header>
 
@@ -102,7 +150,7 @@ function TutorPage() {
           <form onSubmit={send} className="border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
             <div className="flex gap-2">
-              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ex.: por que eu errei essa questão?" className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] px-4 py-3 text-sm outline-none focus:border-[#0242D7]" disabled={loading || sending || !topicId} />
+              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ex.: por que eu errei essa questão?" className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] px-4 py-3 text-sm outline-none focus:border-[#0242D7]" disabled={loading || sending} />
               <button type="submit" disabled={loading || sending || !input.trim()} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Enviar</button>
             </div>
             {error && <p className="mt-3 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
@@ -110,13 +158,20 @@ function TutorPage() {
         </section>
 
         <aside className="rounded-2xl border border-[#DCE5F0] bg-[#F8FAFC] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto</p>
-          <h2 className="mt-2 text-lg font-black text-[#172334]">{contextLabel}</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Seu percurso</p>
+          <h2 className="mt-2 text-lg font-black text-[#172334]">
+            {courseNames.length ? courseNames.join(" · ") : "Nenhum curso adicionado"}
+          </h2>
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto atual</p>
+          <p className="mt-2 text-sm font-bold text-[#334155]">{contextLabel}</p>
           <p className="mt-2 text-sm leading-6 text-[#687688]">
             O Tutor não é um chat genérico: ele deve permanecer ligado ao conteúdo acadêmico do tópico.
           </p>
-          {!topicId && (
-            <Link to="/app/disciplinas" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Escolher curso</Link>
+          {!courseNames.length && (
+            <Link to="/app/catalogo" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Adicionar curso</Link>
+          )}
+          {courseNames.length > 0 && !topicId && (
+            <Link to="/app/disciplinas" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Escolher disciplina</Link>
           )}
           {topicId && recommendation?.discipline_id && (
             <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: recommendation.discipline_id, topicId }} className="mt-5 inline-flex rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-black text-[#334155]">Abrir tópico</Link>
