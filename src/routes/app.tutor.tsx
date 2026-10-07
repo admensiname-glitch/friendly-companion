@@ -72,47 +72,78 @@ function TutorPage() {
   const [courseNames, setCourseNames] = useState<string[]>([]);
 
   function VisualAidCard({ visualAid }: { visualAid: VisualAid }) {
-    if (!visualAid.enabled || visualAid.items.length === 0) return null;
+    if (!visualAid.enabled) return null;
 
     return (
-      <div className="mt-4 overflow-hidden rounded-2xl border border-[#CFE0FF] bg-white">
+      <div className="mt-5 overflow-hidden rounded-2xl border border-[#CFE0FF] bg-white">
         <div className="border-b border-[#E3ECFA] bg-[#F4F8FF] px-4 py-3">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Apoio visual</p>
           <h3 className="mt-1 text-sm font-black text-[#172334]">{visualAid.title}</h3>
         </div>
-        <div className="p-4">
-          {visualAid.type === "comparison" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {visualAid.items.map((item, index) => (
-                <div key={item + index} className="rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-3 text-sm font-semibold leading-6 text-[#334155]">
-                  {item}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-              {visualAid.items.map((item, index) => (
-                <div key={item + index} className="flex min-w-0 flex-1 items-center gap-2">
-                  <div className="w-full rounded-xl border border-[#CFE0FF] bg-[#F8FAFC] px-3 py-3 text-center text-sm font-bold leading-5 text-[#273547]">
-                    {item}
-                  </div>
-                  {index < visualAid.items.length - 1 && (
-                    <span className="hidden text-lg font-black text-[#0242D7] sm:block" aria-hidden="true">→</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {visualAid.caption && <p className="mt-3 text-xs leading-5 text-[#687688]">{visualAid.caption}</p>}
+
+        <div className="p-4 sm:p-5">
           {visualAid.image?.enabled && visualAid.image.url && (
-            <figure className="mt-4 overflow-hidden rounded-xl border border-[#DCE5F0] bg-white">
-              <img src={visualAid.image.url} alt={visualAid.image.title || visualAid.title} className="block h-auto w-full object-contain" loading="lazy" referrerPolicy="no-referrer" />
+            <figure className="overflow-hidden rounded-xl border border-[#DCE5F0] bg-white">
+              <div className="flex min-h-[220px] items-center justify-center bg-[#F8FAFC] p-2 sm:min-h-[320px]">
+                <img
+                  src={visualAid.image.url}
+                  alt={visualAid.image.title || visualAid.title}
+                  className="block max-h-[520px] w-full object-contain"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
               <figcaption className="border-t border-[#E5EAF0] px-3 py-2 text-[11px] leading-5 text-[#687688]">
                 {visualAid.image.attribution} · {visualAid.image.license}
                 {" · "}
-                <a href={visualAid.image.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">Fonte da imagem</a>
+                <a
+                  href={visualAid.image.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-[#0242D7] hover:underline"
+                >
+                  Fonte da imagem
+                </a>
               </figcaption>
             </figure>
+          )}
+
+          {visualAid.items.length > 0 && (
+            <div className={visualAid.image?.enabled ? "mt-5" : ""}>
+              <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.1em] text-[#687688]">
+                Etapas principais
+              </p>
+              {visualAid.type === "comparison" ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {visualAid.items.map((item, index) => (
+                    <div
+                      key={item + index}
+                      className="rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-3 text-sm font-semibold leading-6 text-[#334155]"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <ol className="space-y-2">
+                  {visualAid.items.map((item, index) => (
+                    <li
+                      key={item + index}
+                      className="flex gap-3 rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] px-3 py-3 text-sm leading-6 text-[#334155]"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E8F0FF] text-xs font-black text-[#0242D7]">
+                        {index + 1}
+                      </span>
+                      <span className="font-semibold">{item}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+
+          {visualAid.caption && (
+            <p className="mt-4 text-xs leading-5 text-[#687688]">{visualAid.caption}</p>
           )}
         </div>
       </div>
