@@ -24,6 +24,25 @@ type Comment = { id: string; post_id: string; author_id: string; body: string; c
 const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
 
 
+function EmojiPicker({ open, onToggle, onSelect, label }: { open: boolean; onToggle: () => void; onSelect: (emoji: string) => void; label: string }) {
+  return (
+    <div className="relative">
+      <button type="button" onClick={onToggle} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 text-sm font-extrabold text-[#475569] hover:border-[#0242D7] hover:text-[#0242D7]" aria-label={label}>
+        😊 <span>Emoji</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-11 z-30 grid w-[280px] grid-cols-8 gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-xl">
+          {COMMON_EMOJIS.map((emoji) => (
+            <button key={emoji} type="button" onClick={() => onSelect(emoji)} className="h-8 w-8 rounded-lg text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
@@ -284,7 +303,10 @@ function CommunityPage() {
             <div className="flex items-start gap-3">
               <button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#0242D7] text-xs font-black text-white" aria-label="Editar perfil">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : "EM"}</button>
               <div className="min-w-0 flex-1">
-                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><div className="relative mt-2"><button type="button" onClick={() => setEmojiOpen((open) => open === "post" ? null : "post")} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 text-sm font-extrabold text-[#475569] hover:border-[#0242D7] hover:text-[#0242D7]" aria-label="Adicionar emoji à publicação">😊 <span>Emoji</span></button>{emojiOpen === "post" && <div className="absolute left-0 top-11 z-20 grid w-[280px] grid-cols-8 gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-xl">{COMMON_EMOJIS.map((emoji) => <button key={emoji} type="button" onClick={() => { setBody((value) => value + emoji); setEmojiOpen(null); }} className="h-8 w-8 rounded-lg text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{emoji}</button>)}</div>}</div>
+                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" />
+                <div className="mt-2">
+                  <EmojiPicker open={emojiOpen === "post"} onToggle={() => setEmojiOpen((open) => open === "post" ? null : "post")} onSelect={(emoji) => { setBody((value) => value + emoji); setEmojiOpen(null); }} label="Adicionar emoji à publicação" />
+                </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <select value={selectedCourse} onChange={(event) => setSelectedCourse(event.target.value)} className="rounded-xl border border-[#DCE5F0] bg-white px-3 py-2.5 text-sm text-[#334155]">
                     <option value="">Curso (opcional)</option>
@@ -345,7 +367,8 @@ function CommunityPage() {
                     <div className="mt-3 space-y-3 rounded-xl bg-[#F8FAFC] p-3">
                       {comments[post.id].map((comment) => <div key={comment.id}><div className="flex items-center gap-2"><div className="h-7 w-7 overflow-hidden rounded-full bg-[#EAF1FF] text-[9px] font-black text-[#0242D7]">{comment.authorAvatar ? <img src={comment.authorAvatar} alt="" className="h-full w-full object-cover" /> : "E"}</div><p className="text-[11px] font-black text-[#172334]">{comment.authorName ?? "Estudante Ensina-me"}</p></div><p className="mt-1 text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
                       <div className="flex gap-2">
-                        <input value={commentInput[post.id] ?? ""} onChange={(event) => setCommentInput((current) => ({ ...current, [post.id]: event.target.value }))} maxLength={1000} placeholder="Escreva uma resposta…" className="min-w-0 flex-1 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#0242D7]" /><div className="relative"><button type="button" onClick={() => setEmojiOpen((open) => open === post.id ? null : post.id)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#DCE5F0] bg-white text-lg hover:border-[#0242D7]" aria-label="Adicionar emoji à resposta">😊</button>{emojiOpen === post.id && <div className="absolute bottom-12 right-0 z-20 grid w-[280px] grid-cols-8 gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-xl">{COMMON_EMOJIS.map((emoji) => <button key={emoji} type="button" onClick={() => { setCommentInput((current) => ({ ...current, [post.id]: (current[post.id] ?? "") + emoji })); setEmojiOpen(null); }} className="h-8 w-8 rounded-lg text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{emoji}</button>)}</div>}</div>
+                        <input value={commentInput[post.id] ?? ""} onChange={(event) => setCommentInput((current) => ({ ...current, [post.id]: event.target.value }))} maxLength={1000} placeholder="Escreva uma resposta…" className="min-w-0 flex-1 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#0242D7]" />
+                        <EmojiPicker open={emojiOpen === post.id} onToggle={() => setEmojiOpen((open) => open === post.id ? null : post.id)} onSelect={(emoji) => { setCommentInput((current) => ({ ...current, [post.id]: (current[post.id] ?? "") + emoji })); setEmojiOpen(null); }} label="Adicionar emoji à resposta" />
                         <button type="button" onClick={() => void addComment(post.id)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-black text-white">Enviar</button>
                       </div>
                     </div>
