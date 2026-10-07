@@ -70,7 +70,7 @@ const navigation = [
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [authChecking, setAuthChecking] = useState(true);
+  const [authChecking, setAuthChecking] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -85,7 +85,6 @@ function AppLayout() {
     let active = true;
 
     const checkAccess = async () => {
-      setAuthChecking(true);
       setAuthError(null);
 
       const sessionResult = await Promise.race([
@@ -229,30 +228,19 @@ function AppLayout() {
     return { title: "Ensina-me", back: true };
   })();
 
-  if (authChecking || authError) {
+  if (authError) {
     return (
-      <div className="app-stage flex min-h-[100dvh] items-center justify-center px-6" aria-busy={authChecking}>
-        {authError ? (
-          <div className="app-card w-full max-w-md p-6 text-center">
-            <p className="text-sm font-semibold text-[#991B1B] dark:text-[#FCA5A5]">{authError}</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="app-primary-button mt-4 min-h-11 px-5"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="app-brand-mark h-12 w-12">
-              <BrandLogo compact tone="blue" />
-            </div>
-            <p className="text-sm font-semibold text-[#687688] dark:text-[#AAB7C7]">
-              Abrindo seu espaço de aprendizagem...
-            </p>
-          </div>
-        )}
+      <div className="app-stage flex min-h-[100dvh] items-center justify-center px-6">
+        <div className="app-card w-full max-w-md p-6 text-center">
+          <p className="text-sm font-semibold text-[#991B1B] dark:text-[#FCA5A5]">{authError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="app-primary-button mt-4 min-h-11 px-5"
+          >
+            Tentar novamente
+          </button>
+        </div>
       </div>
     );
   }
