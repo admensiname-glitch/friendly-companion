@@ -81,11 +81,11 @@ function getClientVisualFallback(request: string, response: string): VisualAid |
     caption: "Imagem pública em CC0, usada como apoio didático.",
     image: {
       enabled: true,
-      url: "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Process_of_Photosynthesis.jpg/1280px-Process_of_Photosynthesis.jpg",
-      title: "Photosynthesis schematic",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:Process_of_Photosynthesis.jpg",
-      license: "CC0 1.0",
-      attribution: "Ndennis99 · Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Photosynthesis%20pt.svg?width=1280",
+      title: "Diagrama com o processo geral da fotossíntese",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Photosynthesis_pt.svg",
+      license: "CC BY-SA 4.0",
+      attribution: "Wikimedia Commons",
     },
   };
 }
