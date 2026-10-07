@@ -20,7 +20,7 @@ type Post = {
   disciplines?: { name: string } | null;
   topics?: { name: string } | null;
 };
-type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
+type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string; authorName?: string; authorAvatar?: string | null };
 const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
 
 
@@ -343,7 +343,7 @@ function CommunityPage() {
                   {post.author_id === currentUserId && <button type="button" onClick={() => void deletePost(post.id)} className="mt-2 text-xs font-bold text-[#B42318] hover:underline">Excluir publicação</button>}
                   {comments[post.id] && (
                     <div className="mt-3 space-y-3 rounded-xl bg-[#F8FAFC] p-3">
-                      {comments[post.id].map((comment) => <div key={comment.id}><p className="text-[11px] font-black text-[#172334]">Estudante Ensina-me</p><p className="mt-1 text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
+                      {comments[post.id].map((comment) => <div key={comment.id}><div className="flex items-center gap-2"><div className="h-7 w-7 overflow-hidden rounded-full bg-[#EAF1FF] text-[9px] font-black text-[#0242D7]">{comment.authorAvatar ? <img src={comment.authorAvatar} alt="" className="h-full w-full object-cover" /> : "E"}</div><p className="text-[11px] font-black text-[#172334]">{comment.authorName ?? "Estudante Ensina-me"}</p></div><p className="mt-1 text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
                       <div className="flex gap-2">
                         <input value={commentInput[post.id] ?? ""} onChange={(event) => setCommentInput((current) => ({ ...current, [post.id]: event.target.value }))} maxLength={1000} placeholder="Escreva uma resposta…" className="min-w-0 flex-1 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#0242D7]" />
                         <button type="button" onClick={() => void addComment(post.id)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-black text-white">Enviar</button>
