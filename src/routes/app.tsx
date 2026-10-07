@@ -105,7 +105,7 @@ function AppLayout() {
 
       const { data: profile, error: profileError } = await supabase
         .from("student_profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed,display_name,avatar_url")
         .eq("user_id", data.session.user.id)
         .maybeSingle();
 
