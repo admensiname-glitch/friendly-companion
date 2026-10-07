@@ -25,7 +25,8 @@ type IconName =
   | "close"
   | "bell"
   | "chevron"
-  | "tutor";
+  | "tutor"
+  | "community";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -45,6 +46,7 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
     chevron: <path d="m9 18 6-6-6-6" />,
     tutor: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M8 8h8" /><path d="M8 12h5" /><path d="M15 15h3" /></>,
+    community: <><circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><path d="M2.5 20a5.5 5.5 0 0 1 11 0" /><path d="M10.5 20a5.5 5.5 0 0 1 11 0" /></>,
   };
 
   return (
@@ -59,6 +61,7 @@ const navigation = [
   { to: "/app/disciplinas" as const, label: "Meus cursos", icon: "book" as const },
   { to: "/app/estude-agora" as const, label: "Estudar agora", icon: "spark" as const },
   { to: "/app/tutor" as const, label: "Tutor", icon: "tutor" as const },
+  { to: "/app/comunidade" as const, label: "Comunidade", icon: "community" as const },
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
@@ -146,6 +149,7 @@ function AppLayout() {
     if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
     if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
     if (pathname === "/app/tutor") return { title: "Tutor", back: false };
+    if (pathname === "/app/comunidade") return { title: "Comunidade", back: false };
     if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Meus cursos", back: false };
     if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
     if (pathname === "/app/revisao") return { title: "Revisão", back: false };
