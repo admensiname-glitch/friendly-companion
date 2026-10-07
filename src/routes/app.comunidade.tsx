@@ -151,7 +151,24 @@ function CommunityPage() {
       }
       const { error: updateError } = await supabase.from("student_profiles").update({ display_name: name, avatar_url: nextAvatar }).eq("user_id", currentUserId);
       if (updateError) throw updateError;
-      setProfileName(name); setAvatarUrl(nextAvatar); setAvatarFile(null); setProfileEditing(false);
+      setProfileName(name);
+      setAvatarUrl(nextAvatar);
+      setProfileNameDraft(name);
+      setAvatarFile(null);
+      setProfileEditing(false);
+      setComments((current) => Object.fromEntries(
+        Object.entries(current).map(([postId, items]) => [
+          postId,
+          items.map((comment) =>
+            comment.author_id === currentUserId
+              ? { ...comment, authorName: name, authorAvatar: nextAvatar }
+              : comment,
+          ),
+        ]),
+      ));
+      window.dispatchEvent(new CustomEvent("ensina-me-profile-updated", {
+        detail: { displayName: name, avatarUrl: nextAvatar },
+      }));
     } catch (e) { setError(e instanceof Error && e.message === "AVATAR" ? "A foto precisa ser uma imagem de até 5 MB." : "Não foi possível salvar seu perfil agora."); }
     finally { setProfileSaving(false); }
   }
@@ -245,8 +262,39 @@ function CommunityPage() {
   }
 
   async function loadComments(postId: string) {
-    const { data } = await supabase.from("community_comments").select("id,post_id,author_id,body,created_at").eq("post_id", postId).order("created_at", { ascending: true });
-    setComments((current) => ({ ...current, [postId]: (data ?? []) as Comment[] }));
+    const { data } = await supabase
+      .from("community_comments")
+      .select("id,post_id,author_id,body,created_at")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+
+    const rows = (data ?? []) as Comment[];
+    const authorIds = [...new Set(rows.map((comment) => comment.author_id))];
+    const { data: profiles } = authorIds.length
+      ? await supabase.from("student_profiles").select("user_id,display_name,avatar_url").in("user_id", authorIds)
+      : { data: [] };
+
+    const profileMap = new Map(
+      (profiles ?? []).map((profile) => [
+        profile.user_id,
+        {
+          name: profile.display_name?.trim() || "Estudante Ensina-me",
+          avatar: profile.avatar_url ?? null,
+        },
+      ]),
+    );
+
+    const enriched = rows.map((comment) => {
+      const profile = profileMap.get(comment.author_id);
+      const isCurrentUser = comment.author_id === currentUserId;
+      return {
+        ...comment,
+        authorName: isCurrentUser ? profileName : (profile?.name ?? "Estudante Ensina-me"),
+        authorAvatar: isCurrentUser ? avatarUrl : (profile?.avatar ?? null),
+      };
+    });
+
+    setComments((current) => ({ ...current, [postId]: enriched }));
   }
 
   async function addComment(postId: string) {
