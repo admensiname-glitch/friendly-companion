@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app/comunidade")({ component: CommunityPage });
@@ -41,13 +41,14 @@ function CommunityPage() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const currentUserId = useMemo(() => null, []);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   async function loadFeed() {
     setLoading(true);
     setError(null);
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
+    setCurrentUserId(userId ?? null);
     if (!userId) {
       setError("Sua sessão expirou. Entre novamente.");
       setLoading(false);
