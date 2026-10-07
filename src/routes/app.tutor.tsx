@@ -81,7 +81,7 @@ function getClientVisualFallback(request: string, response: string): VisualAid |
     caption: "Imagem pública em CC0, usada como apoio didático.",
     image: {
       enabled: true,
-      url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Process%20of%20Photosynthesis.jpg?width=1200",
+      url: "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Process_of_Photosynthesis.jpg/1280px-Process_of_Photosynthesis.jpg",
       title: "Photosynthesis schematic",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Process_of_Photosynthesis.jpg",
       license: "CC0 1.0",
@@ -113,11 +113,11 @@ function TutorPage() {
         <div className="p-4 sm:p-5">
           {visualAid.image?.enabled && visualAid.image.url && (
             <figure className="overflow-hidden rounded-xl border border-[#DCE5F0] bg-white">
-              <div className="flex min-h-[220px] items-center justify-center bg-[#F8FAFC] p-2 sm:min-h-[320px]">
+              <div className="flex min-h-[280px] items-center justify-center bg-[#F8FAFC] p-2 sm:min-h-[440px]">
                 <img
                   src={visualAid.image.url}
                   alt={visualAid.image.title || visualAid.title}
-                  className="block max-h-[520px] w-full object-contain"
+                  className="block max-h-[680px] w-full object-contain"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
@@ -265,13 +265,22 @@ function TutorPage() {
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
+      const clientVisualFallback = getClientVisualFallback(message, data.message);
+      const backendVisualAid = data.visual_aid as VisualAid | null | undefined;
+      const visualAid = backendVisualAid
+        ? {
+            ...backendVisualAid,
+            image: backendVisualAid.image ?? clientVisualFallback?.image ?? null,
+          }
+        : clientVisualFallback;
+
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
           content: data.message,
           shareable: data.shareable === true,
-          visualAid: data.visual_aid ?? getClientVisualFallback(message, data.message),
+          visualAid,
         },
       ]);
     }
@@ -302,7 +311,7 @@ function TutorPage() {
             ) : null}
 
             {messages.map((message, index) => (
-              <div key={`${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
+              <div key={`${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-4 text-sm leading-6 text-[#273547]" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
                 {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : message.content}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
