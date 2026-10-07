@@ -312,6 +312,81 @@ function truncateText(value: string, maxCharacters: number): string {
 const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
 const MAX_CONTEXT_CHARACTERS = 24000;;
 const PUBLIC_IMAGE_LICENSES = new Set(["cc0", "pdm"]);
+type TutorVideo = {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  embed_url: string;
+  channel_name: string | null;
+  duration_label: string | null;
+};
+
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/\\u0026/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+async function searchYoutubeVideoForQuestion(question: string, topicName: string): Promise<TutorVideo | null> {
+  const normalizedQuestion = question.replace(/\\s+/g, " ").trim();
+  const query = [normalizedQuestion, topicName, "aula explicação"].filter(Boolean).join(" ").slice(0, 220);
+  try {
+    const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(query);
+    const response = await fetch(url, {
+      headers: {
+        "Accept-Language": "pt-BR,pt;q=0.9",
+        "User-Agent": "Mozilla/5.0 (compatible; Ensina-me/1.0)",
+      },
+    });
+    if (!response.ok) return null;
+    const html = await response.text();
+
+    const candidates: TutorVideo[] = [];
+    const rendererRegex = /"videoRenderer":\\{"videoId":"([^"]+)"[\\s\\S]*?"title":\\{"runs":\\[\\{"text":"([^"]*)"/g;
+    let match: RegExpExecArray | null;
+    while ((match = rendererRegex.exec(html)) && candidates.length < 8) {
+      const id = match[1];
+      const title = decodeHtmlEntities(match[2]);
+      if (!id || !title || candidates.some((item) => item.id === id)) continue;
+
+      const contextStart = Math.max(0, match.index);
+      const context = html.slice(contextStart, Math.min(html.length, contextStart + 9000));
+      const channelMatch = context.match(/"ownerText":\\{"runs":\\[\\{"text":"([^"]+)"/);
+      const lengthMatch = context.match(/"lengthText":\\{"simpleText":"([^"]+)"/);
+
+      candidates.push({
+        id,
+        title,
+        description: null,
+        video_url: "https://www.youtube.com/watch?v=" + id,
+        embed_url: "https://www.youtube.com/embed/" + id,
+        channel_name: channelMatch ? decodeHtmlEntities(channelMatch[1]) : null,
+        duration_label: lengthMatch ? decodeHtmlEntities(lengthMatch[1]) : null,
+      });
+    }
+
+    // Prefer Portuguese/educational titles and avoid obvious Shorts where possible.
+    const scored = candidates.map((video) => {
+      const title = normalizeForComparison(video.title);
+      let score = 0;
+      if (/(aula|explicacao|explicacao|conceito|entenda|como funciona|resumo)/.test(title)) score += 3;
+      if (/(portugues|brasil|brasileir)/.test(title)) score += 1;
+      if (!/shorts/.test(title)) score += 1;
+      return { video, score };
+    }).sort((a, b) => b.score - a.score);
+
+    return scored[0]?.video ?? null;
+  } catch (error) {
+    console.warn("[Ensina-me] ai-tutor: busca de vídeo no YouTube falhou", error instanceof Error ? error.message : "unknown error");
+    return null;
+  }
+}
+
 
 function normalizeLicense(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -534,6 +609,7 @@ function extractTutorResult(payload: unknown): {
       microassessment?: unknown;
       shareable?: unknown;
       visual_aid?: unknown;
+      video_recommendation?: unknown;
     };
 
     if (typeof parsed.message !== "string") return null;
@@ -1517,7 +1593,12 @@ Deno.serve(async (req: Request) => {
       "- Não use para saudações, respostas curtas ou quando o visual seria apenas decorativo.\n" +
       "- Use de 2 a 6 itens curtos e semanticamente precisos, derivados do contexto acadêmico fornecido.\n" +
       "- Nunca invente informação para preencher o apoio visual.\n\n" +
-      "MICROAVALIAÇÃO ADAPTATIVA\n" +
+      "VÍDEO RECOMENDADO\n" +
+      "- Avalie a PERGUNTA ATUAL do aluno, não apenas o tópico.\n" +
+      "- video_recommendation.enabled=true somente quando um vídeo didático puder responder, esclarecer ou aprofundar diretamente a pergunta atual.\n" +
+      "- Se a relação for apenas genérica com o tópico, use enabled=false.\n" +
+      "- O sistema fará uma busca no YouTube usando a pergunta atual e o contexto do tópico.\n" +
+      "- reason deve explicar em uma frase por que o vídeo encontrado ajuda exatamente nesta pergunta.\n\n" +\n      "MICROAVALIAÇÃO ADAPTATIVA\n" +
       "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
       "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
       "- Faça exatamente uma questão de múltipla escolha com 4 alternativas.\n" +
@@ -1635,7 +1716,7 @@ Deno.serve(async (req: Request) => {
                       ],
                     },
                   },
-                  required: ["message", "shareable", "visual_aid", "microassessment"],
+                  required: ["message", "shareable", "visual_aid", "microassessment", "video_recommendation"],
                 },
               },
             },
@@ -1857,6 +1938,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    const searchedTutorVideo = tutorResult.videoRecommendation?.enabled
+      ? await searchYoutubeVideoForQuestion(userMessage, topic.name)
+      : null;
+
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
@@ -1865,11 +1950,11 @@ Deno.serve(async (req: Request) => {
       micro_assessment: publicMicroAssessment,
       shareable: tutorResult.shareable,
       video_recommendation:
-        tutorResult.videoRecommendation?.enabled && topicVideo
+        tutorResult.videoRecommendation?.enabled && searchedTutorVideo
           ? {
               enabled: true,
               reason: tutorResult.videoRecommendation.reason,
-              video: topicVideo,
+              video: searchedTutorVideo,
             }
           : {
               enabled: false,
