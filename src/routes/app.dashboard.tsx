@@ -20,6 +20,12 @@ interface StudentDiscipline {
   course: string;
 }
 
+interface Course {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 interface User {
   email?: string;
   user_metadata?: { full_name?: string; name?: string };
@@ -107,6 +113,7 @@ function AppDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
@@ -124,10 +131,11 @@ function AppDashboard() {
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
-      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult] =
+      const [profileResult, disciplinesResult, coursesResult, topicsResult, recommendationResult, todayResult] =
         await Promise.all([
           supabase.from("student_profiles").select("institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
+          supabase.from("courses").select("id, name, description").eq("published", true).order("name", { ascending: true }),
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
@@ -135,6 +143,7 @@ function AppDashboard() {
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
       if (disciplinesResult.data) setDisciplines(disciplinesResult.data as StudentDiscipline[]);
+      if (coursesResult.data) setCourses(coursesResult.data as Course[]);
       if (!topicsResult.error) setTopicsProgress((topicsResult.data ?? []) as DashboardTopic[]);
       if (!recommendationResult.error && recommendationResult.data) {
         setRecommendation(recommendationResult.data as unknown as StudyRecommendation);
@@ -379,67 +388,25 @@ function AppDashboard() {
         </div>
       </section>
 
-      <section className="mt-10" aria-labelledby="disciplines-heading">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Organização</p>
-            <h2 id="disciplines-heading" className="mt-1 text-[21px] font-black tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
-              Minhas disciplinas
-            </h2>
-          </div>
-          <Link to="/app/catalogo" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Catálogo</Link>
-        </div>
-
-        {loading ? (
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {[1, 2].map((item) => <div key={item} className="app-card h-20 animate-pulse" />)}
-          </div>
-        ) : disciplineProgress.length > 0 ? (
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {disciplineProgress.slice(0, 4).map((discipline) => (
-              <Link
-                key={discipline.discipline_id}
-                to="/app/disciplinas/$disciplineId"
-                params={{ disciplineId: discipline.discipline_id }}
-                className="app-card group flex items-center gap-3 p-4"
-              >
-                <ProgressRing value={discipline.progress} size={54} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{discipline.discipline_name}</p>
-                  <p className="mt-1 text-xs font-semibold text-[#8995A5] dark:text-[#8B9CAE]">{discipline.completed} de {discipline.topics} tópicos concluídos</p>
-                </div>
-                <Icon name="chevron" className="h-4 w-4 shrink-0 text-[#A0AAB7] group-hover:text-[#0242D7] dark:group-hover:text-[#78A9FF]" />
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="app-card mt-3 p-5">
-            <p className="text-sm font-black text-[#334155] dark:text-[#DCE5EE]">
-              {disciplines.length > 0 ? "Os tópicos das suas disciplinas aparecerão aqui." : "Suas disciplinas aparecerão aqui."}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-[#7A8796] dark:text-[#91A1B2]">
-              Assim que houver conteúdo disponível, seu percurso será organizado automaticamente.
-            </p>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-10 pb-3">
-        <div className="grid grid-cols-3 gap-2">
-          <Link to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="spark" className="h-4 w-4" /></span>
-            <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Estudar agora</span>
-          </Link>
-          <Link to="/app/prova" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F1F8F4] text-[#16804A] dark:bg-[#153025] dark:text-[#70D3A1]"><Icon name="book" className="h-4 w-4" /></span>
-            <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Praticar</span>
-          </Link>
-          <Link to="/app/revisao" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF5E8] text-[#B86B13] dark:bg-[#302516] dark:text-[#E8B66C]"><Icon name="review" className="h-4 w-4" /></span>
-            <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Revisar</span>
-          </Link>
-        </div>
-      </section>
-    </section>
-  );
-}
+      <section className="mt-10" aria-labelledby="courses-heading">
+  <div className="flex items-end justify-between gap-3">
+    <div><p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Organização</p><h2 id="courses-heading" className="mt-1 text-[21px] font-black tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">Meus cursos</h2></div>
+    <Link to="/app/catalogo" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Catálogo</Link>
+  </div>
+  {loading ? (
+    <div className="mt-3 grid gap-3 sm:grid-cols-2">{[1, 2].map((item) => <div key={item} className="app-card h-24 animate-pulse" />)}</div>
+  ) : courses.length > 0 ? (
+    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      {courses.slice(0, 4).map((course) => {
+        const courseDisciplineCount = disciplines.filter((item) => item.course === course.name).length;
+        return <Link key={course.id} to="/app/disciplinas" className="app-card group flex min-h-[118px] items-center gap-4 p-5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="book" className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1"><p className="text-base font-black text-[#273547] dark:text-[#E1E9F2]">{course.name}</p><p className="mt-1 text-xs font-semibold text-[#8995A5] dark:text-[#8B9CAE]">{courseDisciplineCount > 0 ? courseDisciplineCount + (courseDisciplineCount === 1 ? " disciplina" : " disciplinas") + " no seu percurso" : "Curso disponível para estudar"}</p></div>
+          <Icon name="chevron" className="h-4 w-4 shrink-0 text-[#A0AAB7] transition-transform group-hover:translate-x-0.5 group-hover:text-[#0242D7] dark:group-hover:text-[#78A9FF]" />
+        </Link>;
+      })}
+    </div>
+  ) : (
+    <div className="app-card mt-3 p-5"><p className="text-sm font-black text-[#334155] dark:text-[#DCE5EE]">Nenhum curso disponível ainda.</p><p className="mt-1 text-xs leading-5 text-[#7A8796] dark:text-[#91A1B2]">Os cursos publicados pelo Ensina-me aparecerão aqui.</p></div>
+  )}
+</section>
