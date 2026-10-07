@@ -141,10 +141,21 @@ function StudyNowPage() {
               <Link to="/app/revisao" className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]">
                 Ver revisão
               </Link>
+              <a
+                href={`/app/comunidade?share_text=${encodeURIComponent(`Estou estudando “${recommendation?.topic_name ?? "um tópico"}” no Ensina-me. Minha próxima meta é consolidar este conteúdo na prática.`)}${recommendation?.discipline_id ? `&discipline_id=${encodeURIComponent(recommendation.discipline_id)}` : ""}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#D5E1F2] bg-white px-4 py-2.5 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]"
+              >
+                Compartilhar na comunidade
+              </a>
             </div>
           </div>
 
           <div className="border-t border-[#D5E1F2] bg-white/55 px-6 py-5 dark:border-[#2E4563] dark:bg-[#111C2E]/45 sm:px-8">
+            <div className="mb-5 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">15 min</p><p className="mt-1 text-xs text-[#7A8796]">Sessão rápida: conteúdo + prática</p></div>
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">30 min</p><p className="mt-1 text-xs text-[#7A8796]">Sessão completa: estudar + praticar + revisar</p></div>
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">Meta de hoje</p><p className="mt-1 text-xs text-[#7A8796]">Acumule minutos e acompanhe seu ritmo</p></div>
+            </div>
             <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3">
               <div>
                 <p className="text-xs text-[#7A8796] dark:text-[#96A6B8]">Estudo hoje</p>
