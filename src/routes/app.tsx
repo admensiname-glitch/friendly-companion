@@ -59,7 +59,7 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
 
 const navigation = [
   { to: "/app/dashboard" as const, label: "Início", icon: "home" as const },
-  { to: "/app/disciplinas" as const, label: "Disciplinas", icon: "book" as const },
+  { to: "/app/disciplinas" as const, label: "Meus cursos", icon: "book" as const },
   { to: "/app/estude-agora" as const, label: "Estudar agora", icon: "spark" as const },
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
@@ -216,7 +216,7 @@ function AppLayout() {
     const pathname = location.pathname;
     if (pathname === "/app/dashboard" || pathname === "/app/") return { title: "Início", back: false };
     if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
-    if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Disciplinas", back: false };
+    if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Meus cursos", back: false };
     if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
     if (pathname === "/app/revisao") return { title: "Revisão", back: false };
     if (pathname === "/app/desempenho") return { title: "Desempenho", back: false };
