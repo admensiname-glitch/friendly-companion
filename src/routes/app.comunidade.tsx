@@ -103,7 +103,21 @@ function CommunityPage() {
     setLoading(false);
   }
 
-  useEffect(() => { void loadFeed(); }, []);
+  useEffect(() => {
+    void loadFeed();
+    const params = new URLSearchParams(window.location.search);
+    const sharedText = params.get("share_text");
+    const courseId = params.get("course_id");
+    const disciplineId = params.get("discipline_id");
+    const topicId = params.get("topic_id");
+    if (sharedText) {
+      setBody(sharedText.slice(0, 2000));
+      setSelectedCourse(courseId ?? "");
+      setSelectedDiscipline(disciplineId ?? "");
+      setSelectedTopic(topicId ?? "");
+      setError(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (!selectedCourse) {
