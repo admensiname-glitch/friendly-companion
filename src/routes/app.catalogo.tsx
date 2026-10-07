@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
+interface Course {
+  id: string;
+  name: string;
+  slug: string;
+}
 interface Discipline {
   id: string;
   name: string;
@@ -47,6 +52,7 @@ function Icon({ name, className = "" }: { name: "search" | "book" | "arrow" | "b
 function CatalogPage() {
   const matchRoute = useMatchRoute();
   const hasDisciplineChild = Boolean(matchRoute({ to: "/app/catalogo/$disciplineId" }));
+  const [courses, setCourses] = useState<Course[]>([]);
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,25 +69,14 @@ function CatalogPage() {
     void (async () => {
       try {
         const { data, error } = await supabase
-          .from("disciplines")
-          .select("id,name,description,course_id,curriculum_order,reference_semester,curriculum_area,courses(name)")
+          .from("courses")
+          .select("id,name,slug")
           .eq("published", true)
-          .order("curriculum_order", { ascending: true, nullsFirst: false })
           .order("name", { ascending: true });
 
         if (error) throw error;
         if (cancelled) return;
-
-        const rows = (data ?? []) as Array<
-          Discipline & { courses?: { name: string } | null }
-        >;
-
-        setDisciplines(
-          rows.map((row) => ({
-            ...row,
-            course_name: row.courses?.name ?? "Curso",
-          })),
-        );
+        setCourses((data ?? []) as Course[]);
       } catch (error) {
         console.error("Falha ao carregar catálogo", error);
       } finally {
@@ -94,70 +89,108 @@ function CatalogPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedDiscipline) {
-      setTopics([]);
-      setTopicsError(null);
-      return;
-    }
+  const filteredCourses = useMemo(() => {
+    const normalized = query.trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    if (!normalized) return courses;
+    return courses.filter((course) => course.name.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").includes(normalized));
+  }, [courses, query]);
 
+mport { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+
+import { supabase } from "@/integrations/supabase/client";
+
+interface Course {
+  id: string;
+  name: string;
+  slug: string;
+}
+interface Discipline {
+  id: string;
+  name: string;
+  description: string | null;
+  course_id: string;
+  course_name?: string;
+  curriculum_order?: number | null;
+  reference_semester?: number | null;
+  curriculum_area?: string | null;
+}
+interface Topic {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+  discipline_id?: string;
+  discipline_name?: string;
+  course_name?: string;
+}
+
+export const Route = createFileRoute("/app/catalogo")({
+  component: CatalogPage,
+});
+
+function Icon({ name, className = "" }: { name: "search" | "book" | "arrow" | "back" | "spark"; className?: string }) {
+  const paths = {
+    search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
+    book: <><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5z" /><path d="M5 4.5v17" /><path d="M9 6h7" /></>,
+    arrow: <><path d="M5 12h13" /><path d="m13 6 6 6-6 6" /></>,
+    back: <><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></>,
+    spark: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="m19 4 .7 2 2 .7-.2.7-2 .7-2-.7 2-.7z" /></>,
+  } as const;
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {paths[name]}
+    </svg>
+  );
+}
+
+function CatalogPage() {
+  const matchRoute = useMatchRoute();
+  const hasDisciplineChild = Boolean(matchRoute({ to: "/app/catalogo/$disciplineId" }));
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [selectedDiscipline, setSelectedDiscipline] = useState<Discipline | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+  const [topicResults, setTopicResults] = useState<Topic[]>([]);
+  const [searchingTopics, setSearchingTopics] = useState(false);
+
+  useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      setTopicsLoading(true);
-      setTopicsError(null);
-
       try {
         const { data, error } = await supabase
-          .from("topics")
-          .select("id,name,description,position")
-          .eq("discipline_id", selectedDiscipline.id)
+          .from("courses")
+          .select("id,name,slug")
           .eq("published", true)
-          .order("position", { ascending: true });
+          .order("name", { ascending: true });
 
         if (error) throw error;
-        if (!cancelled) setTopics((data ?? []) as Topic[]);
+        if (cancelled) return;
+        setCourses((data ?? []) as Course[]);
       } catch (error) {
-        console.error("Falha ao carregar tópicos do catálogo", error);
-        if (!cancelled) {
-          setTopicsError("Não foi possível carregar os tópicos desta disciplina.");
-        }
+        console.error("Falha ao carregar catálogo", error);
       } finally {
-        if (!cancelled) setTopicsLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedDiscipline]);
+  }, []);
 
-  useEffect(() => {
+  const filteredCourses = useMemo(() => {
     const normalized = query.trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
-    if (normalized.length < 2) {
-      setTopicResults([]);
-      setSearchingTopics(false);
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        setSearchingTopics(true);
-        const { data: topicData } = await supabase
-          .from("topics")
-          .select("id,name,description,position,discipline_id,disciplines(name,courses(name))")
-          .eq("published", true)
-          .or(`name.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%`)
-          .order("name")
-          .limit(12);
-        if (cancelled) return;
-        const rows = (topicData ?? []) as Array<Topic & { disciplines?: { name: string; courses?: { name: string } | null } | null }>;
-        setTopicResults(rows.map((row) => ({ ...row, discipline_name: row.disciplines?.name ?? "Disciplina", course_name: row.disciplines?.courses?.name ?? "Curso" })));
-        setSearchingTopics(false);
-      })();
-    }, 250);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [query]);
+    if (!normalized) return courses;
+    return courses.filter((course) => course.name.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").includes(normalized));
+  }, [courses, query]);
 
   const filteredDisciplines = useMemo(() => {
     const normalized = query
@@ -272,122 +305,33 @@ function CatalogPage() {
   return (
     <section aria-labelledby="catalog-title" className="app-native-screen max-w-5xl">
       <header className="border-b border-[#DCE5F0] pb-7 dark:border-[#2B3A4F]">
-        <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
-          Biblioteca de aprendizagem
-        </p>
+        <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">Catálogo</p>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1
-              id="catalog-title"
-              className="text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[40px]"
-            >
-              Catálogo
-            </h1>
-            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">
-              Explore conteúdos publicados pelo Ensina-me, inclusive fora das suas disciplinas atuais.
-            </p>
+            <h1 id="catalog-title" className="text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[40px]">Cursos disponíveis</h1>
+            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">Explore os cursos disponíveis. Depois de escolher um curso, você poderá selecionar as disciplinas que deseja estudar.</p>
           </div>
-          <span className="text-sm font-semibold text-[#7B8795] dark:text-[#8FA0B2]">
-            {disciplines.length} disciplinas
-          </span>
+          <Link to="/app/disciplinas" className="text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">Ir para Meus cursos</Link>
         </div>
       </header>
 
-      <label
-        htmlFor="catalog-search"
-        className="mt-5 flex max-w-2xl items-center gap-3 border-b border-[#BFD0E4] bg-transparent py-3 text-[#0242D7] dark:border-[#38506C]"
-      >
-        <Icon name="search" className="h-5 w-5 shrink-0" />
-        <input
-          id="catalog-search"
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar disciplina, curso ou tópico..."
-          className="min-w-0 flex-1 bg-transparent text-sm text-[#243245] outline-none placeholder:text-[#96A3B3] dark:text-[#E1E9F2]"
-        />
-      </label>
-
-      {query.trim().length >= 2 && (
-        <section className="mt-7" aria-labelledby="academic-search-results">
-          <div className="flex items-end justify-between gap-3">
-            <div><p className="text-sm font-semibold text-[#0242D7]">Busca acadêmica</p><h2 id="academic-search-results" className="mt-1 text-xl font-bold text-[#172334] dark:text-[#E7EDF5]">Tópicos relacionados</h2></div>
-            {searchingTopics && <span className="text-xs text-[#7A8796]">Buscando…</span>}
-          </div>
-          {!searchingTopics && topicResults.length === 0 ? <p className="mt-4 text-sm text-[#7A8796]">Nenhum tópico encontrado para esse termo.</p> : (
-            <div className="mt-4 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
-              {topicResults.map((topic) => (
-                <Link key={topic.id} to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id!, topicId: topic.id }} className="block border-b border-[#E4EAF1] py-4 last:border-0 dark:border-[#2B3A4F]">
-                  <p className="text-xs font-bold text-[#0242D7]">{topic.course_name} · {topic.discipline_name}</p>
-                  <p className="mt-1 text-sm font-bold text-[#273547] dark:text-[#DFE8F1]">{topic.name}</p>
-                  {topic.description && <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#7A8796]">{topic.description}</p>}
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
       {loading ? (
-        <div className="mt-6 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="h-24 animate-pulse" />
-          ))}
-        </div>
-      ) : filteredDisciplines.length === 0 ? (
-        <div className="mt-7 py-8">
-          <p className="text-sm font-semibold text-[#344154] dark:text-[#DCE5EE]">
-            {disciplines.length === 0
-              ? "Nenhuma disciplina publicada ainda."
-              : "Nenhuma disciplina encontrada."}
-          </p>
-          <p className="mt-1 text-sm text-[#7A8796] dark:text-[#96A6B8]">
-            {disciplines.length > 0 ? "Tente outro termo de busca." : ""}
-          </p>
-        </div>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{[1,2,3].map((item) => <div key={item} className="h-36 animate-pulse rounded-2xl border border-[#E4EAF1] dark:border-[#2B3A4F]" />)}</div>
+      ) : courses.length === 0 ? (
+        <div className="mt-6 rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-6 text-sm text-[#667487] dark:border-[#2B3A4F] dark:bg-[#111B2A] dark:text-[#AAB7C7]">Nenhum curso publicado no momento.</div>
       ) : (
-        <div className="mt-5 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
-          {filteredDisciplines.map((discipline, index) => (
-            <button
-              key={discipline.id}
-              type="button"
-              onClick={() => setSelectedDiscipline(discipline)}
-              className="group grid w-full gap-3 border-b border-[#E4EAF1] py-5 text-left last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7E2EF] text-xs font-bold text-[#728196] dark:border-[#344A63] dark:text-[#8EA1B5]">
-                {index + 1}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[#8A96A5] dark:text-[#8797AA]">
-                  <span>{discipline.course_name}</span>
-                  {discipline.curriculum_area && <><span aria-hidden="true">·</span><span>{discipline.curriculum_area}</span></>}
-                  {discipline.reference_semester && <><span aria-hidden="true">·</span><span>Referência: {discipline.reference_semester}º semestre</span></>}
-                </div>
-                <h2 className="mt-1 text-[16px] font-bold text-[#273547] dark:text-[#E0E8F1]">
-                  {discipline.name}
-                </h2>
-                <p className="mt-1 line-clamp-1 text-xs text-[#7A8796] dark:text-[#8B9CAF]">
-                  {discipline.description ?? "Conteúdos organizados por tópicos."}
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
-                Explorar
-                <Icon name="arrow" className="h-3.5 w-3.5" />
-              </span>
-            </button>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredCourses.map((course) => (
+            <Link key={course.id} to="/app/disciplinas" className="group rounded-2xl border border-[#DCE5F0] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#0242D7] hover:shadow-sm dark:border-[#2B3A4F] dark:bg-[#111B2A]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1B2638] dark:text-[#7DB0FF]"><Icon name="book" className="h-5 w-5" /></span>
+              <h2 className="mt-5 text-xl font-bold text-[#273547] dark:text-[#E0E8F1]">{course.name}</h2>
+              <p className="mt-2 text-sm leading-6 text-[#718093] dark:text-[#95A6B8]">Escolher disciplinas para estudar</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF]">Escolher curso <Icon name="arrow" className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
+            </Link>
           ))}
         </div>
       )}
-
-      <div className="mt-9 border-t border-[#E4EAF1] pt-6 dark:border-[#2B3A4F]">
-        <Link
-          to="/app/estude-agora"
-          className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
-        >
-          <Icon name="spark" className="h-4 w-4" />
-          Estude agora com uma recomendação do Tutor
-        </Link>
-      </div>
     </section>
   );
 }
+
