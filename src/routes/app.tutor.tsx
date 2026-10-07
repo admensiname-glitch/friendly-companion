@@ -186,38 +186,6 @@ function TutorPage() {
     );
   }
 
-  function LearningNextStep({ nextStep }: { nextStep: NonNullable<Message["learningNextStep"]> }) {
-    if (!nextStep.enabled || nextStep.action === "none") return null;
-
-    const labels = {
-      practice: "Praticar agora",
-      review: "Revisar esse ponto",
-      clarify: "Explicar de outro jeito",
-    } as const;
-
-    return (
-      <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 sm:p-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
-        <h3 className="mt-1 text-sm font-black text-[#172334]">{nextStep.title}</h3>
-        {nextStep.reason && (
-          <p className="mt-2 text-xs leading-5 text-[#687688]">{nextStep.reason}</p>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setInput(nextStep.prompt);
-            window.setTimeout(() => {
-              document.getElementById("tutor-message")?.focus();
-            }, 0);
-          }}
-          className="mt-4 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-xs font-black text-white hover:bg-[#0038B8]"
-        >
-          {labels[nextStep.action]}
-        </button>
-      </div>
-    );
-  }
-
   function VisualAidCard({ visualAid }: { visualAid: VisualAid }) {
     if (!visualAid.enabled) return null;
 
