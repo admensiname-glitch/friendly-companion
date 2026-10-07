@@ -217,17 +217,9 @@ function Login() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("student_profiles")
-        .select("onboarding_completed")
-        .eq("user_id", sessionData.session.user.id)
-        .maybeSingle();
-
-      setMessage("Login realizado com sucesso. Abrindo sua área...");
-      setStatus("success");
-      await navigate({
-        to: profile?.onboarding_completed ? "/app/dashboard" : "/onboarding",
-      });
+      // A sessão já está criada. Entre imediatamente na área do aluno.
+      // O guard da rota /app continua responsável por validar onboarding e acesso.
+      await navigate({ to: "/app/dashboard", replace: true });
     } catch (caughtError) {
       setMessage(
         caughtError instanceof Error
