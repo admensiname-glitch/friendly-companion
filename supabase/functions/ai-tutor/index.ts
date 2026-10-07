@@ -311,58 +311,125 @@ function truncateText(value: string, maxCharacters: number): string {
 
 const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
 const MAX_CONTEXT_CHARACTERS = 24000;;
-const PUBLIC_IMAGE_LICENSES = new Set(["CC0", "CC0 1.0", "Public domain", "PD-self", "Public Domain"]);
+const PUBLIC_IMAGE_LICENSES = new Set(["cc0", "pdm"]);
 
-async function findPublicDomainImage(query: string): Promise<VisualAid["image"]> {
-  try {
-    const params = new URLSearchParams({
-      action: "query",
-      generator: "search",
-      gsrsearch: query,
-      gsrnamespace: "6",
-      gsrlimit: "8",
-      prop: "imageinfo",
-      iiprop: "url|extmetadata",
-      iiurlwidth: "1200",
-      format: "json",
-      origin: "*",
-    });
-    const response = await fetch("https://commons.wikimedia.org/w/api.php?" + params.toString(), {
-      headers: { "Accept": "application/json" },
-    });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    const pages = isRecord(payload) && isRecord(payload.query) && isRecord(payload.query.pages)
-      ? Object.values(payload.query.pages as Record<string, unknown>)
-      : [];
+function normalizeLicense(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
 
-    for (const page of pages) {
-      if (!isRecord(page) || !Array.isArray(page.imageinfo) || !page.imageinfo[0] || !isRecord(page.imageinfo[0])) continue;
-      const info = page.imageinfo[0] as UnknownRecord;
-      const metadata = isRecord(info.extmetadata) ? info.extmetadata : {};
-      const readMeta = (key: string) => {
-        const value = metadata[key];
-        return isRecord(value) && typeof value.value === "string"
-          ? value.value.replace(/<[^>]+>/g, "").trim()
-          : "";
-      };
-      const license = readMeta("LicenseShortName") || readMeta("License") || "";
-      if (!PUBLIC_IMAGE_LICENSES.has(license.trim())) continue;
-      const url = typeof info.thumburl === "string" ? info.thumburl : typeof info.url === "string" ? info.url : "";
-      const sourceUrl = typeof page.fullurl === "string" ? page.fullurl : "";
-      const title = typeof page.title === "string"
-        ? page.title.replace(/^File:/, "").replace(/.[^.]+$/, "")
-        : "Imagem de apoio";
-      if (!url || !sourceUrl) continue;
-      const attribution = readMeta("Artist") || readMeta("Credit") || "Wikimedia Commons";
-      return { enabled: true, url, title, sourceUrl, license: license.trim(), attribution };
+function isAllowedPublicLicense(value: string): boolean {
+  const normalized = normalizeLicense(value);
+  return PUBLIC_IMAGE_LICENSES.has(normalized) ||
+    normalized.includes("cc0") ||
+    normalized.includes("public domain") ||
+    normalized.includes("publicdomain");
+}
+
+async function searchOpenverseImage(queries: string[]): Promise<VisualAid["image"]> {
+  for (const query of queries) {
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        license: "cc0,pdm",
+        page_size: "10",
+        mature: "false",
+        filter_dead: "true",
+      });
+      const response = await fetch("https://api.openverse.org/v1/images/?" + params.toString(), {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Ensina-me/1.0 (academic learning platform)",
+        },
+      });
+      if (!response.ok) continue;
+      const payload = await response.json();
+      const results = isRecord(payload) && Array.isArray(payload.results) ? payload.results : [];
+      for (const item of results) {
+        if (!isRecord(item)) continue;
+        const license = typeof item.license === "string" ? item.license : "";
+        const licenseUrl = typeof item.license_url === "string" ? item.license_url : "";
+        const url = typeof item.url === "string" ? item.url : "";
+        const thumbnail = typeof item.thumbnail === "string" ? item.thumbnail : "";
+        const sourceUrl = typeof item.foreign_landing_url === "string"
+          ? item.foreign_landing_url
+          : typeof item.detail_url === "string" ? item.detail_url : "";
+        if (!sourceUrl || !(thumbnail || url)) continue;
+        if (!isAllowedPublicLicense(license) && !isAllowedPublicLicense(licenseUrl)) continue;
+        const title = typeof item.title === "string" && item.title.trim() ? item.title.trim() : "Imagem de apoio";
+        const attribution = typeof item.creator === "string" && item.creator.trim()
+          ? item.creator.trim()
+          : "Openverse";
+        return {
+          enabled: true,
+          url: thumbnail || url,
+          title,
+          sourceUrl,
+          license: normalizeLicense(license) === "pdm" ? "Public Domain Mark" : "CC0 1.0",
+          attribution,
+        };
+      }
+    } catch (error) {
+      console.warn("[Ensina-me] ai-tutor: Openverse falhou", error instanceof Error ? error.message : "unknown error");
     }
-  } catch (error) {
-    console.warn("[Ensina-me] ai-tutor: busca de imagem pública falhou", error instanceof Error ? error.message : "unknown error");
   }
   return null;
 }
 
+async function searchWikimediaImage(queries: string[]): Promise<VisualAid["image"]> {
+  for (const query of queries) {
+    try {
+      const params = new URLSearchParams({
+        action: "query",
+        generator: "search",
+        gsrsearch: query,
+        gsrnamespace: "6",
+        gsrlimit: "10",
+        prop: "imageinfo",
+        iiprop: "url|extmetadata",
+        iiurlwidth: "1200",
+        format: "json",
+        origin: "*",
+      });
+      const response = await fetch("https://commons.wikimedia.org/w/api.php?" + params.toString(), {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Ensina-me/1.0 (academic learning platform)",
+        },
+      });
+      if (!response.ok) continue;
+      const payload = await response.json();
+      const pages = isRecord(payload) && isRecord(payload.query) && isRecord(payload.query.pages)
+        ? Object.values(payload.query.pages as Record<string, unknown>) : [];
+      for (const page of pages) {
+        if (!isRecord(page) || !Array.isArray(page.imageinfo) || !page.imageinfo[0] || !isRecord(page.imageinfo[0])) continue;
+        const info = page.imageinfo[0] as UnknownRecord;
+        const metadata = isRecord(info.extmetadata) ? info.extmetadata : {};
+        const readMeta = (key: string) => {
+          const value = metadata[key];
+          return isRecord(value) && typeof value.value === "string"
+            ? value.value.replace(/<[^>]+>/g, "").trim() : "";
+        };
+        const license = readMeta("LicenseShortName") || readMeta("License") || "";
+        if (!isAllowedPublicLicense(license)) continue;
+        const url = typeof info.thumburl === "string" ? info.thumburl : typeof info.url === "string" ? info.url : "";
+        const sourceUrl = typeof page.fullurl === "string" ? page.fullurl : "";
+        if (!url || !sourceUrl) continue;
+        const title = typeof page.title === "string" ? page.title.replace(/^File:/, "").replace(/\.[^.]+$/, "") : "Imagem de apoio";
+        const attribution = readMeta("Artist") || readMeta("Credit") || "Wikimedia Commons";
+        return { enabled: true, url, title, sourceUrl, license: license.trim(), attribution };
+      }
+    } catch (error) {
+      console.warn("[Ensina-me] ai-tutor: Wikimedia Commons falhou", error instanceof Error ? error.message : "unknown error");
+    }
+  }
+  return null;
+}
+
+async function findPublicDomainImage(queries: string[]): Promise<VisualAid["image"]> {
+  const openverseImage = await searchOpenverseImage(queries);
+  if (openverseImage) return openverseImage;
+  return searchWikimediaImage(queries);
+}
 
 function detectLearningSignals(message: string): string[] {
   const normalized = message
@@ -1619,8 +1686,13 @@ Deno.serve(async (req: Request) => {
     const generatedAssessment = tutorResult.microassessment;
 
     if (tutorResult.visualAid.enabled) {
-      const imageQuery = (topic.name + " diagram").trim();
-      tutorResult.visualAid.image = await findPublicDomainImage(imageQuery);
+      const imageQueries = [
+        topic.name + " photosynthesis diagram",
+        topic.name + " process diagram",
+        topic.name + " biology diagram",
+        topic.name,
+      ].map((query) => query.trim()).filter(Boolean);
+      tutorResult.visualAid.image = await findPublicDomainImage(imageQueries);
       if (tutorResult.visualAid.image) {
         tutorResult.visualAid.caption = tutorResult.visualAid.caption
           ? tutorResult.visualAid.caption + " Imagem pública licenciada encontrada pelo Tutor."
