@@ -1503,3 +1503,71 @@
 @media (max-width: 639px) and (prefers-reduced-motion: reduce) {
   .app-route-stage { animation: none !important; transform: none !important; }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Web site visual direction — desktop-first                                    */
+/* -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  .app-shell {
+    background: #FFFFFF;
+  }
+
+  .app-content {
+    max-width: 1480px;
+    min-height: calc(100vh - 74px);
+    background: #FFFFFF;
+  }
+
+  .app-desktop-sidebar {
+    background: #FFFFFF;
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.025);
+  }
+
+  .app-desktop-header {
+    background: #FFFFFF;
+    backdrop-filter: none;
+  }
+
+  .app-sidebar-item {
+    border-radius: 10px;
+    color: #526174;
+  }
+
+  .app-sidebar-item:hover {
+    background: #0242D7;
+    color: #FFFFFF;
+  }
+
+  .app-sidebar-item:hover .app-nav-icon {
+    color: #FFFFFF;
+  }
+
+  .app-sidebar-item-active,
+  .app-sidebar-item-active:hover {
+    background: #0242D7;
+    color: #FFFFFF;
+    box-shadow: none;
+  }
+
+  .app-nav-icon,
+  .app-nav-icon-active {
+    background: transparent;
+    color: currentColor;
+    box-shadow: none;
+  }
+
+  .app-sidebar-profile {
+    background: #FFFFFF;
+    border-color: #E2E8F0;
+  }
+
+  .app-shell .app-card {
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.035);
+  }
+
+  .app-shell .app-card:hover {
+    border-color: #C9D8EE;
+  }
+}
