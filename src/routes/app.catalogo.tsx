@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,16 @@ function CatalogPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [addingCourseId, setAddingCourseId] = useState<string | null>(null);
+  const [addedCourseIds, setAddedCourseIds] = useState<string[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.from("student_courses").select("course_id");
+      setAddedCourseIds((data ?? []).map((item) => item.course_id));
+    })();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,18 +101,51 @@ function CatalogPage() {
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filteredCourses.map((course) => (
-            <Link
+            <div
               key={course.id}
-              to="/app/disciplinas"
-              className="group rounded-2xl border border-[#DCE5F0] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#0242D7] hover:shadow-sm dark:border-[#2B3A4F] dark:bg-[#111B2A]"
+              className="rounded-2xl border border-[#DCE5F0] bg-white p-6 transition hover:-translate-y-0.5 hover:border-[#0242D7] hover:shadow-sm dark:border-[#2B3A4F] dark:bg-[#111B2A]"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1B2638] dark:text-[#7DB0FF]">
                 <Icon className="h-5 w-5" />
               </span>
               <h2 className="mt-5 text-xl font-bold text-[#273547] dark:text-[#E0E8F1]">{course.name}</h2>
-              <p className="mt-2 text-sm leading-6 text-[#718093] dark:text-[#95A6B8]">Escolher disciplinas para estudar</p>
-              <span className="mt-5 inline-flex text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF]">Escolher curso →</span>
-            </Link>
+              <p className="mt-2 text-sm leading-6 text-[#718093] dark:text-[#95A6B8]">
+                {addedCourseIds.includes(course.id)
+                  ? "Este curso já faz parte do seu perfil. O Ensina-me usará esse percurso para personalizar suas recomendações."
+                  : "Adicione este curso ao seu perfil para começar a receber recomendações de disciplinas, tópicos e estudos."}
+              </p>
+              <button
+                type="button"
+                disabled={addedCourseIds.includes(course.id) || addingCourseId === course.id}
+                onClick={async () => {
+                  setAddingCourseId(course.id);
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  const userId = sessionData.session?.user.id;
+                  if (!userId) {
+                    setAddingCourseId(null);
+                    return;
+                  }
+                  const { error } = await supabase
+                    .from("student_courses")
+                    .insert({ user_id: userId, course_id: course.id });
+                  if (!error || error.code === "23505") {
+                    await supabase
+                      .from("student_profiles")
+                      .update({ course_id: course.id, updated_at: new Date().toISOString() })
+                      .eq("user_id", userId)
+                      .is("course_id", null);
+                    setAddedCourseIds((current) => current.includes(course.id) ? current : [...current, course.id]);
+                    setAddingCourseId(null);
+                    await navigate({ to: "/app/disciplinas" });
+                    return;
+                  }
+                  setAddingCourseId(null);
+                }}
+                className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#CBD5E1]"
+              >
+                {addedCourseIds.includes(course.id) ? "✓ Curso no meu perfil" : addingCourseId === course.id ? "Adicionando..." : "Adicionar ao meu perfil"}
+              </button>
+            </div>
           ))}
         </div>
       )}
