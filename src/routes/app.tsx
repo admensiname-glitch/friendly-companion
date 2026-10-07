@@ -261,7 +261,7 @@ function AppLayout() {
           <div className="app-sidebar-profile">
             <Link to="/app/perfil" className="flex min-w-0 flex-1 items-center gap-3">
               <span className="app-avatar overflow-hidden">
-                {profileAvatar ? <img src={profileAvatar} alt="" className="h-full w-full object-cover" decoding="async" /> : "EM"}
+                {profileAvatar ? <img src={profileAvatar} alt="" className="h-full w-full object-cover" decoding="async" loading="eager" /> : "EM"}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-extrabold">Meu perfil</span>
