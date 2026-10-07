@@ -229,19 +229,30 @@ function AppLayout() {
     return { title: "Ensina-me", back: true };
   })();
 
-  if (authError) {
+  if (authChecking || authError) {
     return (
-      <div className="app-stage flex min-h-[100dvh] items-center justify-center px-6" aria-live="polite">
-        <div className="app-card w-full max-w-md p-6 text-center">
-          <p className="text-sm font-semibold text-[#991B1B] dark:text-[#FCA5A5]">{authError}</p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="app-primary-button mt-4 min-h-11 px-5"
-          >
-            Tentar novamente
-          </button>
-        </div>
+      <div className="app-stage flex min-h-[100dvh] items-center justify-center px-6" aria-busy={authChecking}>
+        {authError ? (
+          <div className="app-card w-full max-w-md p-6 text-center">
+            <p className="text-sm font-semibold text-[#991B1B] dark:text-[#FCA5A5]">{authError}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="app-primary-button mt-4 min-h-11 px-5"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="app-brand-mark h-12 w-12">
+              <BrandLogo compact tone="blue" />
+            </div>
+            <p className="text-sm font-semibold text-[#687688] dark:text-[#AAB7C7]">
+              Abrindo seu espaço de aprendizagem...
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -258,7 +269,7 @@ function AppLayout() {
       <aside className="app-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
         <div className="flex h-[82px] items-center px-7">
           <Link to="/app/dashboard" aria-label="Ensina-me, início">
-            <BrandLogo tone="blue" />
+            <BrandLogo tone={isDark ? "light" : "blue"} />
           </Link>
         </div>
 
@@ -342,7 +353,7 @@ function AppLayout() {
         </div>
       </header>
 
-      <header className="app-desktop-header fixed right-0 top-0 z-30 hidden w-[calc(100%-252px)] border-b lg:block">
+      <header className="app-desktop-header sticky top-0 z-30 hidden border-b lg:block lg:ml-[252px]">
         <div className="mx-auto flex h-[74px] max-w-[1280px] items-center justify-between px-8">
           <div>
             <p className="text-xs font-semibold text-[#8B97A7] dark:text-[#91A1B2]">Seu espaço de aprendizagem</p>
@@ -412,7 +423,7 @@ function AppLayout() {
         </div>
       )}
 
-      <main className="lg:ml-[252px] lg:pt-[74px]">
+      <main className="lg:ml-[252px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />

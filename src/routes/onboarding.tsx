@@ -746,7 +746,6 @@ function Onboarding() {
   // ── UI state ──
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [technicalError, setTechnicalError] = useState<TechnicalError | null>(null);
 
@@ -773,7 +772,7 @@ function Onboarding() {
       const { data: profile } = await supabase
         .from("student_profiles")
         .select(
-          "course_id, institution, semester, daily_study_minutes, difficulties, onboarding_completed, trial_started_at",
+          "course_id, institution, semester, daily_study_minutes, difficulties, onboarding_completed",
         )
         .eq("user_id", userId)
         .maybeSingle();
@@ -784,7 +783,6 @@ function Onboarding() {
       }
 
       if (profile) {
-        setTrialStartedAt(profile.trial_started_at ?? null);
         if (profile.course_id) {
           setSelectedCourseId(profile.course_id);
           const profileCourse = (courses ?? []).find((item) => item.id === profile.course_id);
@@ -900,9 +898,6 @@ function Onboarding() {
         .map((d) => d.trim())
         .filter(Boolean);
 
-      const trialStartedNow = new Date().toISOString();
-      const trialEndsNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
       const { error } = await supabase
         .from("student_profiles")
         .upsert(
@@ -915,18 +910,11 @@ function Onboarding() {
             difficulties:
               difficultiesArray.length > 0 ? difficultiesArray : null,
             onboarding_completed: false,
-            ...(trialStartedAt
-              ? {}
-              : {
-                  trial_started_at: trialStartedNow,
-                  trial_ends_at: trialEndsNow,
-                }),
             updated_at: new Date().toISOString(),
           },
           { onConflict: "user_id" },
         );
 
-      if (!error && !trialStartedAt) setTrialStartedAt(trialStartedNow);
       setStatus(error ? "error" : "saved");
     }, 800);
   }

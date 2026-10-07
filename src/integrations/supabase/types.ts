@@ -1477,8 +1477,6 @@ export type Database = {
           institution: string | null
           onboarding_completed: boolean
           semester: number | null
-          trial_ends_at: string | null
-          trial_started_at: string | null
           updated_at: string
           user_id: string
         }
@@ -1491,8 +1489,6 @@ export type Database = {
           institution?: string | null
           onboarding_completed?: boolean
           semester?: number | null
-          trial_ends_at?: string | null
-          trial_started_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1505,8 +1501,6 @@ export type Database = {
           institution?: string | null
           onboarding_completed?: boolean
           semester?: number | null
-          trial_ends_at?: string | null
-          trial_started_at?: string | null
           updated_at?: string
           user_id?: string
         }

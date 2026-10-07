@@ -386,7 +386,6 @@ function extractOutputText(payload: unknown): string {
 
 function extractTutorResult(payload: unknown): {
   message: string;
-  scope: "in_topic" | "out_of_scope";
   microassessment: GeneratedMicroAssessment | null;
 } | null {
   const raw = extractOutputText(payload);
@@ -395,16 +394,10 @@ function extractTutorResult(payload: unknown): {
   try {
     const parsed = JSON.parse(raw) as {
       message?: unknown;
-      scope?: unknown;
       microassessment?: unknown;
     };
 
     if (typeof parsed.message !== "string") return null;
-
-    const scope =
-      parsed.scope === "out_of_scope"
-        ? "out_of_scope"
-        : "in_topic";
 
     let microassessment: GeneratedMicroAssessment | null = null;
 
@@ -445,7 +438,7 @@ function extractTutorResult(payload: unknown): {
       };
     }
 
-    return { message: parsed.message.trim(), scope, microassessment };
+    return { message: parsed.message.trim(), microassessment };
   } catch {
     return null;
   }
@@ -625,7 +618,7 @@ async function generateAdaptiveMicroAssessment(args: {
                     ],
                   },
                 },
-                required: ["message", "scope", "microassessment"],
+                required: ["message", "microassessment"],
               },
             },
           },
@@ -1353,12 +1346,6 @@ Deno.serve(async (req: Request) => {
       "- Português do Brasil, humano, encorajador e acadêmico.\n" +
       "- Não infantilize o aluno.\n" +
       "- Use organização visual apenas quando melhorar a compreensão.\n\n" +
-      "CONTROLE DE ESCOPO\n" +
-      "- Antes de responder, determine se a pergunta tem relação suficiente com o tópico atual, seu material, seus conceitos ou sua aplicação acadêmica.\n" +
-      "- Se a pergunta for claramente aleatória ou pertencer a outro assunto sem relação relevante com o tópico atual, classifique scope como \"out_of_scope\".\n" +
-      "- Para perguntas fora do escopo, não tente responder ao assunto aleatório, não invente uma conexão artificial com o tópico e não gere microavaliação.\n" +
-      "- A aplicação exibirá uma resposta fixa e profissional para esse caso.\n" +
-      "- Perguntas curtas ou indiretas que dependam do contexto do tópico, como \"por que isso acontece?\" ou \"qual a diferença?\", devem ser consideradas in_topic quando a conversa permitir inferir o referente.\n\n" +
       "CONTEXTO ACADÊMICO DO TÓPICO:\n" +
       safeContext;
 
@@ -1406,10 +1393,6 @@ Deno.serve(async (req: Request) => {
                   additionalProperties: false,
                   properties: {
                     message: { type: "string" },
-                    scope: {
-                      type: "string",
-                      enum: ["in_topic", "out_of_scope"],
-                    },
                     microassessment: {
                       type: "object",
                       additionalProperties: false,
@@ -1522,11 +1505,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const isOutOfScope = tutorResult.scope === "out_of_scope";
-    const assistantMessage = isOutOfScope
-      ? "Você realmente decidiu perguntar isso ao tutor de Pedagogia? 😐\n\nEu fui feito para ajudá-lo a compreender e dominar o conteúdo que estamos estudando — não para responder perguntas aleatórias. Tente novamente com uma pergunta relacionada ao tópico."
-      : tutorResult.message;
-    const generatedAssessment = isOutOfScope ? null : tutorResult.microassessment;
+    const assistantMessage = tutorResult.message;
+    const generatedAssessment = tutorResult.microassessment;
 
     let publicMicroAssessment: {
       id: string;
@@ -1659,9 +1639,8 @@ Deno.serve(async (req: Request) => {
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
-      out_of_scope: isOutOfScope,
-      learning_action: isOutOfScope ? null : learningAction,
-      learning_signals: isOutOfScope ? [] : learningSignals,
+      learning_action: learningAction,
+      learning_signals: learningSignals,
       micro_assessment: publicMicroAssessment,
     });
   } catch (error) {
