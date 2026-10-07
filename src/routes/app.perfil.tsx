@@ -8,6 +8,18 @@ interface StudentDiscipline { id:string; discipline_name:string }
 interface StudentExam { id:string; discipline:string; exam_type:string; exam_date:string|null }
 interface ProfileData { course_id:string|null; institution:string|null; semester:number|null; daily_study_minutes:number|null; difficulties:string[]|null }
 type SaveState="idle"|"saving"|"saved"|"error";
+async function prepareProfileImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) throw new Error("AVATAR_TYPE");
+  if (file.size > 5 * 1024 * 1024) throw new Error("AVATAR_SIZE");
+  const bitmap = await createImageBitmap(file);
+  try {
+    if (bitmap.width < 720 || bitmap.height < 720) throw new Error("AVATAR_RESOLUTION");
+    return file;
+  } finally {
+    bitmap.close();
+  }
+}
+
 
 export const Route=createFileRoute("/app/perfil")({component:ProfilePage});
 
@@ -45,7 +57,7 @@ function ProfilePage(){
 
  async function saveProfile(next:Partial<ProfileData>){if(!profile)return;setSaveState("saving");setMessage(null);const {data:sessionData}=await supabase.auth.getSession();if(!sessionData.session){setSaveState("error");setMessage("Sua sessão expirou. Faça login novamente.");return}const nextProfile={...profile,...next};const {error}=await supabase.from("student_profiles").upsert({user_id:sessionData.session.user.id,course_id:nextProfile.course_id,institution:nextProfile.institution||null,semester:nextProfile.semester,daily_study_minutes:nextProfile.daily_study_minutes??60,difficulties:nextProfile.difficulties?.length?nextProfile.difficulties:null,onboarding_completed:true,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error){setSaveState("error");setMessage("Não foi possível salvar as alterações.");return}setProfile(nextProfile);setSaveState("saved");window.setTimeout(()=>setSaveState("idle"),1800)}
 
- async function saveIdentity(){const {data:s}=await supabase.auth.getSession();if(!s.session)return;setProfileSaving(true);setMessage(null);const userId=s.session.user.id;let nextAvatar=avatarUrl;if(profileFile){if(!profileFile.type.startsWith("image/")){setProfileSaving(false);setMessage("Escolha uma imagem válida.");return}if(profileFile.size>5*1024*1024){setProfileSaving(false);setMessage("A foto deve ter no máximo 5 MB.");return}const ext=(profileFile.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=userId+"/avatar-"+crypto.randomUUID()+"."+ext;const {error}=await supabase.storage.from("profile-media").upload(path,profileFile,{upsert:false,contentType:profileFile.type});if(error){setProfileSaving(false);setMessage("Não foi possível enviar a foto.");return}const {data:publicData}=supabase.storage.from("profile-media").getPublicUrl(path);nextAvatar=publicData.publicUrl}
+ async function saveIdentity(){const {data:s}=await supabase.auth.getSession();if(!s.session)return;setProfileSaving(true);setMessage(null);const userId=s.session.user.id;let nextAvatar=avatarUrl;if(profileFile){const preparedFile=await prepareProfileImage(profileFile);const ext=(preparedFile.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=userId+"/avatar-"+crypto.randomUUID()+"."+ext;const {error}=await supabase.storage.from("profile-media").upload(path,preparedFile,{upsert:false,contentType:preparedFile.type,cacheControl:"31536000"});if(error){setProfileSaving(false);setMessage("Não foi possível enviar a foto.");return}const {data:publicData}=supabase.storage.from("profile-media").getPublicUrl(path);nextAvatar=publicData.publicUrl}
  const cleanName=name.trim();if(cleanName.length<2||cleanName.length>60){setProfileSaving(false);setMessage("O nome deve ter entre 2 e 60 caracteres.");return}
  const {error}=await supabase.from("student_profiles").upsert({user_id:userId,display_name:cleanName,avatar_url:nextAvatar},{onConflict:"user_id"});if(error){setProfileSaving(false);setMessage("Não foi possível salvar o perfil.");return}
  setName(cleanName);setAvatarUrl(nextAvatar);setProfileFile(null);setProfileSaving(false);
