@@ -50,6 +50,9 @@ function PerformancePage() {
       if (!evaluationsResult.error) {
         setEvaluations((evaluationsResult.data ?? []) as Evaluation[]);
       }
+      if (!topicsResult.error) {
+        setTopics((topicsResult.data ?? []) as TopicProgress[]);
+      }
 
       setLoading(false);
     })();
