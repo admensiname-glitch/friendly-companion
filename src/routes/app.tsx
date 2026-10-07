@@ -74,7 +74,9 @@ function AppLayout() {
   const [authChecking, setAuthChecking] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);\n  const [profileName, setProfileName] = useState("Meu perfil");\n  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profileName, setProfileName] = useState("Meu perfil");
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const logoutPending = useRef(false);
 
   useEffect(() => {
