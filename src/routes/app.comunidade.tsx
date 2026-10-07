@@ -42,6 +42,12 @@ function CommunityPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState("Estudante Ensina-me");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileNameDraft, setProfileNameDraft] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   async function loadFeed() {
     setLoading(true);
@@ -49,6 +55,11 @@ function CommunityPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
     setCurrentUserId(userId ?? null);
+    if (userId) {
+      const { data: profile } = await supabase.from("student_profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle();
+      setProfileName(profile?.display_name?.trim() || "Estudante Ensina-me");
+      setAvatarUrl(profile?.avatar_url ?? null);
+    }
     if (!userId) {
       setError("Sua sessão expirou. Entre novamente.");
       setLoading(false);
@@ -119,6 +130,36 @@ function CommunityPage() {
       setSelectedTopic("");
     })();
   }, [selectedDiscipline]);
+
+  async function saveProfile() {
+    if (!currentUserId) return;
+    const name = profileNameDraft.trim();
+    if (name.length < 2 || name.length > 60) { setError("O nome precisa ter entre 2 e 60 caracteres."); return; }
+    setProfileSaving(true); setError(null);
+    try {
+      let nextAvatar = avatarUrl;
+      if (avatarFile) {
+        if (!avatarFile.type.startsWith("image/") || avatarFile.size > 5 * 1024 * 1024) throw new Error("AVATAR");
+        const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = currentUserId + "/avatar-" + crypto.randomUUID() + "." + ext;
+        const upload = await supabase.storage.from("profile-media").upload(path, avatarFile, { contentType: avatarFile.type, upsert: false });
+        if (upload.error) throw upload.error;
+        nextAvatar = supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
+      }
+      const { error: updateError } = await supabase.from("student_profiles").update({ display_name: name, avatar_url: nextAvatar }).eq("user_id", currentUserId);
+      if (updateError) throw updateError;
+      setProfileName(name); setAvatarUrl(nextAvatar); setAvatarFile(null); setProfileEditing(false);
+    } catch (e) { setError(e instanceof Error && e.message === "AVATAR" ? "A foto precisa ser uma imagem de até 5 MB." : "Não foi possível salvar seu perfil agora."); }
+    finally { setProfileSaving(false); }
+  }
+
+  async function deletePost(postId: string) {
+    if (!currentUserId) return;
+    if (!window.confirm("Excluir esta publicação? Essa ação não pode ser desfeita.")) return;
+    const { error: deleteError } = await supabase.from("community_posts").delete().eq("id", postId).eq("author_id", currentUserId);
+    if (deleteError) { setError("Não foi possível excluir a publicação."); return; }
+    setPosts((current) => current.filter((post) => post.id !== postId));
+  }
 
   async function publish() {
     const text = body.trim();
@@ -238,9 +279,9 @@ function CommunityPage() {
         <div className="space-y-5">
           <section className="rounded-2xl border border-[#DCE5F0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,.05)]">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-xs font-black text-white">EM</div>
+              <button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#0242D7] text-xs font-black text-white" aria-label="Editar perfil">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : "EM"}</button>
               <div className="min-w-0 flex-1">
-                <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" />
+                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" />
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <select value={selectedCourse} onChange={(event) => setSelectedCourse(event.target.value)} className="rounded-xl border border-[#DCE5F0] bg-white px-3 py-2.5 text-sm text-[#334155]">
                     <option value="">Curso (opcional)</option>
@@ -278,10 +319,10 @@ function CommunityPage() {
           ) : posts.map((post) => (
             <article key={post.id} className="rounded-2xl border border-[#DCE5F0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,.04)]">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EAF1FF] text-xs font-black text-[#0242D7]">EM</div>
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#EAF1FF] text-xs font-black text-[#0242D7]">{post.author_id === currentUserId && avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : post.author_id === currentUserId ? "EM" : "E"}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-[#172334]">{post.author_id === currentUserId ? "Você" : "Estudante Ensina-me"}</p>
+                    <p className="text-sm font-black text-[#172334]">{post.author_id === currentUserId ? profileName : "Estudante Ensina-me"}</p>
                     <span className="text-xs text-[#94A3B8]">· {new Date(post.created_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span>
                   </div>
                   {(post.courses?.name || post.disciplines?.name || post.topics?.name) && (
@@ -296,6 +337,7 @@ function CommunityPage() {
                     <button type="button" onClick={() => void loadComments(post.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#64748B] hover:bg-[#F8FAFC]">Responder</button>
                     <button type="button" onClick={() => void toggleSave(post.id)} className={saved.has(post.id) ? "rounded-lg bg-[#F1F5F9] px-3 py-2 text-xs font-black text-[#172334]" : "rounded-lg px-3 py-2 text-xs font-bold text-[#64748B] hover:bg-[#F8FAFC]"}>{saved.has(post.id) ? "Salvo" : "Salvar"}</button>
                   </div>
+                  {post.author_id === currentUserId && <button type="button" onClick={() => void deletePost(post.id)} className="mt-2 text-xs font-bold text-[#B42318] hover:underline">Excluir publicação</button>}
                   {comments[post.id] && (
                     <div className="mt-3 space-y-3 rounded-xl bg-[#F8FAFC] p-3">
                       {comments[post.id].map((comment) => <div key={comment.id}><p className="text-[11px] font-black text-[#172334]">Estudante Ensina-me</p><p className="mt-1 text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
@@ -326,6 +368,7 @@ function CommunityPage() {
           </div>
         </aside>
       </div>
+      {profileEditing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[#DCE5F0] bg-white p-6 shadow-2xl"><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0242D7]">Seu perfil</p><h2 className="mt-2 text-2xl font-black text-[#172334]">Personalize como você aparece na comunidade.</h2><label className="mt-5 block text-sm font-bold text-[#334155]">Nome<input value={profileNameDraft} onChange={(e) => setProfileNameDraft(e.target.value)} maxLength={60} className="mt-2 h-11 w-full rounded-lg border border-[#D3DEEA] px-3 outline-none focus:border-[#0242D7]" /></label><label className="mt-4 block text-sm font-bold text-[#334155]">Foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" /></label><p className="mt-2 text-xs text-[#64748B]">JPG, PNG ou WebP · até 5 MB.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProfileEditing(false)} className="rounded-lg border border-[#D3DEEA] px-4 py-2 text-sm font-bold text-[#56667A]">Cancelar</button><button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{profileSaving ? "Salvando…" : "Salvar perfil"}</button></div></div></div>}
     </section>
   );
 }
