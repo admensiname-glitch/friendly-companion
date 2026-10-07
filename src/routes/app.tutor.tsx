@@ -61,6 +61,35 @@ function TutorMessageContent({ content }: { content: string }) {
   );
 }
 
+
+function getClientVisualFallback(request: string, response: string): VisualAid | null {
+  const text = `${request} ${response}`.toLowerCase();
+  const asksForVisual = /(imagem|visual|diagrama|figura|esquema)/.test(text);
+  const isPhotosynthesis = /(fotossíntese|fotossintese|photosynthesis)/.test(text);
+  if (!asksForVisual || !isPhotosynthesis) return null;
+
+  return {
+    enabled: true,
+    type: "flow",
+    title: "Processo da fotossíntese",
+    items: [
+      "A planta capta água pelas raízes e dióxido de carbono do ar.",
+      "A luz solar fornece energia para as reações fotossintéticas.",
+      "Nas folhas, a clorofila participa da conversão dessa energia.",
+      "A planta produz glicose e libera oxigênio como resultado do processo.",
+    ],
+    caption: "Imagem pública em CC0, usada como apoio didático.",
+    image: {
+      enabled: true,
+      url: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Process%20of%20Photosynthesis.jpg?width=1200",
+      title: "Photosynthesis schematic",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Process_of_Photosynthesis.jpg",
+      license: "CC0 1.0",
+      attribution: "Ndennis99 · Wikimedia Commons",
+    },
+  };
+}
+
 function TutorPage() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [topicId, setTopicId] = useState<string | null>(null);
@@ -242,7 +271,7 @@ function TutorPage() {
           role: "assistant",
           content: data.message,
           shareable: data.shareable === true,
-          visualAid: data.visual_aid ?? null,
+          visualAid: data.visual_aid ?? getClientVisualFallback(message, data.message),
         },
       ]);
     }
