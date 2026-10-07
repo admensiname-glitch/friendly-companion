@@ -333,7 +333,7 @@ function decodeHtmlEntities(value: string): string {
 }
 
 async function searchYoutubeVideoForQuestion(question: string, topicName: string): Promise<TutorVideo | null> {
-  const normalizedQuestion = question.replace(/\\s+/g, " ").trim();
+  const normalizedQuestion = question.replace(/\s+/g, " ").trim();
   const query = [normalizedQuestion, topicName, "aula explicação"].filter(Boolean).join(" ").slice(0, 220);
   try {
     const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(query);
@@ -347,7 +347,7 @@ async function searchYoutubeVideoForQuestion(question: string, topicName: string
     const html = await response.text();
 
     const candidates: TutorVideo[] = [];
-    const rendererRegex = /"videoRenderer":\\{"videoId":"([^"]+)"[\\s\\S]*?"title":\\{"runs":\\[\\{"text":"([^"]*)"/g;
+    const rendererRegex = /"videoRenderer":\{"videoId":"([^"]+)"[\s\S]*?"title":\{"runs":\[\{"text":"([^"]*)"/g;
     let match: RegExpExecArray | null;
     while ((match = rendererRegex.exec(html)) && candidates.length < 8) {
       const id = match[1];
@@ -356,8 +356,8 @@ async function searchYoutubeVideoForQuestion(question: string, topicName: string
 
       const contextStart = Math.max(0, match.index);
       const context = html.slice(contextStart, Math.min(html.length, contextStart + 9000));
-      const channelMatch = context.match(/"ownerText":\\{"runs":\\[\\{"text":"([^"]+)"/);
-      const lengthMatch = context.match(/"lengthText":\\{"simpleText":"([^"]+)"/);
+      const channelMatch = context.match(/"ownerText":\{"runs":\[\{"text":"([^"]+)"/);
+      const lengthMatch = context.match(/"lengthText":\{"simpleText":"([^"]+)"/);
 
       candidates.push({
         id,
@@ -1598,7 +1598,8 @@ Deno.serve(async (req: Request) => {
       "- video_recommendation.enabled=true somente quando um vídeo didático puder responder, esclarecer ou aprofundar diretamente a pergunta atual.\n" +
       "- Se a relação for apenas genérica com o tópico, use enabled=false.\n" +
       "- O sistema fará uma busca no YouTube usando a pergunta atual e o contexto do tópico.\n" +
-      "- reason deve explicar em uma frase por que o vídeo encontrado ajuda exatamente nesta pergunta.\n\n" +\n      "MICROAVALIAÇÃO ADAPTATIVA\n" +
+      "- reason deve explicar em uma frase por que o vídeo encontrado ajuda exatamente nesta pergunta.\n\n" +
+      "MICROAVALIAÇÃO ADAPTATIVA\n" +
       "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
       "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
       "- Faça exatamente uma questão de múltipla escolha com 4 alternativas.\n" +
@@ -1675,6 +1676,15 @@ Deno.serve(async (req: Request) => {
                         caption: { type: "string" },
                       },
                       required: ["enabled", "type", "title", "items", "caption"],
+                    },
+                    video_recommendation: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        enabled: { type: "boolean" },
+                        reason: { type: "string" },
+                      },
+                      required: ["enabled", "reason"],
                     },
                     microassessment: {
                       type: "object",
