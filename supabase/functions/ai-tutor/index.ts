@@ -310,7 +310,59 @@ function truncateText(value: string, maxCharacters: number): string {
 }
 
 const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
-const MAX_CONTEXT_CHARACTERS = 24000;
+const MAX_CONTEXT_CHARACTERS = 24000;;
+const PUBLIC_IMAGE_LICENSES = new Set(["CC0", "CC0 1.0", "Public domain", "PD-self", "Public Domain"]);
+
+async function findPublicDomainImage(query: string): Promise<VisualAid["image"]> {
+  try {
+    const params = new URLSearchParams({
+      action: "query",
+      generator: "search",
+      gsrsearch: query,
+      gsrnamespace: "6",
+      gsrlimit: "8",
+      prop: "imageinfo",
+      iiprop: "url|extmetadata",
+      iiurlwidth: "1200",
+      format: "json",
+      origin: "*",
+    });
+    const response = await fetch("https://commons.wikimedia.org/w/api.php?" + params.toString(), {
+      headers: { "Accept": "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const pages = isRecord(payload) && isRecord(payload.query) && isRecord(payload.query.pages)
+      ? Object.values(payload.query.pages as Record<string, unknown>)
+      : [];
+
+    for (const page of pages) {
+      if (!isRecord(page) || !Array.isArray(page.imageinfo) || !page.imageinfo[0] || !isRecord(page.imageinfo[0])) continue;
+      const info = page.imageinfo[0] as UnknownRecord;
+      const metadata = isRecord(info.extmetadata) ? info.extmetadata : {};
+      const readMeta = (key: string) => {
+        const value = metadata[key];
+        return isRecord(value) && typeof value.value === "string"
+          ? value.value.replace(/<[^>]+>/g, "").trim()
+          : "";
+      };
+      const license = readMeta("LicenseShortName") || readMeta("License") || "";
+      if (!PUBLIC_IMAGE_LICENSES.has(license.trim())) continue;
+      const url = typeof info.thumburl === "string" ? info.thumburl : typeof info.url === "string" ? info.url : "";
+      const sourceUrl = typeof page.fullurl === "string" ? page.fullurl : "";
+      const title = typeof page.title === "string"
+        ? page.title.replace(/^File:/, "").replace(/.[^.]+$/, "")
+        : "Imagem de apoio";
+      if (!url || !sourceUrl) continue;
+      const attribution = readMeta("Artist") || readMeta("Credit") || "Wikimedia Commons";
+      return { enabled: true, url, title, sourceUrl, license: license.trim(), attribution };
+    }
+  } catch (error) {
+    console.warn("[Ensina-me] ai-tutor: busca de imagem pública falhou", error instanceof Error ? error.message : "unknown error");
+  }
+  return null;
+}
+
 
 function detectLearningSignals(message: string): string[] {
   const normalized = message
@@ -387,6 +439,8 @@ function extractOutputText(payload: unknown): string {
 function extractTutorResult(payload: unknown): {
   message: string;
   microassessment: GeneratedMicroAssessment | null;
+  shareable: boolean;
+  visualAid: VisualAid;
 } | null {
   const raw = extractOutputText(payload);
   if (!raw) return null;
@@ -395,6 +449,8 @@ function extractTutorResult(payload: unknown): {
     const parsed = JSON.parse(raw) as {
       message?: unknown;
       microassessment?: unknown;
+      shareable?: unknown;
+      visual_aid?: unknown;
     };
 
     if (typeof parsed.message !== "string") return null;
@@ -438,7 +494,30 @@ function extractTutorResult(payload: unknown): {
       };
     }
 
-    return { message: parsed.message.trim(), microassessment };
+    const visualAidRecord = isRecord(parsed.visual_aid) ? parsed.visual_aid : null;
+    const visualAidType = visualAidRecord?.type;
+    const visualAidItems = Array.isArray(visualAidRecord?.items)
+      ? visualAidRecord.items.filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean).slice(0, 6)
+      : [];
+
+    const visualAid: VisualAid = {
+      enabled: visualAidRecord?.enabled === true && visualAidItems.length > 0,
+      type:
+        visualAidType === "comparison" || visualAidType === "concept_map" || visualAidType === "flow"
+          ? visualAidType
+          : "flow",
+      title: typeof visualAidRecord?.title === "string" ? visualAidRecord.title.trim() : "",
+      items: visualAidItems,
+      caption: typeof visualAidRecord?.caption === "string" ? visualAidRecord.caption.trim() : "",
+      image: null,
+    };
+
+    return {
+      message: parsed.message.trim(),
+      microassessment,
+      shareable: parsed.shareable === true,
+      visualAid,
+    };
   } catch {
     return null;
   }
@@ -447,6 +526,14 @@ function extractTutorResult(payload: unknown): {
 type AdaptiveMicroAssessment = {
   message: string;
   microassessment: GeneratedMicroAssessment;
+};
+
+type VisualAid = {
+  enabled: boolean;
+  type: "flow" | "concept_map" | "comparison";
+  title: string;
+  items: string[];
+  caption: string;
 };
 
 function difficultyRank(difficulty: GeneratedMicroAssessment["difficulty"]): number {
@@ -585,11 +672,11 @@ async function generateAdaptiveMicroAssessment(args: {
                       enabled: { type: "boolean" },
                       question: { type: "string" },
                       options: {
-                        type: "array",
-                        minItems: 4,
-                        maxItems: 4,
-                        items: { type: "string" },
-                      },
+                          type: "array",
+                          minItems: 0,
+                          maxItems: 4,
+                          items: { type: "string" },
+                        },
                       correct_option_index: {
                         type: "integer",
                         minimum: 0,
@@ -1328,6 +1415,16 @@ Deno.serve(async (req: Request) => {
       "- Comece pela ideia central e depois explique o porquê e o como.\n" +
       "- Use exemplos e contraexemplos corretos quando ajudarem.\n" +
       "- Em exercícios, priorize pistas e raciocínio; não dê a resposta automaticamente quando o aluno estiver tentando.\n\n" +
+      "COMPARTILHAMENTO DA EXPLICAÇÃO\n" +
+      "- shareable=true SOMENTE quando a resposta realmente ensina ou explica um conceito, tópico, tema, matéria ou raciocínio acadêmico.\n" +
+      "- Para saudações, conversa casual, agradecimentos, confirmações, mensagens de navegação ou respostas sem conteúdo acadêmico explicativo, use shareable=false.\n" +
+      "- A possibilidade de compartilhar é independente da matéria: qualquer tópico acadêmico pode ser compartilhado.\n\n" +
+      "APOIO VISUAL\n" +
+      "- Use visual_aid.enabled=true SOMENTE quando uma representação visual melhorar de forma clara a compreensão do conceito.\n" +
+      "- Pode ser um fluxo, mapa conceitual ou comparação.\n" +
+      "- Não use para saudações, respostas curtas ou quando o visual seria apenas decorativo.\n" +
+      "- Use de 2 a 6 itens curtos e semanticamente precisos, derivados do contexto acadêmico fornecido.\n" +
+      "- Nunca invente informação para preencher o apoio visual.\n\n" +
       "MICROAVALIAÇÃO ADAPTATIVA\n" +
       "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
       "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
@@ -1351,8 +1448,8 @@ Deno.serve(async (req: Request) => {
 
     const microAssessmentDirective =
       learningAction === "practice"
-        ? "MICROAVALIAÇÃO=GERAR: gere uma microavaliação adaptativa."
-        : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false.";
+        ? "MICROAVALIAÇÃO=GERAR: gere uma microavaliação adaptativa com exatamente 4 alternativas."
+        : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\"\", explanation=\"\", concept_tags=[] e correct_option_index=0.";
 
     const messages = [
       {
@@ -1377,7 +1474,7 @@ Deno.serve(async (req: Request) => {
             Authorization: "Bearer " + groqApiKey,
           },
           body: JSON.stringify({
-            model: "openai/gpt-oss-120b",
+            model: "openai/gpt-oss-20b",
             messages,
             max_completion_tokens: 1600,
             temperature: 0.2,
@@ -1393,6 +1490,19 @@ Deno.serve(async (req: Request) => {
                   additionalProperties: false,
                   properties: {
                     message: { type: "string" },
+                    shareable: { type: "boolean" },
+                    visual_aid: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        enabled: { type: "boolean" },
+                        type: { type: "string", enum: ["flow", "concept_map", "comparison"] },
+                        title: { type: "string" },
+                        items: { type: "array", minItems: 0, maxItems: 6, items: { type: "string" } },
+                        caption: { type: "string" },
+                      },
+                      required: ["enabled", "type", "title", "items", "caption"],
+                    },
                     microassessment: {
                       type: "object",
                       additionalProperties: false,
@@ -1401,7 +1511,7 @@ Deno.serve(async (req: Request) => {
                         question: { type: "string" },
                         options: {
                           type: "array",
-                          minItems: 4,
+                          minItems: 0,
                           maxItems: 4,
                           items: { type: "string" },
                         },
@@ -1433,7 +1543,7 @@ Deno.serve(async (req: Request) => {
                       ],
                     },
                   },
-                  required: ["message", "microassessment"],
+                  required: ["message", "shareable", "visual_aid", "microassessment"],
                 },
               },
             },
@@ -1507,6 +1617,16 @@ Deno.serve(async (req: Request) => {
 
     const assistantMessage = tutorResult.message;
     const generatedAssessment = tutorResult.microassessment;
+
+    if (tutorResult.visualAid.enabled) {
+      const imageQuery = (topic.name + " diagram").trim();
+      tutorResult.visualAid.image = await findPublicDomainImage(imageQuery);
+      if (tutorResult.visualAid.image) {
+        tutorResult.visualAid.caption = tutorResult.visualAid.caption
+          ? tutorResult.visualAid.caption + " Imagem pública licenciada encontrada pelo Tutor."
+          : "Imagem pública licenciada encontrada pelo Tutor.";
+      }
+    }
 
     let publicMicroAssessment: {
       id: string;
@@ -1642,6 +1762,8 @@ Deno.serve(async (req: Request) => {
       learning_action: learningAction,
       learning_signals: learningSignals,
       micro_assessment: publicMicroAssessment,
+      shareable: tutorResult.shareable,
+      visual_aid: tutorResult.visualAid,
     });
   } catch (error) {
     console.error(
