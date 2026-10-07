@@ -68,9 +68,12 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
           {course.description ?? "Explore o curso e encontre as disciplinas disponíveis."}
         </p>
       </div>
-      <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
-        Ver disciplinas
-        <Icon name="arrow" className="h-4 w-4" />
+      <span className="inline-flex flex-col items-end gap-1 text-right">
+        <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
+          Ver disciplinas
+          <Icon name="arrow" className="h-4 w-4" />
+        </span>
+        <span className="text-xs font-semibold text-[#64748B]">Curso no seu perfil</span>
       </span>
     </button>
   );
@@ -89,17 +92,36 @@ function DisciplinesPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data, error: fetchError } = await supabase
+      const { data: memberships, error: membershipError } = await supabase
+        .from("student_courses")
+        .select("course_id")
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+      if (membershipError) {
+        setError("Não foi possível carregar seus cursos.");
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
+
+      const courseIds = (memberships ?? []).map((item) => item.course_id).filter(Boolean);
+      if (courseIds.length === 0) {
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: courseError } = await supabase
         .from("courses")
         .select("id, name")
+        .in("id", courseIds)
         .eq("published", true)
         .order("name", { ascending: true });
 
       if (cancelled) return;
-      if (fetchError) {
-        setError(null);
-        setCourses([]);
-      } else setCourses((data as Course[]) ?? []);
+      if (courseError) setError("Não foi possível carregar seus cursos.");
+      else setCourses((data as Course[]) ?? []);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -187,7 +209,7 @@ function DisciplinesPage() {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 id="courses-title" className="text-[30px] font-bold tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[40px]">Meus cursos</h1>
-            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">Escolha um curso primeiro. Depois, dentro dele, você encontra as disciplinas e os tópicos para estudar.</p>
+            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">Estes são os cursos que você escolheu ter no seu perfil. A partir deles, o Ensina-me usa suas disciplinas e seu desempenho para personalizar recomendações.</p>
           </div>
           <Link to="/app/catalogo" className="text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">Explorar catálogo</Link>
         </div>
@@ -198,8 +220,9 @@ function DisciplinesPage() {
         <div className="mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-5 text-sm text-[#991B1B]" role="alert">{error}</div>
       ) : courses.length === 0 ? (
         <div className="mt-8 rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-6 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
-          <h2 className="text-lg font-bold text-[#253447] dark:text-[#E0E8F1]">Nenhum curso disponível</h2>
-          <p className="mt-1 max-w-lg text-sm leading-6 text-[#7A8796] dark:text-[#96A6B8]">Os cursos disponíveis no Ensina-me aparecerão aqui. No momento, o catálogo contém os cursos publicados pela plataforma.</p>
+          <h2 className="text-lg font-bold text-[#253447] dark:text-[#E0E8F1]">Você ainda não adicionou nenhum curso</h2>
+          <p className="mt-1 max-w-lg text-sm leading-6 text-[#7A8796] dark:text-[#96A6B8]">Explore o catálogo, escolha um curso e adicione-o ao seu perfil. Você pode ter mais de um curso no seu percurso.</p>
+          <Link to="/app/catalogo" className="mt-4 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Explorar cursos</Link>
         </div>
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
