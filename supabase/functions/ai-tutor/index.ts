@@ -932,16 +932,7 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Tópico não encontrado." }, 404);
       }
 
-      const { data: topicVideo } = await supabase
-      .from("topic_videos")
-      .select("id, title, description, video_url, embed_url, channel_name, duration_label")
-      .eq("topic_id", topicId)
-      .eq("published", true)
-      .order("position", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    const { data: material } = await supabase
+      const { data: material } = await supabase
         .from("materials")
         .select("id, title, introduction")
         .eq("topic_id", topicId)
@@ -959,14 +950,6 @@ Deno.serve(async (req: Request) => {
       const context = [
         "TÓPICO: " + topic.name,
         topic.description ? "DESCRIÇÃO: " + topic.description : "",
-      topicVideo
-        ? "VÍDEO DISPONÍVEL PARA RECOMENDAÇÃO:\n" + JSON.stringify({
-            title: topicVideo.title,
-            description: topicVideo.description,
-            channel_name: topicVideo.channel_name,
-            duration_label: topicVideo.duration_label,
-          })
-        : "NENHUM VÍDEO DISPONÍVEL PARA RECOMENDAÇÃO.",
         material
           ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "")
           : "",
