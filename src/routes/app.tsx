@@ -122,6 +122,8 @@ function AppLayout() {
         return;
       }
 
+      setProfileName(profile?.display_name?.trim() || "Meu perfil");
+      setProfileAvatar(profile?.avatar_url ?? null);
       setAuthChecking(false);
     };
 
@@ -130,6 +132,38 @@ function AppLayout() {
       active = false;
     };
   }, [navigate]);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncProfile = async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user.id;
+      if (!userId) return;
+      const { data: profile } = await supabase
+        .from("student_profiles")
+        .select("display_name,avatar_url")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!active) return;
+      setProfileName(profile?.display_name?.trim() || "Meu perfil");
+      setProfileAvatar(profile?.avatar_url ?? null);
+    };
+
+    const onProfileUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ displayName?: string; avatarUrl?: string | null }>).detail;
+      if (detail?.displayName !== undefined) setProfileName(detail.displayName.trim() || "Meu perfil");
+      if (detail?.avatarUrl !== undefined) setProfileAvatar(detail.avatarUrl);
+      void syncProfile();
+    };
+
+    void syncProfile();
+    window.addEventListener("ensina-me-profile-updated", onProfileUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("ensina-me-profile-updated", onProfileUpdated);
+    };
+  }, [location.pathname]);
 
   async function handleLogout() {
     if (logoutPending.current || isLoggingOut) return;
@@ -226,7 +260,9 @@ function AppLayout() {
         <div className="mt-auto px-4 pb-5">
           <div className="app-sidebar-profile">
             <Link to="/app/perfil" className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="app-avatar">EM</span>
+              <span className="app-avatar overflow-hidden">
+                {profileAvatar ? <img src={profileAvatar} alt="" className="h-full w-full object-cover" decoding="async" /> : "EM"}
+              </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-extrabold">Meu perfil</span>
                 <span className="mt-0.5 block truncate text-xs opacity-65">Conta e preferências</span>
