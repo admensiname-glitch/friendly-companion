@@ -88,6 +88,7 @@ function Icon({
 function ReviewPage() {
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [microReviews, setMicroReviews] = useState<ScheduledMicroReview[]>([]);
+  const [fallbackErrors, setFallbackErrors] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -112,7 +113,66 @@ function ReviewPage() {
             .order("next_micro_review_at", { ascending: true }),
         ]);
 
-      setItems((reviewData ?? []) as ReviewItem[]);
+      let reviewItems = (reviewData ?? []) as ReviewItem[];
+
+      // Fallback de integridade: mesmo que o RPC de revisão não registre o sinal,
+      // erros reais de questões publicadas continuam alimentando a fila de revisão.
+      if (reviewItems.length === 0) {
+        const { data: answers } = await supabase
+          .from("exercise_answers")
+          .select("question_id,is_correct,answered_at")
+          .eq("user_id", sessionData.session.user.id)
+          .eq("is_correct", false)
+          .order("answered_at", { ascending: false })
+          .limit(100);
+
+        const questionIds = [...new Set((answers ?? []).map((row) => row.question_id))];
+        if (questionIds.length) {
+          const { data: questions } = await supabase
+            .from("exercise_questions")
+            .select("id,exercise_id")
+            .in("id", questionIds);
+          const exerciseIds = [...new Set((questions ?? []).map((row) => row.exercise_id))];
+          const { data: exercises } = exerciseIds.length
+            ? await supabase.from("exercises").select("id,topic_id").in("id", exerciseIds).eq("published", true)
+            : { data: [] };
+          const topicIds = [...new Set((exercises ?? []).map((row) => row.topic_id))];
+          const { data: topics } = topicIds.length
+            ? await supabase.from("topics").select("id,name,discipline_id").in("id", topicIds).eq("published", true)
+            : { data: [] };
+          const disciplineIds = [...new Set((topics ?? []).map((row) => row.discipline_id))];
+          const { data: disciplines } = disciplineIds.length
+            ? await supabase.from("disciplines").select("id,name").in("id", disciplineIds).eq("published", true)
+            : { data: [] };
+          const topicMap = new Map((topics ?? []).map((row) => [row.id, row]));
+          const disciplineMap = new Map((disciplines ?? []).map((row) => [row.id, row]));
+          const exerciseTopic = new Map((exercises ?? []).map((row) => [row.id, row.topic_id]));
+          const groupedFallback = new Map<string, ReviewItem>();
+          for (const answer of answers ?? []) {
+            const exerciseId = (questions ?? []).find((q) => q.id === answer.question_id)?.exercise_id;
+            const topicId = exerciseId ? exerciseTopic.get(exerciseId) : undefined;
+            const topic = topicId ? topicMap.get(topicId) : undefined;
+            const discipline = topic ? disciplineMap.get(topic.discipline_id) : undefined;
+            if (!topic || !discipline) continue;
+            const current = groupedFallback.get(topic.id);
+            groupedFallback.set(topic.id, {
+              topic_id: topic.id,
+              topic_name: topic.name,
+              discipline_id: discipline.id,
+              discipline_name: discipline.name,
+              difficulty_tag: "erro_recente",
+              count: (current?.count ?? 0) + 1,
+              last_occurrence: current?.last_occurrence ?? answer.answered_at,
+              review_status: "pending",
+              correct_count: 0,
+            });
+          }
+          reviewItems = Array.from(groupedFallback.values());
+          setFallbackErrors(reviewItems.reduce((sum, item) => sum + item.count, 0));
+        }
+      }
+
+      setItems(reviewItems);
 
       const rows = (progressData ?? []).filter(
         (row) => typeof row.next_micro_review_at === "string",
@@ -246,7 +306,7 @@ function ReviewPage() {
                   ? "Essas revisões foram agendadas a partir do seu histórico."
                   : grouped.length > 0
                     ? "Revisar faz parte do percurso. Volte a esses pontos antes de avançar."
-                    : "Continue estudando. O próximo momento de revisão aparece quando fizer sentido para o seu aprendizado."}
+                    : "Continue estudando. O sistema também verifica erros recentes para não deixar uma dificuldade real desaparecer da sua fila."}
               </p>
 
               {dueMicro === 0 && grouped.length > 0 && (
