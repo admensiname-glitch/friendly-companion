@@ -28,6 +28,16 @@ type Message = {
   visualAid?: VisualAid | null;
 };
 
+type TopicVideo = {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  embed_url: string;
+  channel_name: string | null;
+  duration_label: string | null;
+};
+
 function TutorMessageContent({ content }: { content: string }) {
   const lines = content.split("\n");
   const renderInline = (value: string) =>
@@ -99,6 +109,71 @@ function TutorPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
+  const [topicVideos, setTopicVideos] = useState<TopicVideo[]>([]);
+
+  async function downloadVisualImage(image: NonNullable<VisualAid["image"]>) {
+    try {
+      const response = await fetch(image.url, { mode: "cors" });
+      if (!response.ok) throw new Error("download_failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = image.title.replace(/[^a-z0-9áàâãéêíóôõúçñ_-]+/gi, "-").replace(/-+/g, "-").toLowerCase() || "apoio-visual";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(image.url, "_blank", "noopener,noreferrer");
+    }
+  }
+
+  function VideoRecommendations({ videos }: { videos: TopicVideo[] }) {
+    if (!videos.length) return null;
+
+    return (
+      <div className="mt-5 rounded-2xl border border-[#DCE5F0] bg-white p-4 sm:p-5">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Para aprofundar</p>
+        <h3 className="mt-1 text-sm font-black text-[#172334]">Veja também estes vídeos sobre o assunto</h3>
+        <div className="mt-4 space-y-5">
+          {videos.slice(0, 2).map((video) => (
+            <article key={video.id} className="overflow-hidden rounded-xl border border-[#E3EAF3] bg-[#F8FAFC]">
+              <div className="aspect-video bg-black">
+                <iframe
+                  src={video.embed_url}
+                  title={video.title}
+                  className="h-full w-full"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+              <div className="p-4">
+                <p className="text-sm font-black text-[#172334]">{video.title}</p>
+                {(video.channel_name || video.duration_label) && (
+                  <p className="mt-1 text-xs text-[#687688]">
+                    {[video.channel_name, video.duration_label].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {video.description && (
+                  <p className="mt-2 text-xs leading-5 text-[#687688]">{video.description}</p>
+                )}
+                <a
+                  href={video.video_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-xs font-black text-[#0242D7] hover:underline"
+                >
+                  Abrir vídeo na fonte original ↗
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   function VisualAidCard({ visualAid }: { visualAid: VisualAid }) {
     if (!visualAid.enabled) return null;
@@ -123,16 +198,26 @@ function TutorPage() {
                 />
               </div>
               <figcaption className="border-t border-[#E5EAF0] px-3 py-2 text-[11px] leading-5 text-[#687688]">
-                {visualAid.image.attribution} · {visualAid.image.license}
-                {" · "}
-                <a
+                <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{visualAid.image.attribution} · {visualAid.image.license}</span>
+                </span>
+                <span className="mt-2 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void downloadVisualImage(visualAid.image!)}
+                    className="font-black text-[#0242D7] hover:underline"
+                  >
+                    Baixar imagem
+                  </button>
+                  <a
                   href={visualAid.image.sourceUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="font-bold text-[#0242D7] hover:underline"
                 >
-                  Fonte da imagem
-                </a>
+                    Fonte da imagem
+                  </a>
+                </span>
               </figcaption>
             </figure>
           )}
@@ -235,6 +320,25 @@ function TutorPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!topicId) {
+      setTopicVideos([]);
+      return;
+    }
+
+    void (async () => {
+      const { data } = await supabase
+        .from("topic_videos")
+        .select("id, title, description, video_url, embed_url, channel_name, duration_label")
+        .eq("topic_id", topicId)
+        .eq("published", true)
+        .order("position", { ascending: true })
+        .limit(2);
+
+      setTopicVideos((data ?? []) as TopicVideo[]);
+    })();
+  }, [topicId]);
+
   const contextLabel = useMemo(
     () => recommendation?.topic_name
       ? `Estudando: ${recommendation.topic_name}${recommendation.discipline_name ? ` · ${recommendation.discipline_name}` : ""}`
@@ -315,6 +419,9 @@ function TutorPage() {
                 {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : message.content}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
+                )}
+                {message.role === "assistant" && message.shareable === true && topicVideos.length > 0 && (
+                  <VideoRecommendations videos={topicVideos} />
                 )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
