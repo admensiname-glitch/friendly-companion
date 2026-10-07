@@ -31,6 +31,7 @@ import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppProvaRouteImport } from './routes/app.prova'
 import { Route as AppRevisaoRouteImport } from './routes/app.revisao'
+import { Route as AppTutorRouteImport } from './routes/app.tutor'
 import { Route as AppCatalogoDisciplineIdRouteImport } from './routes/app.catalogo.$disciplineId'
 import { Route as AppDisciplinasDisciplineIdRouteImport } from './routes/app.disciplinas.$disciplineId'
 import { Route as AppDisciplinasDisciplineIdTopicIdRouteImport } from './routes/app.disciplinas.$disciplineId.$topicId'
@@ -145,6 +146,11 @@ const AppRevisaoRoute = AppRevisaoRouteImport.update({
   path: '/revisao',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTutorRoute = AppTutorRouteImport.update({
+  id: '/tutor',
+  path: '/tutor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCatalogoDisciplineIdRoute = AppCatalogoDisciplineIdRouteImport.update({
   id: '/$disciplineId',
   path: '/$disciplineId',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
+  '/app/tutor': typeof AppTutorRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
   '/app/disciplinas/$disciplineId/$topicId': typeof AppDisciplinasDisciplineIdTopicIdRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
+  '/app/tutor': typeof AppTutorRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
   '/app/disciplinas/$disciplineId/$topicId': typeof AppDisciplinasDisciplineIdTopicIdRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
+  '/app/tutor': typeof AppTutorRoute
   '/app/catalogo/$disciplineId': typeof AppCatalogoDisciplineIdRoute
   '/app/disciplinas/$disciplineId': typeof AppDisciplinasDisciplineIdRouteWithChildren
   '/app/disciplinas/$disciplineId/$topicId': typeof AppDisciplinasDisciplineIdTopicIdRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
+    | '/app/tutor'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
     | '/app/disciplinas/$disciplineId/$topicId'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
+    | '/app/tutor'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
     | '/app/disciplinas/$disciplineId/$topicId'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
+    | '/app/tutor'
     | '/app/catalogo/$disciplineId'
     | '/app/disciplinas/$disciplineId'
     | '/app/disciplinas/$disciplineId/$topicId'
@@ -499,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRevisaoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/tutor': {
+      id: '/app/tutor'
+      path: '/tutor'
+      fullPath: '/app/tutor'
+      preLoaderRoute: typeof AppTutorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/catalogo/$disciplineId': {
       id: '/app/catalogo/$disciplineId'
       path: '/$disciplineId'
@@ -585,6 +604,7 @@ interface AppRouteChildren {
   AppPerfilRoute: typeof AppPerfilRoute
   AppProvaRoute: typeof AppProvaRoute
   AppRevisaoRoute: typeof AppRevisaoRoute
+  AppTutorRoute: typeof AppTutorRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -596,6 +616,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilRoute: AppPerfilRoute,
   AppProvaRoute: AppProvaRoute,
   AppRevisaoRoute: AppRevisaoRoute,
+  AppTutorRoute: AppTutorRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
