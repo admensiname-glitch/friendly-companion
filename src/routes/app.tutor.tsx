@@ -5,7 +5,20 @@ import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine"
 
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 
-type Message = { role: "user" | "assistant"; content: string };
+type VisualAid = {
+  enabled: boolean;
+  type: "flow" | "concept_map" | "comparison";
+  title: string;
+  items: string[];
+  caption: string;
+};
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  shareable?: boolean;
+  visualAid?: VisualAid | null;
+};
 
 function TutorPage() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
@@ -16,6 +29,44 @@ function TutorPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
+
+  function VisualAidCard({ visualAid }: { visualAid: VisualAid }) {
+    if (!visualAid.enabled || visualAid.items.length === 0) return null;
+
+    return (
+      <div className="mt-4 overflow-hidden rounded-2xl border border-[#CFE0FF] bg-white">
+        <div className="border-b border-[#E3ECFA] bg-[#F4F8FF] px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Apoio visual</p>
+          <h3 className="mt-1 text-sm font-black text-[#172334]">{visualAid.title}</h3>
+        </div>
+        <div className="p-4">
+          {visualAid.type === "comparison" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {visualAid.items.map((item, index) => (
+                <div key={item + index} className="rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-3 text-sm font-semibold leading-6 text-[#334155]">
+                  {item}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+              {visualAid.items.map((item, index) => (
+                <div key={item + index} className="flex min-w-0 flex-1 items-center gap-2">
+                  <div className="w-full rounded-xl border border-[#CFE0FF] bg-[#F8FAFC] px-3 py-3 text-center text-sm font-bold leading-5 text-[#273547]">
+                    {item}
+                  </div>
+                  {index < visualAid.items.length - 1 && (
+                    <span className="hidden text-lg font-black text-[#0242D7] sm:block" aria-hidden="true">→</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {visualAid.caption && <p className="mt-3 text-xs leading-5 text-[#687688]">{visualAid.caption}</p>}
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     void (async () => {
@@ -103,7 +154,15 @@ function TutorPage() {
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
-      setMessages((current) => [...current, { role: "assistant", content: data.message }]);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: data.message,
+          shareable: data.shareable === true,
+          visualAid: data.visual_aid ?? null,
+        },
+      ]);
     }
 
     setSending(false);
@@ -134,7 +193,10 @@ function TutorPage() {
             {messages.map((message, index) => (
               <div key={`${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
                 {message.content}
-                {message.role === "assistant" && (
+                {message.role === "assistant" && message.visualAid?.enabled && (
+                  <VisualAidCard visualAid={message.visualAid} />
+                )}
+                {message.role === "assistant" && message.shareable === true && (
                   <a
                     href={`/app/comunidade?share_text=${encodeURIComponent(message.content.slice(0, 1900))}${topicId ? `&topic_id=${encodeURIComponent(topicId)}` : ""}${recommendation?.discipline_id ? `&discipline_id=${encodeURIComponent(recommendation.discipline_id)}` : ""}`}
                     className="mt-3 inline-flex text-xs font-bold text-[#0242D7] hover:underline"
