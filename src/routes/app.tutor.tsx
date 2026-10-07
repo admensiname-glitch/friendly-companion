@@ -29,21 +29,23 @@ type Message = {
 };
 
 function TutorMessageContent({ content }: { content: string }) {
-  const lines = content.replace(/\\*\\*/g, "**").split("\\n");
+  const lines = content.split("\n");
+  const renderInline = (value: string) =>
+    value.split(/(\*\*[^*]+\*\*)/g).map((part, partIndex) =>
+      part.startsWith("**") && part.endsWith("**")
+        ? <strong key={partIndex}>{part.slice(2, -2)}</strong>
+        : <span key={partIndex}>{part}</span>
+    );
+
   return (
     <div className="space-y-2">
       {lines.map((line, index) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={index} className="h-1" />;
-        const heading = trimmed.match(/^#{1,3}\\s+(.+)$/);
-        const bullet = trimmed.match(/^[-•]\\s+(.+)$/);
-        const numbered = trimmed.match(/^\\d+[.)]\\s+(.+)$/);
-        const renderInline = (value: string) =>
-          value.split(/(\\*\\*[^*]+\\*\\*)/g).map((part, partIndex) =>
-            part.startsWith("**") && part.endsWith("**")
-              ? <strong key={partIndex}>{part.slice(2, -2)}</strong>
-              : <span key={partIndex}>{part}</span>
-          );
+        const heading = trimmed.match(/^#{1,3}\s+(.+)$/);
+        const bullet = trimmed.match(/^[-•]\s+(.+)$/);
+        const numbered = trimmed.match(/^(\d+)[.)]\s+(.+)$/);
+
         if (heading) {
           return <p key={index} className="pt-1 font-black text-[#172334]">{renderInline(heading[1])}</p>;
         }
@@ -51,7 +53,7 @@ function TutorMessageContent({ content }: { content: string }) {
           return <div key={index} className="flex gap-2 pl-1"><span aria-hidden="true">•</span><span>{renderInline(bullet[1])}</span></div>;
         }
         if (numbered) {
-          return <div key={index} className="flex gap-2 pl-1"><span className="font-bold">{trimmed.match(/^\\d+/)?.[0]}.</span><span>{renderInline(numbered[1])}</span></div>;
+          return <div key={index} className="flex gap-2 pl-1"><span className="font-bold">{numbered[1]}.</span><span>{renderInline(numbered[2])}</span></div>;
         }
         return <p key={index}>{renderInline(trimmed)}</p>;
       })}
