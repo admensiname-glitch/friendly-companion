@@ -9,11 +9,6 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-type InstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-};
-
 type IconName =
   | "home"
   | "book"
@@ -72,13 +67,8 @@ function AppLayout() {
   const location = useLocation();
   const [authChecking, setAuthChecking] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [installing, setInstalling] = useState(false);
   const logoutPending = useRef(false);
 
   useEffect(() => {
@@ -133,62 +123,6 @@ function AppLayout() {
     };
   }, [navigate]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIsInstalled(standalone);
-
-    const onBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as InstallPromptEvent);
-    };
-    const onAppInstalled = () => {
-      setIsInstalled(true);
-      setInstallPrompt(null);
-    };
-
-    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    window.addEventListener("appinstalled", onAppInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", onAppInstalled);
-    };
-  }, []);
-
-  async function installApp() {
-    if (!installPrompt || installing) return;
-    setInstalling(true);
-    try {
-      await installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      if (outcome === "accepted") setIsInstalled(true);
-      setInstallPrompt(null);
-    } finally {
-      setInstalling(false);
-    }
-  }
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem("ensina-me-theme");
-    const dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setIsDark(dark);
-    document.documentElement.classList.toggle("dark", dark);
-  }, []);
-
-  function toggleTheme() {
-    setIsDark((current) => {
-      const next = !current;
-      window.localStorage.setItem("ensina-me-theme", next ? "dark" : "light");
-      document.documentElement.classList.toggle("dark", next);
-      return next;
-    });
-  }
-
   async function handleLogout() {
     if (logoutPending.current || isLoggingOut) return;
     logoutPending.current = true;
@@ -203,14 +137,6 @@ function AppLayout() {
       logoutPending.current = false;
     }
   }
-
-  const mobileFlowClass = (() => {
-    const pathname = location.pathname;
-    if (pathname.includes("/app/estudo/") || pathname.includes("/app/questoes/")) return " app-study-flow";
-    if (pathname.startsWith("/app/prova")) return " app-assessment-flow";
-    if (pathname === "/app/revisao") return " app-review-flow";
-    return "";
-  })();
 
   const mobileContext = (() => {
     const pathname = location.pathname;
@@ -253,11 +179,11 @@ function AppLayout() {
   ];
 
   return (
-    <div className={`app-shell min-h-[100dvh] bg-background text-foreground${mobileFlowClass}`}>
+    <div className="app-shell min-h-[100dvh] bg-white text-foreground">
       <aside className="app-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden w-[252px] flex-col border-r lg:flex">
         <div className="flex h-[82px] items-center px-7">
           <Link to="/app/dashboard" aria-label="Ensina-me, início">
-            <BrandLogo tone={isDark ? "light" : "blue"} />
+            <BrandLogo tone="blue" />
           </Link>
         </div>
 
@@ -316,7 +242,7 @@ function AppLayout() {
             </button>
           ) : (
             <Link to="/app/dashboard" aria-label="Ensina-me, início" className="shrink-0">
-              <BrandLogo compact tone={isDark ? "light" : "blue"} />
+              <BrandLogo compact tone="blue" />
             </Link>
           )}
           <div className="min-w-0">
@@ -348,9 +274,6 @@ function AppLayout() {
             <p className="mt-1 text-sm font-extrabold text-[#243245] dark:text-[#E7EDF5]">Aprenda hoje. Conquiste amanhã.</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={toggleTheme} className="app-top-action" aria-label={isDark ? "Ativar modo claro" : "Ativar modo noturno"}>
-              <Icon name={isDark ? "sun" : "moon"} className="h-4 w-4" />
-            </button>
             <Link to="/app/revisao" className="app-top-action gap-2 px-3">
               <Icon name="review" className="h-4 w-4" />
               <span>Revisão</span>
@@ -412,114 +335,13 @@ function AppLayout() {
       )}
 
       <main className="lg:ml-[252px]">
-        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
+        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
           </div>
         </div>
       </main>
 
-      <nav className="app-mobile-tabbar lg:hidden" aria-label="Navegação principal">
-        <div className="mx-auto grid h-[68px] max-w-md grid-cols-5 px-1">
-          {mobileNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              activeOptions={{ exact: item.to === "/app/dashboard" }}
-              className="app-tab"
-              activeProps={{ className: "app-tab app-tab-active" }}
-            >
-              {({ isActive }) => (
-                <>
-                  <span className={isActive ? "app-tab-icon app-tab-icon-active" : "app-tab-icon"}>
-                    <Icon name={item.icon} className="h-[19px] w-[19px]" />
-                  </span>
-                  <span>{item.label === "Estudar agora" ? "Estudar" : item.label}</span>
-                </>
-              )}
-            </Link>
-          ))}
-          <button type="button" className="app-tab" onClick={() => setMoreOpen(true)} aria-label="Mais opções">
-            <span className="app-tab-icon">
-              <Icon name="more" className="h-[19px] w-[19px]" />
-            </span>
-            <span>Mais</span>
-          </button>
-        </div>
-      </nav>
-
-      {moreOpen && (
-        <div className="app-sheet-backdrop lg:hidden" role="presentation">
-          <button type="button" className="absolute inset-0 bg-[#0F172A]/35 backdrop-blur-[2px]" onClick={() => setMoreOpen(false)} aria-label="Fechar menu" />
-          <section className="app-bottom-sheet" aria-label="Mais opções">
-            <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-[#CBD5E1] dark:bg-[#475569]" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Ensina-me</p>
-                <h2 className="mt-1 text-xl font-extrabold text-[#172334] dark:text-[#E7EDF5]">Mais opções</h2>
-              </div>
-              <button type="button" className="app-icon-button" onClick={() => setMoreOpen(false)} aria-label="Fechar">
-                <Icon name="close" className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-3 rounded-2xl border border-[#D7E4F5] bg-[#F7FAFF] p-4 dark:border-[#304158] dark:bg-[#172437]">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] text-white">
-                  <span className="text-lg">↓</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold text-[#172334] dark:text-[#E7EDF5]">
-                    {isInstalled ? "Ensina-me instalado" : "Instale o Ensina-me"}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[#687688] dark:text-[#AAB7C7]">
-                    {isInstalled
-                      ? "Você já está usando a versão instalada."
-                      : installPrompt
-                        ? "Abra como aplicativo, sem a aba do navegador."
-                        : "Use o menu do Chrome e escolha “Instalar aplicativo” quando estiver disponível."}
-                  </p>
-                </div>
-              </div>
-              {!isInstalled && installPrompt && (
-                <button
-                  type="button"
-                  onClick={() => void installApp()}
-                  disabled={installing}
-                  className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60"
-                >
-                  {installing ? "Instalando..." : "Instalar aplicativo"}
-                </button>
-              )}
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              {navigation.slice(1).filter((item) => item.to !== "/app/estude-agora").map((item) => (
-                <Link key={item.to} to={item.to} onClick={() => setMoreOpen(false)} className="app-sheet-item">
-                  <span className="app-sheet-item-icon"><Icon name={item.icon} className="h-5 w-5" /></span>
-                  <span>{item.label}</span>
-                  <Icon name="chevron" className="ml-auto h-4 w-4 opacity-40" />
-                </Link>
-              ))}
-              <Link to="/app/perfil" onClick={() => setMoreOpen(false)} className="app-sheet-item">
-                <span className="app-sheet-item-icon"><Icon name="user" className="h-5 w-5" /></span>
-                <span>Meu perfil</span>
-                <Icon name="chevron" className="ml-auto h-4 w-4 opacity-40" />
-              </Link>
-              <button type="button" onClick={toggleTheme} className="app-sheet-item">
-                <span className="app-sheet-item-icon"><Icon name={isDark ? "sun" : "moon"} className="h-5 w-5" /></span>
-                <span>{isDark ? "Modo claro" : "Modo escuro"}</span>
-                <Icon name="chevron" className="ml-auto h-4 w-4 opacity-40" />
-              </button>
-            </div>
-
-            <button type="button" onClick={() => void handleLogout()} disabled={isLoggingOut} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#F3D5D8] bg-[#FFF7F7] px-4 text-sm font-extrabold text-[#B4232D] dark:border-[#5E3037] dark:bg-[#2A181C] dark:text-[#FCA5A5]">
-              <Icon name="logout" className="h-4 w-4" />
-              {isLoggingOut ? "Saindo..." : "Sair da conta"}
-            </button>
-          </section>
-        </div>
-      )}
     </div>
   );
 }
