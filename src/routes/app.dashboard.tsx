@@ -314,18 +314,30 @@ function AppDashboard() {
     [profile?.display_name, user],
   );
 
-  const [greeting, setGreeting] = useState("Olá");
+  const [greeting, setGreeting] = useState(() => `Olá, ${firstName}`);
   useEffect(() => {
     const hour = new Date().getHours();
     const period = hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 18 ? "afternoon" : "night";
     const greetings = {
-      morning: ["Bom dia", "Bom dia", "Bom dia"],
-      afternoon: ["Boa tarde", "Boa tarde", "Boa tarde"],
-      night: ["Boa noite", "Boa noite", "Boa noite"],
+      morning: [
+        `Bom dia, ${firstName}`,
+        `Bom dia, ${firstName}. Pronto para mais um passo?`,
+        `Bom dia, ${firstName}. Vamos avançar hoje?`,
+      ],
+      afternoon: [
+        `Boa tarde, ${firstName}`,
+        `Boa tarde, ${firstName}. Vamos continuar?`,
+        `Boa tarde, ${firstName}. Mais um passo hoje?`,
+      ],
+      night: [
+        `Boa noite, ${firstName}`,
+        `Boa noite, ${firstName}. Vamos fechar mais um passo?`,
+        `Boa noite, ${firstName}. Pronto para estudar?`,
+      ],
     } as const;
     const options = greetings[period];
     setGreeting(options[Math.floor(Date.now() / 86400000) % options.length]);
-  }, []);
+  }, [firstName]);
 
   const focusedTopics = focusedDisciplineIds.length
     ? topicsProgress.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
@@ -451,11 +463,8 @@ function AppDashboard() {
     <section className="w-full" aria-labelledby="app-dashboard-title">
       <section className="mb-5 px-1 pt-2" aria-labelledby="dashboard-greeting">
         <h1 id="dashboard-greeting" className="text-[28px] font-black tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
-          {greeting}, {firstName}
+          {greeting}
         </h1>
-        <p className="mt-1 text-sm font-medium text-[#718096] dark:text-[#9EADBD]">
-          Vamos avançar mais um passo hoje.
-        </p>
       </section>
 
       <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
