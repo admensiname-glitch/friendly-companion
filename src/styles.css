@@ -152,6 +152,7 @@
   }
 
   body {
+    font-size: 1.0625rem;
     min-width: 320px;
     font-family: "Nunito", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -1082,4 +1083,13 @@
 
 .app-shell .app-sheet-item {
   font-size: 14px;
+}
+
+/* Typography — leitura mais confortável na interface do aluno.
+ * Títulos mantêm seus tamanhos; textos corridos, subtítulos e microtextos
+ * recebem um aumento discreto para melhorar legibilidade no celular.
+ */
+@layer utilities {
+  .text-xs { font-size: 0.8125rem; line-height: 1.25rem; }
+  .text-sm { font-size: 0.9375rem; line-height: 1.4rem; }
 }
