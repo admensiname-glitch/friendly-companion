@@ -58,6 +58,25 @@ interface StudentExam {
   exam_date: string | null;
 }
 
+interface LearningSignal {
+  topic_id: string;
+  concept: string;
+  severity: number;
+  occurrences: number;
+  correct_count: number;
+  status: "pending" | "improving" | "mastered";
+  last_seen: string;
+}
+
+interface BrainTopic {
+  topic_id: string;
+  topic_name: string;
+  discipline_name: string;
+  severity: number;
+  occurrences: number;
+  concept: string;
+}
+
 function Icon({
   name,
   className = "",
@@ -112,6 +131,7 @@ function AppDashboard() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
+  const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -138,13 +158,20 @@ function AppDashboard() {
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
-      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult] =
+      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, learningSignalsResult] =
         await Promise.all([
           supabase.from("student_profiles").select("display_name, institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
+          supabase
+            .from("student_learning_signals")
+            .select("topic_id, concept, severity, occurrences, correct_count, status, last_seen")
+            .neq("status", "mastered")
+            .order("severity", { ascending: false })
+            .order("last_seen", { ascending: false })
+            .limit(24),
         ]);
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
@@ -155,6 +182,9 @@ function AppDashboard() {
       }
       if (!todayResult.error && todayResult.data) {
         setTodayStudy(todayResult.data as unknown as TodayStudy);
+      }
+      if (!learningSignalsResult.error && learningSignalsResult.data) {
+        setLearningSignals(learningSignalsResult.data as LearningSignal[]);
       }
 
       const today = new Date().toISOString().slice(0, 10);
@@ -194,6 +224,44 @@ function AppDashboard() {
   const overallProgress = topicsProgress.length
     ? Math.round(topicsProgress.reduce((sum, topic) => sum + topic.progress, 0) / topicsProgress.length)
     : 0;
+
+  const brainTopics = useMemo<BrainTopic[]>(() => {
+    if (!learningSignals.length) return [];
+
+    const topicMap = new Map(
+      topicsProgress.map((topic) => [
+        topic.topic_id,
+        {
+          topic_name: topic.topic_name,
+          discipline_name: topic.discipline_name,
+        },
+      ]),
+    );
+
+    return learningSignals
+      .filter((signal) => signal.status !== "mastered")
+      .map((signal) => {
+        const topic = topicMap.get(signal.topic_id);
+        return topic
+          ? {
+              topic_id: signal.topic_id,
+              topic_name: topic.topic_name,
+              discipline_name: topic.discipline_name,
+              severity: signal.severity,
+              occurrences: signal.occurrences,
+              concept: signal.concept,
+            }
+          : null;
+      })
+      .filter((item): item is BrainTopic => item !== null)
+      .sort((a, b) => b.severity - a.severity || b.occurrences - a.occurrences);
+  }, [learningSignals, topicsProgress]);
+
+  const brainCounts = useMemo(() => ({
+    mastered: topicsProgress.filter((topic) => topic.progress >= 80).length,
+    review: topicsProgress.filter((topic) => topic.progress >= 50 && topic.progress < 80).length,
+    difficulty: brainTopics.filter((topic) => topic.severity >= 4).length,
+  }), [topicsProgress, brainTopics]);
 
   const disciplineProgress = useMemo(() => {
     const map = new Map<string, { discipline_id: string; discipline_name: string; progress: number; topics: number; completed: number }>();
@@ -264,6 +332,13 @@ function AppDashboard() {
               {recommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
 
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-white/75">
+              <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">
+                ⏱️ Estudo sugerido: {recommendation?.reason === "assessment" ? "30" : recommendation?.reason === "review" ? "20" : "15"} min
+              </span>
+              {recommendation?.reason === "review" && <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">Baseado nos seus sinais de dificuldade</span>}
+            </div>
+
             <div className="mt-7 flex flex-wrap gap-3">
               {recommendation?.topic_id && recommendation.discipline_id ? (
                 <Link
@@ -286,6 +361,32 @@ function AppDashboard() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mt-5 overflow-hidden rounded-[20px] border border-[#DCE5F0] bg-white dark:border-[#2B3A4F] dark:bg-[#111B2A]" aria-labelledby="brain-heading">
+        <div className="border-b border-[#E6EBF2] px-5 py-5 dark:border-[#2B3A4F] sm:px-6">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Meu cérebro</p>
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="brain-heading" className="text-[22px] font-black tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5]">O que seu histórico está mostrando</h2>
+              <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">Não é só nota: são sinais do que já está firme e do que ainda precisa de atenção.</p>
+            </div>
+            <Link to="/app/desempenho" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Ver meu domínio →</Link>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-[#E6EBF2] dark:divide-[#2B3A4F]">
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Domina</p><p className="mt-2 text-2xl font-black text-[#187A59] dark:text-[#7ED4AE]">{brainCounts.mastered}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Revisar</p><p className="mt-2 text-2xl font-black text-[#B86B13] dark:text-[#E8B66C]">{brainCounts.review}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Dificuldade</p><p className="mt-2 text-2xl font-black text-[#B42318] dark:text-[#F28B82]">{brainCounts.difficulty}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+        </div>
+        {brainTopics[0] && (
+          <div className="m-4 rounded-[15px] bg-[#F7F9FC] p-4 dark:bg-[#172437] sm:m-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#B42318] dark:text-[#F28B82]">Seu maior ponto de atenção</p>
+            <p className="mt-1 text-base font-black text-[#172334] dark:text-[#E7EDF5]">{brainTopics[0].concept}</p>
+            <p className="mt-1 text-xs font-semibold text-[#718096] dark:text-[#9EADBD]">{brainTopics[0].topic_name} · {brainTopics[0].discipline_name}</p>
+            <p className="mt-2 text-xs leading-5 text-[#66758A] dark:text-[#AAB7C7]">Sinal registrado {brainTopics[0].occurrences} vez{brainTopics[0].occurrences === 1 ? "" : "es"} com intensidade {brainTopics[0].severity}/5.</p>
+          </div>
+        )}
       </section>
 
       <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4" aria-label="Resumo do seu aprendizado">
