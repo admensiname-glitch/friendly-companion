@@ -263,7 +263,7 @@ function ExamPage() {
                     <summary className="cursor-pointer list-none text-sm font-bold text-[#273547]">Questão {index + 1}: {wrong.question_text}</summary>
                     <div className="mt-3 space-y-2 text-sm leading-6">
                       <p className="text-[#B42318]"><strong>Sua resposta:</strong> {wrong.question_type === "open_text" ? (wrong.response_text ?? "Não respondida") : (wrong.selected_option ?? "Não respondida")}</p>
-                      {wrong.question_type === "open_text" ? <p className="text-[#0242D7]"><strong>Avaliação:</strong> {typeof wrong.rubric_score === "number" ? `${Math.round(wrong.rubric_score * 10) / 10}/10` : "—"}</p> : <p className="text-[#187A59]"><strong>Resposta correta:</strong> {wrong.correct_option ?? "—"}</p>}
+                      {wrong.question_type === "open_text" ? <p className="text-[#0242D7]"><strong>Avaliação:</strong> {typeof wrong.rubric_score === "number" ? `${Math.round(wrong.rubric_score * 10) / 10}/10 — ${wrong.rubric_score === 10 ? "domínio demonstrado" : wrong.rubric_score > 0 ? "parcialmente correta" : "não demonstrou compreensão"}` : "—"}</p> : <p className="text-[#187A59]"><strong>Resposta correta:</strong> {wrong.correct_option ?? "—"}</p>}
                       {wrong.question_type === "open_text" && wrong.ai_feedback && <p className="text-[#475569]"><strong>Feedback:</strong> {wrong.ai_feedback}</p>}
                       <p className="text-[#475569]"><strong>Entenda:</strong> {wrong.feedback_incorrect}</p>
                       {wrong.feedback_hint && <p className="text-[#64748B]"><strong>Pista:</strong> {wrong.feedback_hint}</p>}
