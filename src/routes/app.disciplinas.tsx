@@ -87,6 +87,8 @@ function DisciplinesPage() {
   const [courseDisciplines, setCourseDisciplines] = useState<CourseDiscipline[]>([]);
   const [loading, setLoading] = useState(true);
   const [disciplinesLoading, setDisciplinesLoading] = useState(false);
+  const [focusedDisciplineId, setFocusedDisciplineId] = useState<string | null>(null);
+  const [focusSaving, setFocusSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,6 +128,27 @@ function DisciplinesPage() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("get_student_focus_discipline");
+      if (data && typeof data === "object" && "discipline_id" in data) {
+        setFocusedDisciplineId(String((data as { discipline_id: string }).discipline_id));
+      }
+    })();
+  }, []);
+
+  const focusDiscipline = async (disciplineId: string) => {
+    setFocusSaving(disciplineId);
+    const { error: focusError } = await supabase.rpc("set_student_focus_discipline", { _discipline_id: disciplineId });
+    if (focusError) {
+      setError("Não foi possível definir esta disciplina como foco.");
+    } else {
+      setFocusedDisciplineId(disciplineId);
+      window.dispatchEvent(new CustomEvent("ensina-me-focus-updated"));
+    }
+    setFocusSaving(null);
+  };
 
   useEffect(() => {
     if (!selectedCourse) {
@@ -168,7 +191,7 @@ function DisciplinesPage() {
             {selectedCourse.name}
           </h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">
-            Escolha uma disciplina para entrar no percurso de estudos deste curso.
+            Escolha uma disciplina para entrar no percurso. Você também pode definir uma como <strong>foco de estudo</strong>; a tela Início usará essa escolha para conduzir seu próximo passo.
           </p>
         </header>
         {disciplinesLoading ? (
@@ -181,21 +204,39 @@ function DisciplinesPage() {
           <div className="mt-8 py-8 text-sm text-[#7A8796]">Este curso ainda não possui disciplinas publicadas.</div>
         ) : (
           <div className="mt-5 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
-            {courseDisciplines.map((discipline, index) => (
-              <Link
-                key={discipline.id}
-                to="/app/disciplinas/$disciplineId"
-                params={{ disciplineId: discipline.id }}
-                className="group grid gap-3 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center"
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7E2EF] text-xs font-bold text-[#728196] dark:border-[#344A63] dark:text-[#8EA1B5]">{index + 1}</span>
-                <div className="min-w-0">
-                  <h2 className="text-[16px] font-bold text-[#273547] dark:text-[#E0E8F1]">{discipline.name}</h2>
-                  {discipline.description && <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#7A8796] dark:text-[#8B9CAF]">{discipline.description}</p>}
+            {courseDisciplines.map((discipline, index) => {
+              const focused = focusedDisciplineId === discipline.id;
+              return (
+                <div key={discipline.id} className="grid gap-3 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center">
+                  <Link
+                    to="/app/disciplinas/$disciplineId"
+                    params={{ disciplineId: discipline.id }}
+                    className="contents"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D7E2EF] text-xs font-bold text-[#728196] dark:border-[#344A63] dark:text-[#8EA1B5]">{index + 1}</span>
+                    <div className="min-w-0">
+                      <h2 className="text-[16px] font-bold text-[#273547] dark:text-[#E0E8F1]">{discipline.name}</h2>
+                      {discipline.description && <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#7A8796] dark:text-[#8B9CAF]">{discipline.description}</p>}
+                    </div>
+                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void focusDiscipline(discipline.id)}
+                      disabled={focusSaving === discipline.id}
+                      className={focused
+                        ? "inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#EAF1FF] px-3 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]"
+                        : "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#D8E1EC] px-3 py-2 text-xs font-black text-[#657385] hover:border-[#9BB7E8] hover:text-[#0242D7] dark:border-[#344A63] dark:text-[#AAB7C7]"}
+                    >
+                      {focusSaving === discipline.id ? "Salvando..." : focused ? "✓ Foco atual" : "Focar estudo"}
+                    </button>
+                    <Link to="/app/disciplinas/$disciplineId" params={{ disciplineId: discipline.id }} className="hidden items-center gap-2 text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF] sm:inline-flex">
+                      Estudar <Icon name="arrow" className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
-                <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF]">Estudar <Icon name="arrow" className="h-4 w-4" /></span>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
