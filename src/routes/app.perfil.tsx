@@ -28,22 +28,23 @@ function Icon({name,className=""}:{name:"back"|"book"|"clock"|"plus"|"close"|"lo
 
 function ProfilePage(){
  const navigate=useNavigate();
- const [name,setName]=useState("Aluno"),[email,setEmail]=useState(""),[avatarUrl,setAvatarUrl]=useState<string|null>(null),[profileFile,setProfileFile]=useState<File|null>(null);
+ const [name,setName]=useState("Aluno"),[email,setEmail]=useState(""),[avatarUrl,setAvatarUrl]=useState<string|null>(null),[isOfficialOwner,setIsOfficialOwner]=useState(false),[profileFile,setProfileFile]=useState<File|null>(null);
  const [profile,setProfile]=useState<ProfileData|null>(null),[courses,setCourses]=useState<CourseOption[]>([]),[disciplineOptions,setDisciplineOptions]=useState<DisciplineOption[]>([]),[studentDisciplines,setStudentDisciplines]=useState<StudentDiscipline[]>([]),[completedTopics,setCompletedTopics]=useState<CompletedTopic[]>([]),[newDiscipline,setNewDiscipline]=useState(""),[exams,setExams]=useState<StudentExam[]>([]),[newExamDiscipline,setNewExamDiscipline]=useState(""),[newExamType,setNewExamType]=useState("Prova"),[newExamDate,setNewExamDate]=useState(""),[loading,setLoading]=useState(true),[disciplineLoading,setDisciplineLoading]=useState(false),[saveState,setSaveState]=useState<SaveState>("idle"),[message,setMessage]=useState<string|null>(null),[pendingCourseRemoval,setPendingCourseRemoval]=useState(false),[logoutPending,setLogoutPending]=useState(false),[profileSaving,setProfileSaving]=useState(false);
 
  const loadProfileData=useCallback(async()=>{
   const {data:sessionData}=await supabase.auth.getSession(); if(!sessionData.session){await navigate({to:"/login"});return}
   const user=sessionData.session.user; const fullName=user.user_metadata?.["full_name"]||user.user_metadata?.["name"];
   setName(fullName?.split(" ")[0]||"Aluno"); setEmail(user.email||"");
-  const [{data:courseData},{data:profileData},{data:disciplineData},{data:examData},{data:completedProgressData}]=await Promise.all([
+  const [{data:courseData},{data:profileData},{data:disciplineData},{data:examData},{data:completedProgressData},{data:ownerData}]=await Promise.all([
    supabase.from("courses").select("id,name").eq("published",true).order("name",{ascending:true}),
    supabase.from("student_profiles").select("course_id,institution,semester,daily_study_minutes,difficulties,display_name,avatar_url").eq("user_id",user.id).maybeSingle(),
    supabase.from("student_disciplines").select("id,discipline_name").eq("user_id",user.id).order("created_at",{ascending:true}),
    supabase.from("student_exams").select("id,discipline,exam_type,exam_date").eq("user_id",user.id).order("exam_date",{ascending:true}),
-   supabase.from("student_topic_progress").select("id,topic_id,completed_at,best_score").eq("user_id",user.id).eq("status","completed").order("completed_at",{ascending:false})
+   supabase.from("student_topic_progress").select("id,topic_id,completed_at,best_score").eq("user_id",user.id).eq("status","completed").order("completed_at",{ascending:false}),
+   supabase.from("system_owners").select("user_id").eq("user_id",user.id).maybeSingle()
   ]);
   const pd=profileData as (ProfileData&{display_name?:string|null;avatar_url?:string|null})|null;
-  setName(pd?.display_name||fullName?.split(" ")[0]||"Aluno"); setAvatarUrl(pd?.avatar_url||null);
+  setName(pd?.display_name||fullName?.split(" ")[0]||"Aluno"); setAvatarUrl(pd?.avatar_url||null); setIsOfficialOwner(Boolean(ownerData?.user_id));
   setCourses((courseData??[]) as CourseOption[]); setProfile(pd?{course_id:pd.course_id,institution:pd.institution,semester:pd.semester,daily_study_minutes:pd.daily_study_minutes,difficulties:pd.difficulties}:{course_id:null,institution:null,semester:null,daily_study_minutes:60,difficulties:null});
   setStudentDisciplines((disciplineData??[]) as StudentDiscipline[]);
   setExams((examData??[]) as StudentExam[]);
@@ -107,7 +108,7 @@ function ProfilePage(){
      <label htmlFor="profile-photo" className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#0242D7] text-white shadow" title="Adicionar foto" aria-label="Adicionar foto de perfil">+</label>
      <input id="profile-photo" type="file" accept="image/*" className="sr-only" onChange={e=>setProfileFile(e.target.files?.[0]??null)}/>
     </div>
-    <div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#273547]">{name}</p><p className="text-xs text-[#7A8796]">{email||"E-mail não informado"}</p><p className="mt-1 text-xs text-[#7A8796]">Foto de perfil: JPG, PNG ou outro formato de imagem até 5 MB.</p></div>
+    <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="text-sm font-bold text-[#273547]">{name}</p>{isOfficialOwner&&<span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#1877F2] text-[11px] font-black text-white shadow-sm" title="Perfil oficial verificado" aria-label="Perfil oficial verificado">✓</span>}</div><p className="text-xs text-[#7A8796]">{email||"E-mail não informado"}</p><p className="mt-1 text-xs text-[#7A8796]">Foto de perfil: JPG, PNG ou outro formato de imagem até 5 MB.</p></div>
     <div className="flex w-full flex-wrap gap-2 sm:w-auto">
       <button type="button" onClick={()=>void saveIdentity()} disabled={profileSaving||!profileFile} className="min-h-10 rounded-lg bg-[#0242D7] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{profileSaving?"Salvando...":"Salvar foto"}</button>
     </div>
