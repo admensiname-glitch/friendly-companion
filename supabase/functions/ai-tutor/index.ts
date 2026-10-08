@@ -26,6 +26,13 @@ type GeneratedMicroAssessment = {
   concept_tags: string[];
 };
 
+type LearningObservation = {
+  concept: string;
+  signal_type: "comprehension_gap" | "comparison_gap" | "application_gap" | "concept_gap" | "procedure_gap";
+  severity: number;
+  evidence: string;
+};
+
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -596,6 +603,7 @@ function extractOutputText(payload: unknown): string {
 function extractTutorResult(payload: unknown): {
   message: string;
   microassessment: GeneratedMicroAssessment | null;
+  learningObservations: LearningObservation[];
   shareable: boolean;
   videoRecommendation: { enabled: boolean; reason: string } | null;
   visualAid: VisualAid;
@@ -607,6 +615,7 @@ function extractTutorResult(payload: unknown): {
     const parsed = JSON.parse(raw) as {
       message?: unknown;
       microassessment?: unknown;
+      learning_observations?: unknown;
       shareable?: unknown;
       visual_aid?: unknown;
       video_recommendation?: unknown;
@@ -653,6 +662,30 @@ function extractTutorResult(payload: unknown): {
       };
     }
 
+    const learningObservations: LearningObservation[] = Array.isArray(parsed.learning_observations)
+      ? parsed.learning_observations
+          .filter(isRecord)
+          .map((item) => {
+            const signalType = item.signal_type;
+            const severity = typeof item.severity === "number" ? Math.trunc(item.severity) : 3;
+            return {
+              concept: typeof item.concept === "string" ? item.concept.trim().slice(0, 180) : "",
+              signal_type:
+                signalType === "comprehension_gap" ||
+                signalType === "comparison_gap" ||
+                signalType === "application_gap" ||
+                signalType === "concept_gap" ||
+                signalType === "procedure_gap"
+                  ? signalType
+                  : "concept_gap",
+              severity: Math.max(1, Math.min(5, severity)),
+              evidence: typeof item.evidence === "string" ? item.evidence.trim().slice(0, 500) : "",
+            };
+          })
+          .filter((item) => item.concept.length > 0)
+          .slice(0, 4)
+      : [];
+
     const visualAidRecord = isRecord(parsed.visual_aid) ? parsed.visual_aid : null;
     const visualAidType = visualAidRecord?.type;
     const visualAidItems = Array.isArray(visualAidRecord?.items)
@@ -674,6 +707,7 @@ function extractTutorResult(payload: unknown): {
     return {
       message: parsed.message.trim(),
       microassessment,
+      learningObservations,
       shareable: parsed.shareable === true,
       videoRecommendation: isRecord(parsed.video_recommendation)
         ? {
@@ -992,7 +1026,16 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Tópico é obrigatório." }, 400);
       }
 
-      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+      const { data: globalLearningSignals } = await supabase
+      .from("student_learning_signals")
+      .select("topic_id, discipline_id, concept, signal_type, severity, occurrences, correct_count, status, last_seen")
+      .eq("user_id", userData.user.id)
+      .in("status", ["pending", "improving"])
+      .order("severity", { ascending: false })
+      .order("occurrences", { ascending: false })
+      .limit(12);
+
+    const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
       if (!groqApiKey) {
         return json({ error: "O Tutor ainda não foi configurado." }, 503);
       }
@@ -1552,7 +1595,28 @@ Deno.serve(async (req: Request) => {
         (section: { title: string; content: string }) =>
           "SEÇÃO — " + section.title + "\n" + section.content,
       ),
-      (difficulties ?? []).length
+      (globalLearningSignals ?? []).length
+        ? "MAPA TRANSVERSAL DE APRENDIZAGEM DO ALUNO — use para reconhecer padrões entre disciplinas/tópicos e sugerir estudo quando fizer sentido:\n" +
+          (globalLearningSignals ?? [])
+            .map(
+              (item: {
+                concept: string;
+                signal_type: string;
+                severity: number;
+                occurrences: number;
+                correct_count: number;
+                status: string;
+              }) =>
+                item.concept +
+                " | sinal=" + item.signal_type +
+                " | intensidade=" + item.severity +
+                " | ocorrências=" + item.occurrences +
+                " | acertos=" + item.correct_count +
+                " | status=" + item.status,
+            )
+            .join("\n")
+        : "MAPA TRANSVERSAL DE APRENDIZAGEM DO ALUNO: nenhum sinal persistente registrado.\n\n" +
+      ((difficulties ?? []).length
         ? "DIFICULDADES PENDENTES DO ALUNO: " +
           (difficulties ?? [])
             .map(
@@ -1560,7 +1624,7 @@ Deno.serve(async (req: Request) => {
                 d.difficulty_tag + " (" + d.count + ")",
             )
             .join(", ")
-        : "DIFICULDADES PENDENTES DO ALUNO: nenhuma registrada.",
+        : "DIFICULDADES PENDENTES DO ALUNO: nenhuma registrada.")),
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -1577,6 +1641,17 @@ Deno.serve(async (req: Request) => {
       "Você é o Tutor acadêmico do Ensina-me: um professor particular digital, paciente, preciso e orientado à aprendizagem.\n\n" +
       "MISSÃO\n" +
       "Ajude o aluno a transformar informação em compreensão, compreensão em prática e prática em domínio. Não seja apenas um gerador de respostas. Ensine o raciocínio.\n\n" +
+      "MEMÓRIA PEDAGÓGICA TRANSVERSAL\n" +
+      "- Observe o que o aluno revela sobre sua própria compreensão durante a conversa, inclusive quando ele responde, explica com as próprias palavras, demonstra confusão ou aplica o conceito.\n" +
+      "- Identifique no máximo 4 conceitos realmente sustentados pela conversa que mereçam acompanhamento. Não invente dificuldades só para preencher a lista.\n" +
+      "- Uma dificuldade deve ser associada ao conceito acadêmico específico, e não apenas ao nome da disciplina.\n" +
+      "- Se a conversa mostrar que o aluno superou uma dificuldade, não registre um novo gap apenas porque o conceito apareceu.\n" +
+      "- O MAPA TRANSVERSAL pode conter sinais de outras disciplinas/tópicos. Use-o para reconhecer padrões e sugerir uma revisão quando houver relação real; nunca force uma conexão.\n" +
+      "- Quando houver evidência suficiente de uma fragilidade, a resposta pode sugerir UMA próxima ação concreta: revisar um tópico, praticar um conceito ou voltar a um conteúdo. A sugestão deve ser natural e curta.\n\n" +
+      "RECOMENDAÇÃO DE ESTUDO\n" +
+      "- Se o histórico mostrar uma dificuldade recorrente, priorize essa dificuldade na orientação ao aluno, mesmo que a conversa atual seja sobre outro ponto relacionado.\n" +
+      "- Nunca mande o aluno estudar aleatoriamente. Toda sugestão deve estar ligada a uma dificuldade ou objetivo observável.\n\n" +
+      "Ensine o aluno primeiro; o registro pedagógico é consequência da conversa, não o assunto da conversa.\n\n" +
       "FONTE E RIGOR\n" +
       "- Use prioritariamente o CONTEXTO ACADÊMICO deste tópico.\n" +
       "- Nunca invente autores, obras, datas, pesquisas, estatísticas, definições ou citações.\n" +
@@ -1680,6 +1755,31 @@ Deno.serve(async (req: Request) => {
                   additionalProperties: false,
                   properties: {
                     message: { type: "string" },
+                    learning_observations: {
+                      type: "array",
+                      minItems: 0,
+                      maxItems: 4,
+                      items: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          concept: { type: "string" },
+                          signal_type: {
+                            type: "string",
+                            enum: [
+                              "comprehension_gap",
+                              "comparison_gap",
+                              "application_gap",
+                              "concept_gap",
+                              "procedure_gap"
+                            ]
+                          },
+                          severity: { type: "integer", minimum: 1, maximum: 5 },
+                          evidence: { type: "string" }
+                        },
+                        required: ["concept", "signal_type", "severity", "evidence"]
+                      }
+                    },
                     shareable: { type: "boolean" },
                     visual_aid: {
                       type: "object",
@@ -1742,7 +1842,7 @@ Deno.serve(async (req: Request) => {
                       ],
                     },
                   },
-                  required: ["message", "shareable", "visual_aid", "microassessment", "video_recommendation"],
+                  required: ["message", "learning_observations", "shareable", "visual_aid", "microassessment", "video_recommendation"],
                 },
               },
             },
@@ -1964,6 +2064,24 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    for (const observation of tutorResult.learningObservations) {
+      const { error: signalError } = await supabase.rpc("record_learning_signal", {
+        _topic_id: topicId,
+        _concept: observation.concept,
+        _signal_type: observation.signal_type,
+        _severity: observation.severity,
+        _evidence: observation.evidence,
+        _correct: false,
+      });
+
+      if (signalError) {
+        console.warn(
+          "[Ensina-me] ai-tutor: não foi possível registrar observação pedagógica",
+          JSON.stringify({ concept: observation.concept, message: signalError.message }),
+        );
+      }
+    }
+
     const searchedTutorVideo = tutorResult.videoRecommendation?.enabled
       ? await searchYoutubeVideoForQuestion(userMessage, topic.name)
       : null;
@@ -1971,6 +2089,7 @@ Deno.serve(async (req: Request) => {
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
+      learning_observations: tutorResult.learningObservations,
       learning_action: learningAction,
       learning_signals: learningSignals,
       micro_assessment: publicMicroAssessment,
