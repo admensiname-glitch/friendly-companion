@@ -412,6 +412,16 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
+                {message.role === "assistant" && message.learningNextStep?.enabled && (
+                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
+                    <p className="mt-1 text-sm font-black text-[#172334]">{message.learningNextStep.title}</p>
+                    <p className="mt-2 text-xs leading-5 text-[#687688]">{message.learningNextStep.reason}</p>
+                    <button type="button" onClick={() => setInput(message.learningNextStep.prompt)} className="mt-4 rounded-xl bg-[#0242D7] px-4 py-2.5 text-xs font-black text-white">
+                      Praticar agora
+                    </button>
+                  </div>
+                )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
                     href={`/app/comunidade?share_text=${encodeURIComponent(message.content.slice(0, 1900))}${topicId ? `&topic_id=${encodeURIComponent(topicId)}` : ""}${recommendation?.discipline_id ? `&discipline_id=${encodeURIComponent(recommendation.discipline_id)}` : ""}`}
