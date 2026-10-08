@@ -148,6 +148,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    font-size: 106.25%;
   }
 
   body {
@@ -575,7 +576,7 @@
   --app-blue: #0242D7;
   --app-blue-soft: #EEF4FF;
   --app-ink: #172334;
-  --app-muted: #718096;
+  --app-muted: #111827;
   --app-line: #E2E8F0;
   --app-surface: #FFFFFF;
 }
@@ -598,8 +599,8 @@
   gap: 12px;
   border-radius: 14px;
   padding: 0 12px;
-  color: #687688;
-  font-size: 13px;
+  color: #111827;
+  font-size: 14px;
   font-weight: 700;
   transition: background .16s ease, color .16s ease, transform .16s ease;
 }
@@ -638,7 +639,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  color: #8B98A8;
+  color: #111827;
 }
 
 .app-nav-icon-active {
@@ -659,7 +660,7 @@
   border: 1px solid #E2E8F0;
   border-radius: 16px;
   padding: 9px;
-  color: #243245;
+  color: #111827;
   background: #FFFFFF;
 }
 
@@ -701,7 +702,7 @@
   justify-content: center;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
-  color: #637184;
+  color: #111827;
   background: #FFFFFF;
   transition: transform .16s ease, border-color .16s ease, color .16s ease, background .16s ease;
 }
@@ -770,8 +771,8 @@
   border: 1px solid #E0E7EF;
   border-radius: 12px;
   background: #FFFFFF;
-  color: #59687A;
-  font-size: 13px;
+  color: #111827;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -829,8 +830,8 @@
   justify-content: center;
   gap: 2px;
   flex-direction: column;
-  color: #8995A5;
-  font-size: 9px;
+  color: #111827;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: -.01em;
   text-decoration: none;
@@ -897,9 +898,9 @@
   border: 1px solid #E3E9F0;
   border-radius: 17px;
   padding: 0 12px;
-  color: #334155;
+  color: #111827;
   background: #FFFFFF;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   text-decoration: none;
 }
@@ -1030,4 +1031,55 @@
   .app-shell .app-card:hover {
     border-color: #C9D8EE;
   }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Legibilidade global — tipografia maior e texto com contraste real          */
+/* -------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    --muted-foreground: oklch(0.24 0.03 264.695);
+  }
+
+  .app-shell {
+    font-size: 1rem;
+  }
+
+  .app-shell p,
+  .app-shell li,
+  .app-shell label,
+  .app-shell input,
+  .app-shell textarea,
+  .app-shell select {
+    line-height: 1.5;
+  }
+}
+
+/* No tema claro, tons neutros de texto não ficam mais com aparência apagada. */
+@media (prefers-color-scheme: light) {
+  .app-shell [class*="text-gray-"],
+  .app-shell [class*="text-slate-"],
+  .app-shell [class*="text-zinc-"],
+  .app-shell [class*="text-neutral-"] {
+    color: #111827 !important;
+  }
+}
+
+/* Ajustes explícitos que usam pixels e não acompanham a escala do html. */
+.app-shell .app-sidebar-item {
+  font-size: 14px;
+}
+
+.app-shell .app-top-action,
+.app-shell .app-primary-button {
+  font-size: 14px;
+}
+
+.app-shell .app-tab {
+  font-size: 11px;
+}
+
+.app-shell .app-sheet-item {
+  font-size: 14px;
 }
