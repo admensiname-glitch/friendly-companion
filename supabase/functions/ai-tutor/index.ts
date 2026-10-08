@@ -67,6 +67,7 @@ async function generateFormalEvaluationQuestions(args: {
   context: string;
   previousAttempt: Array<{ question_text: string; options: string[] }>;
   seed: string;
+  temperature?: number;
 }): Promise<GeneratedFormalEvaluationQuestion[] | null> {
   const previousQuestions = args.previousAttempt
     .map((item, index) =>
@@ -95,7 +96,7 @@ async function generateFormalEvaluationQuestions(args: {
     "- Esta é uma nova tentativa. Não repita as perguntas da tentativa anterior.\n" +
     "- Não repita o mesmo enunciado com pequenas trocas de palavras. Mude o caso, situação, relação conceitual ou foco cognitivo.\n" +
     "- Não repita a mesma alternativa correta com o mesmo texto da tentativa anterior. Reescreva as alternativas.\n" +
-    "- Considere o identificador aleatório da tentativa: " + args.seed + ". Use-o apenas como gatilho para variar os casos e a ordem conceitual.\n" +
+    "- Considere o identificador aleatório da tentativa: " + args.seed + ". Use-o apenas como gatilho para variar os casos, exemplos, relações conceituais e ordem cognitiva.\n" +
     (previousQuestions
       ? "\nTENTATIVA ANTERIOR — NÃO REPETIR:\n" + previousQuestions
       : "\nNão existe tentativa anterior. Crie a primeira avaliação.\n") +
@@ -123,7 +124,7 @@ async function generateFormalEvaluationQuestions(args: {
             { role: "user", content: "Gere agora as 10 questões da nova tentativa." },
           ],
           max_completion_tokens: 3600,
-          temperature: 0.35,
+          temperature: args.temperature ?? 0.35,
           reasoning_effort: "medium",
           include_reasoning: false,
           response_format: {
@@ -1111,33 +1112,51 @@ Deno.serve(async (req: Request) => {
               }))
           : [];
 
-      let questions = await generateFormalEvaluationQuestions({
+      const evaluationGenerationArgs = {
         apiKey: groqApiKey,
         topicName: topic.name,
         topicDescription: topic.description,
         context: truncateText(context, MAX_CONTEXT_CHARACTERS),
         previousAttempt,
+      };
+
+      let questions = await generateFormalEvaluationQuestions({
+        ...evaluationGenerationArgs,
         seed: crypto.randomUUID(),
+        temperature: 0.35,
       });
 
+      // A primeira tentativa prioriza consistência. Se o modelo repetir alguma
+      // questão, aumenta a diversidade e tenta novamente com uma semente nova.
       if (!questions) {
         questions = await generateFormalEvaluationQuestions({
-          apiKey: groqApiKey,
-          topicName: topic.name,
-          topicDescription: topic.description,
-          context: truncateText(context, MAX_CONTEXT_CHARACTERS),
-          previousAttempt,
+          ...evaluationGenerationArgs,
           seed: crypto.randomUUID(),
+          temperature: 0.55,
+        });
+      }
+
+      // Última tentativa: maior diversidade de casos e formulações, mantendo
+      // a validação rígida contra repetição.
+      if (!questions) {
+        questions = await generateFormalEvaluationQuestions({
+          ...evaluationGenerationArgs,
+          seed: crypto.randomUUID(),
+          temperature: 0.75,
         });
       }
 
       if (!questions) {
+        console.warn(
+          "[Ensina-me] ai-tutor: não foi possível montar 10 questões inéditas após 3 tentativas",
+        );
         return json(
           {
             error:
-              "Não foi possível gerar uma nova avaliação sem repetir questões anteriores. Tente novamente.",
+              "Não consegui montar uma nova avaliação inédita agora. O conteúdo deste tópico já foi muito explorado. Tente novamente em instantes.",
+            code: "EVALUATION_VARIETY_EXHAUSTED",
           },
-          502,
+          409,
         );
       }
 
