@@ -74,7 +74,12 @@ function AppLayout() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [profileName, setProfileName] = useState("Meu perfil");
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const logoutPending = useRef(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     let active = true;
@@ -293,8 +298,89 @@ function AppLayout() {
             {mobileContext.back && <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A96A5] dark:text-[#8797AA]">Ensina-me</p>}
           </div>
         </div>
-        <div className="ml-auto" aria-hidden="true" />
+        <button
+          type="button"
+          className="app-icon-button ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DCE5F0] bg-white text-[#172334] shadow-sm dark:border-[#2B3A4F] dark:bg-[#111B2A] dark:text-[#E7EDF5]"
+          aria-label={mobileMenuOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="app-mobile-navigation"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <Icon name={mobileMenuOpen ? "close" : "more"} className="h-5 w-5" />
+        </button>
       </header>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#0B1728]/45 backdrop-blur-[2px]"
+            aria-label="Fechar menu"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <nav
+            id="app-mobile-navigation"
+            aria-label="Menu principal do Ensina-me"
+            className="absolute inset-y-0 right-0 flex w-[min(86vw,360px)] flex-col overflow-y-auto bg-white px-4 pb-6 pt-5 shadow-2xl dark:bg-[#111B2A]"
+          >
+            <div className="mb-5 flex items-center justify-between border-b border-[#E6EBF2] pb-4 dark:border-[#2B3A4F]">
+              <Link to="/app/dashboard" className="min-w-0" aria-label="Ensina-me, início">
+                <BrandLogo tone="blue" />
+              </Link>
+              <button
+                type="button"
+                className="app-icon-button flex h-10 w-10 items-center justify-center rounded-xl"
+                aria-label="Fechar menu"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Icon name="close" className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mb-4 rounded-2xl bg-[#F2F6FC] p-3 dark:bg-[#172437]">
+              <div className="flex items-center gap-3">
+                <span className="app-avatar overflow-hidden">
+                  {profileAvatar ? <img src={profileAvatar} alt="" className="h-full w-full object-cover" decoding="async" /> : "EM"}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-extrabold text-[#172334] dark:text-[#E7EDF5]">{profileName}</p>
+                  <p className="text-xs text-[#7A8796] dark:text-[#9EADBD]">Seu espaço de aprendizagem</p>
+                </div>
+              </div>
+            </div>
+            <p className="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#8A96A5]">Navegação</p>
+            <div className="space-y-1">
+              {navigation.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  activeOptions={{ exact: item.to === "/app/dashboard" }}
+                  className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors ${
+                    location.pathname === item.to || (item.to !== "/app/dashboard" && location.pathname.startsWith(item.to + "/"))
+                      ? "bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#8DB8FF]"
+                      : "text-[#405064] hover:bg-[#F5F7FA] dark:text-[#D1DCE8] dark:hover:bg-[#1A2739]"
+                  }`}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/[0.04] dark:bg-white/[0.05]">
+                    <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="flex-1">{item.label}</span>
+                  <Icon name="chevron" className="h-4 w-4 opacity-45" />
+                </Link>
+              ))}
+            </div>
+            <div className="mt-4 border-t border-[#E6EBF2] pt-3 dark:border-[#2B3A4F]">
+              <Link to="/app/perfil" className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold text-[#405064] dark:text-[#D1DCE8]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#8DB8FF]"><Icon name="user" className="h-[18px] w-[18px]" /></span>
+                Meu perfil e configurações
+              </Link>
+              <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-1 flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-[#B42318] disabled:opacity-50">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FEF0EF]"><Icon name="logout" className="h-[18px] w-[18px]" /></span>
+                {isLoggingOut ? "Saindo..." : "Sair da conta"}
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
 
       <header className="app-desktop-header fixed inset-x-0 top-0 z-30 hidden lg:block lg:ml-[252px]">
         <div className="mx-auto flex h-[58px] max-w-[1280px] items-center justify-between px-8">
@@ -315,7 +401,26 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="lg:ml-[252px] pt-[60px] lg:pt-[58px]">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#DCE5F0] bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),6px)] pt-2 shadow-[0_-8px_24px_rgba(23,35,52,.06)] backdrop-blur lg:hidden dark:border-[#2B3A4F] dark:bg-[#111B2A]/95" aria-label="Atalhos principais">
+        {[navigation[0]!, navigation[1]!, navigation[2]!, navigation[5]!, navigation[6]!].map((item) => {
+          const active = location.pathname === item.to || (item.to !== "/app/dashboard" && location.pathname.startsWith(item.to + "/"));
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              activeOptions={{ exact: item.to === "/app/dashboard" }}
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-extrabold ${
+                active ? "text-[#0242D7] dark:text-[#8DB8FF]" : "text-[#7A8796] dark:text-[#9EADBD]"
+              }`}
+            >
+              <Icon name={item.icon} className="h-5 w-5" />
+              <span>{item.label === "Meus cursos" ? "Disciplinas" : item.label === "Estudar agora" ? "Estudar" : item.label === "Praticar" ? "Provas" : item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <main className="lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
