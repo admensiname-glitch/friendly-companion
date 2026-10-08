@@ -272,7 +272,7 @@ function AppLayout() {
         </div>
       </aside>
 
-      <header className="app-mobile-header lg:hidden">
+      <header className="app-mobile-header fixed inset-x-0 top-0 z-50 lg:hidden">
         <div className="flex min-w-0 items-center gap-2">
           {mobileContext.back ? (
             <button
@@ -296,7 +296,7 @@ function AppLayout() {
         <div className="ml-auto" aria-hidden="true" />
       </header>
 
-      <header className="app-desktop-header sticky top-0 z-30 hidden border-b lg:block lg:ml-[252px]">
+      <header className="app-desktop-header fixed inset-x-0 top-0 z-30 hidden border-b lg:block lg:ml-[252px]">
         <div className="mx-auto flex h-[58px] max-w-[1280px] items-center justify-between px-8">
           <div>
             <p className="text-xs font-semibold text-[#8B97A7] dark:text-[#91A1B2]">Seu espaço de aprendizagem</p>
@@ -315,7 +315,7 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="lg:ml-[252px]">
+      <main className="lg:ml-[252px] pt-[60px] lg:pt-[58px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
