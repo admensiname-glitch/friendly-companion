@@ -43,11 +43,12 @@ Deno.serve(async(req)=>{
    if(m)contextParts.push("TÓPICO: "+topicMap.get(tid)?.name+"\n"+(topicMap.get(tid)?.description??"")+"\n"+m.title+"\n"+(m.introduction??""));
   }
 
+  const expectedLines=(question:string)=>{const q=question.toLowerCase();if(/\b(compare|diferenc|relacione|distinga|contraste)\b/.test(q))return 4;if(/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/.test(q))return 5;if(/\b(explique|descreva|como funciona|por que|por quê)\b/.test(q))return 3;return 2;};
   const items=answerRows.map((a:any)=>{
    const aqRow=(aq??[]).find((x:any)=>x.id===a.attempt_question_id);
    const q=(questions??[]).find((x:any)=>x.id===aqRow?.question_id);
    const tid=q?.exercises?.topic_id;
-   return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??""};
+   return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines:expectedLines(q?.question_text??"")};
   }).filter((x:any)=>x.question&&x.response);
 
   if(!key)return json({error:"A correção discursiva ainda não está configurada."},503);
@@ -63,8 +64,8 @@ REGRA CENTRAL DE PONTUAÇÃO:
 - 0/10 = não demonstrou compreensão, fugiu da questão, contradisse o conceito central ou não respondeu.
 Não invente mérito que não esteja escrito. Não presuma a intenção do aluno. Se a questão pedir comparação, aplicação, justificativa ou exemplo e isso não estiver presente, a resposta não pode receber 10/10.
 Uma resposta longa ou bem escrita NÃO compensa erro conceitual.
-Uma resposta curta pode receber 10/10 se contiver todos os elementos essenciais.
-Se houver dúvida entre duas notas, escolha a menor quando a evidência de domínio completo não estiver presente.
+Uma resposta curta pode receber 10/10 se contiver todos os elementos essenciais. Porém, quando a questão exigir explicação, comparação, análise, aplicação ou justificativa, a resposta também precisa ter desenvolvimento suficiente para demonstrar essa competência. Quantidade de linhas nunca substitui conteúdo.
+Se houver dúvida entre duas notas, escolha a menor quando a evidência de domínio completo não estiver presente. Para definição simples, uma resposta curta pode ser suficiente. Para explicação, comparação, análise, aplicação ou justificativa, uma resposta excessivamente curta que não desenvolva o que foi solicitado não pode receber 10/10.
 Apenas 10/10 é considerada resposta plenamente correta. Qualquer nota de 1 a 9 é resposta parcialmente correta e deve explicar claramente o que faltou ou precisa ser corrigido.
 
 FEEDBACK OBRIGATÓRIO:
