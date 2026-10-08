@@ -2073,6 +2073,23 @@ interface FormalEvaluationResult {
   total_questions: number;
   band: "novice" | "developing" | "proficient" | "mastered";
   best_score?: number | null;
+  analysis?: {
+    weak_points?: Array<{
+      question_id: string;
+      question_text: string;
+      concept: string;
+      explanation: string;
+      selected_option_index: number;
+      correct_option_index: number;
+      correct_answer: string;
+    }>;
+    strengths?: Array<{
+      question_id: string;
+      question_text: string;
+      concept: string;
+    }>;
+    next_action?: "review_errors" | "practice_weak_points" | "advance";
+  };
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -2470,16 +2487,61 @@ function EvaluationSection({
             </div>
 
             <p className="mt-4 text-sm leading-6 text-[#475569]">
-              Esse resultado fica registrado no seu progresso e poderá orientar as próximas revisões.
+              A avaliação atualizou seu histórico de aprendizagem. O Ensina-me também identificou os conceitos que mais precisam da sua próxima atenção.
             </p>
 
+            {(result.analysis?.weak_points?.length ?? 0) > 0 && (
+              <div className="mt-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#B45309]">
+                  O que esta avaliação mostrou
+                </p>
+                <h3 className="mt-1 text-lg font-bold text-[#172334]">
+                  {(result.analysis?.weak_points?.length ?? 0) === 1
+                    ? "1 ponto merece outra passagem"
+                    : `${result.analysis?.weak_points?.length} pontos merecem outra passagem`}
+                </h3>
+                <div className="mt-4 space-y-4">
+                  {result.analysis?.weak_points?.slice(0, 4).map((point) => (
+                    <div key={point.question_id} className="rounded-xl border border-[#FDE7A8] bg-white p-4">
+                      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#92400E]">{point.concept}</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-[#334155]">{point.question_text}</p>
+                      <p className="mt-2 text-sm leading-6 text-[#475569]"><strong>Por quê:</strong> {point.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(result.analysis?.strengths?.length ?? 0) > 0 && (
+              <div className="mt-4 rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#166534]">
+                  O que você já demonstrou dominar
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {Array.from(new Set((result.analysis?.strengths ?? []).map((item) => item.concept))).slice(0, 5).map((concept) => (
+                    <span key={concept} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#166534] ring-1 ring-inset ring-[#BBF7D0]">
+                      {concept}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-5 flex flex-wrap gap-3">
-              {result.band !== "mastered" && (
+              {(result.analysis?.weak_points?.length ?? 0) > 0 && (
+                <a
+                  href="#revisao"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] sm:w-auto"
+                >
+                  Corrigir meus pontos fracos →
+                </a>
+              )}
+              {result.band !== "mastered" && (result.analysis?.weak_points?.length ?? 0) === 0 && (
                 <a
                   href="#revisao"
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0242D7] ring-1 ring-inset ring-[#BFDBFE] hover:bg-[#F8FAFC]"
                 >
-                  Revisar pontos sinalizados
+                  Abrir revisão
                 </a>
               )}
               {result.band === "mastered" && (
