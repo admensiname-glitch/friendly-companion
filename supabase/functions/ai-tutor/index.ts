@@ -2051,9 +2051,13 @@ Deno.serve(async (req: Request) => {
       concept_tags: string[];
     } | null = null;
 
+    // A verificação de compreensão é parte do fluxo normal de ensino.
+    // Não deve depender de learningAction === "practice": uma explicação acadêmica
+    // substantiva também pode e deve gerar a questão automaticamente.
     if (
+      shouldGenerateComprehensionCheck &&
       generatedAssessment?.enabled &&
-      learningAction === "practice" &&
+      !explicitlyDeclinesPractice &&
       generatedAssessment.question.length > 0 &&
       generatedAssessment.options.length === 4 &&
       generatedAssessment.options.every((option) => option.trim().length > 0) &&
