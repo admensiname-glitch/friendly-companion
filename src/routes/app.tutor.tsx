@@ -126,6 +126,7 @@ function TutorPage() {
   const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
   const [topicId, setTopicId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -439,12 +440,21 @@ function TutorPage() {
     setMessages((current) => [...current, { role: "user", content: message }]);
 
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: { action: "chat", topic_id: topicId, message },
+      body: {
+        action: "chat",
+        topic_id: topicId,
+        message,
+        conversation_id: conversationId,
+      },
     });
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
+      if (typeof data.conversation_id === "string" && data.conversation_id.trim()) {
+        setConversationId(data.conversation_id);
+      }
+
       const clientVisualFallback = getClientVisualFallback(message, data.message);
       const backendVisualAid = data.visual_aid as VisualAid | null | undefined;
       const visualAid = backendVisualAid
