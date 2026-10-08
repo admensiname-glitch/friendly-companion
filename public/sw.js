@@ -42,13 +42,19 @@ self.addEventListener("push", (event) => {
     badge: NOTIFICATION_ICON,
     tag: typeof payload.tag === "string" ? payload.tag.slice(0, 100) : "ensina-me-update",
     data: { url: safeUrl },
+    actions: [
+      { action: "study", title: "Estudar agora" },
+      { action: "dismiss", title: "Dispensar" },
+    ],
     renotify: false,
+    requireInteraction: false,
     timestamp: Date.now(),
   }));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  if (event.action === "dismiss") return;
   const target = event.notification?.data?.url || "/app/dashboard";
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
