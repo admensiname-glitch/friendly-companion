@@ -227,22 +227,23 @@ function AppDashboard() {
         const topicIds = [...new Set(progressRows.map((row) => row.topic_id))];
 
         if (topicIds.length) {
-          const { data: topicRows } = await supabase
-            .from("topics")
-            .select("id, name, discipline_id")
-            .in("id", topicIds)
-            .eq("published", true);
+          const [{ data: topicRows }, { data: materialRows }] = await Promise.all([
+            supabase
+              .from("topics")
+              .select("id, name, discipline_id")
+              .in("id", topicIds)
+              .eq("published", true),
+            supabase
+              .from("materials")
+              .select("id, topic_id")
+              .in("topic_id", topicIds)
+              .eq("status", "published"),
+          ]);
 
           const disciplineIds = [...new Set((topicRows ?? []).map((topic) => topic.discipline_id))];
           const { data: disciplineRows } = disciplineIds.length
             ? await supabase.from("disciplines").select("id, name").in("id", disciplineIds)
-            : { data: [] as Array<{ id: string; name: string }> };
-
-          const { data: materialRows } = await supabase
-            .from("materials")
-            .select("id, topic_id")
-            .in("topic_id", topicIds)
-            .eq("status", "published");
+            : { data: [] as Array<{ id: string; name: string }>; };
 
           const materialIds = (materialRows ?? []).map((material) => material.id);
           const { data: sectionRows } = materialIds.length
