@@ -2298,6 +2298,7 @@ function EvaluationSection({
     setAttemptId(String(data.attempt_id));
     setQuestions(prepareQuestionPresentation(loadedQuestions));
     setAnswers({});
+    setResult(null);
     setStarted(true);
     setLoading(false);
   }
