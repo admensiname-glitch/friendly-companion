@@ -41,10 +41,14 @@ jobs:
         run: npm install --no-save @capacitor/cli@8.5.2 @capacitor/core@8.5.2 @capacitor/android@8.5.2 @capacitor/assets@3.0.5
       - name: Prepare app assets
         run: |
-          mkdir -p assets
+          mkdir -p assets www
           cp public/ensina-me-icon.svg assets/icon.svg
           convert assets/icon.svg -resize 1024x1024! assets/icon.png
-          test -f www/index.html
+          # Capacitor requires a webDir even though the native app opens the production
+          # Ensina-me URL in its Android WebView.
+          if [ ! -f www/index.html ]; then
+            printf '%s\n' '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body></body></html>' > www/index.html
+          fi
       - name: Generate Android project
         run: npx cap add android
       - name: Configure Android immersive fullscreen
