@@ -2066,6 +2066,29 @@ interface FormalEvaluationQuestion {
   concept_tags?: string[];
 }
 
+interface RecoveryQuestion {
+  assessment_id: string;
+  question: string;
+  options: string[];
+  difficulty: "introductory" | "intermediate" | "advanced";
+  concept_tags: string[];
+}
+
+interface RecoveryFeedback {
+  is_correct: boolean;
+  explanation: string;
+  selected_option_index: number;
+  correct_option_index: number;
+  next_micro_assessment?: {
+    id: string;
+    question: string;
+    options: string[];
+    difficulty: "introductory" | "intermediate" | "advanced";
+    concept_tags: string[];
+  } | null;
+  next_message?: string | null;
+}
+
 interface FormalEvaluationResult {
   attempt_id: string;
   score: number;
@@ -2177,6 +2200,10 @@ function EvaluationSection({
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [recoveryQuestion, setRecoveryQuestion] = useState<RecoveryQuestion | null>(null);
+  const [recoveryAnswer, setRecoveryAnswer] = useState<number | null>(null);
+  const [recoveryFeedback, setRecoveryFeedback] = useState<RecoveryFeedback | null>(null);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const loadState = useCallback(async () => {
     setLoading(true);
@@ -2348,6 +2375,95 @@ function EvaluationSection({
     setStarted(false);
     setResult(data as unknown as FormalEvaluationResult);
     onCompletedChange(true);
+    await onDifficultyUpdate();
+  }
+
+  async function startRecovery(point: NonNullable<FormalEvaluationResult["analysis"]>["weak_points"][number]) {
+    setRecoveryLoading(true);
+    setRecoveryFeedback(null);
+    setRecoveryAnswer(null);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        action: "generate_recovery_question",
+        topic_id: topicId,
+        recovery_concept: point.concept,
+        recovery_question: point.question_text,
+        recovery_explanation: point.explanation,
+      },
+    });
+
+    setRecoveryLoading(false);
+
+    if (error || !data?.assessment_id || !Array.isArray(data.options) || data.options.length !== 4) {
+      setGenerationError("Não foi possível preparar a questão de recuperação agora. Tente novamente.");
+      return;
+    }
+
+    setRecoveryQuestion({
+      assessment_id: String(data.assessment_id),
+      question: String(data.question ?? ""),
+      options: data.options.map(String),
+      difficulty:
+        data.difficulty === "advanced" || data.difficulty === "introductory"
+          ? data.difficulty
+          : "intermediate",
+      concept_tags: Array.isArray(data.concept_tags) ? data.concept_tags.map(String) : [point.concept],
+    });
+  }
+
+  async function answerRecovery() {
+    if (!recoveryQuestion || recoveryAnswer == null || recoveryLoading) return;
+
+    setRecoveryLoading(true);
+
+    const { data, error } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        action: "answer_microassessment",
+        micro_assessment_id: recoveryQuestion.assessment_id,
+        selected_option_index: recoveryAnswer,
+      },
+    });
+
+    setRecoveryLoading(false);
+
+    if (error || !data) {
+      setGenerationError("Não foi possível registrar sua tentativa. Tente novamente.");
+      return;
+    }
+
+    const feedback: RecoveryFeedback = {
+      is_correct: Boolean(data.is_correct),
+      explanation: String(data.explanation ?? ""),
+      selected_option_index: Number(data.selected_option_index ?? recoveryAnswer),
+      correct_option_index: Number(data.correct_option_index ?? 0),
+      next_micro_assessment: data.next_micro_assessment ?? null,
+      next_message: data.next_message ?? null,
+    };
+
+    setRecoveryFeedback(feedback);
+    setRecoveryAnswer(null);
+
+    if (feedback.next_micro_assessment) {
+      setRecoveryQuestion({
+        assessment_id: String(feedback.next_micro_assessment.id),
+        question: String(feedback.next_micro_assessment.question ?? ""),
+        options: Array.isArray(feedback.next_micro_assessment.options)
+          ? feedback.next_micro_assessment.options.map(String)
+          : [],
+        difficulty:
+          feedback.next_micro_assessment.difficulty === "advanced" ||
+          feedback.next_micro_assessment.difficulty === "introductory"
+            ? feedback.next_micro_assessment.difficulty
+            : "intermediate",
+        concept_tags: Array.isArray(feedback.next_micro_assessment.concept_tags)
+          ? feedback.next_micro_assessment.concept_tags.map(String)
+          : [],
+      });
+    } else {
+      setRecoveryQuestion(null);
+    }
+
     await onDifficultyUpdate();
   }
 
@@ -2527,14 +2643,82 @@ function EvaluationSection({
               </div>
             )}
 
+            {recoveryLoading && (
+              <div className="mt-5 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-4 text-sm text-[#1D4ED8]" role="status">
+                Preparando sua correção...
+              </div>
+            )}
+
+            {recoveryFeedback && (
+              <div className={
+                "mt-5 rounded-2xl border p-5 " +
+                (recoveryFeedback.is_correct ? "border-[#BBF7D0] bg-[#F0FDF4]" : "border-[#FDE68A] bg-[#FFFBEB]")
+              }>
+                <p className={
+                  "text-xs font-bold uppercase tracking-[0.14em] " +
+                  (recoveryFeedback.is_correct ? "text-[#166534]" : "text-[#B45309]")
+                }>
+                  {recoveryFeedback.is_correct ? "Você corrigiu este ponto" : "Ainda não. Vamos ajustar o raciocínio"}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#334155]">
+                  {recoveryFeedback.explanation}
+                </p>
+                {recoveryFeedback.next_message && (
+                  <p className="mt-3 rounded-xl bg-white/80 p-3 text-sm leading-6 text-[#475569]">
+                    {recoveryFeedback.next_message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {recoveryQuestion && (
+              <div className="mt-5 rounded-2xl border-2 border-[#BFDBFE] bg-white p-5 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0242D7]">
+                  Agora prove que entendeu
+                </p>
+                <h3 className="mt-2 text-lg font-bold leading-6 text-[#172334]">
+                  {recoveryQuestion.question}
+                </h3>
+                <div className="mt-4 space-y-2">
+                  {recoveryQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setRecoveryAnswer(index)}
+                      className={
+                        recoveryAnswer === index
+                          ? "w-full rounded-xl border-2 border-[#0242D7] bg-[#EFF6FF] px-4 py-3 text-left text-sm font-semibold text-[#0242D7]"
+                          : "w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#BFDBFE]"
+                      }
+                    >
+                      {String.fromCharCode(65 + index)}. {option}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void answerRecovery()}
+                  disabled={recoveryAnswer == null || recoveryLoading}
+                  className="mt-4 min-h-11 w-full rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {recoveryLoading ? "Corrigindo..." : "Responder"}
+                </button>
+              </div>
+            )}
+
             <div className="mt-5 flex flex-wrap gap-3">
               {(result.analysis?.weak_points?.length ?? 0) > 0 && (
-                <a
-                  href="#revisao"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] sm:w-auto"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const point = result.analysis?.weak_points?.[0];
+                    if (point) void startRecovery(point);
+                  }}
+                  disabled={recoveryLoading}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8] disabled:opacity-50 sm:w-auto"
                 >
-                  Corrigir meus pontos fracos →
-                </a>
+                  Corrigir meu primeiro ponto fraco →
+                </button>
               )}
               {result.band !== "mastered" && (result.analysis?.weak_points?.length ?? 0) === 0 && (
                 <a
