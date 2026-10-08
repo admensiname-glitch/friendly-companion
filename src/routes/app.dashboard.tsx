@@ -314,6 +314,19 @@ function AppDashboard() {
     [profile?.display_name, user],
   );
 
+  const [greeting, setGreeting] = useState("Olá");
+  useEffect(() => {
+    const hour = new Date().getHours();
+    const period = hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 18 ? "afternoon" : "night";
+    const greetings = {
+      morning: ["Bom dia", "Bom dia", "Bom dia"],
+      afternoon: ["Boa tarde", "Boa tarde", "Boa tarde"],
+      night: ["Boa noite", "Boa noite", "Boa noite"],
+    } as const;
+    const options = greetings[period];
+    setGreeting(options[Math.floor(Date.now() / 86400000) % options.length]);
+  }, []);
+
   const focusedTopics = focusedDisciplineIds.length
     ? topicsProgress.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
     : topicsProgress;
@@ -436,6 +449,15 @@ function AppDashboard() {
 
   return (
     <section className="w-full" aria-labelledby="app-dashboard-title">
+      <section className="mb-5 px-1 pt-2" aria-labelledby="dashboard-greeting">
+        <h1 id="dashboard-greeting" className="text-[28px] font-black tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
+          {greeting}, {firstName}
+        </h1>
+        <p className="mt-1 text-sm font-medium text-[#718096] dark:text-[#9EADBD]">
+          Vamos avançar mais um passo hoje.
+        </p>
+      </section>
+
       <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
         <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
