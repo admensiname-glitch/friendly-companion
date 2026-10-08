@@ -565,9 +565,9 @@ function AppDashboard() {
               <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
                 <Icon name={item.icon} className="h-3.5 w-3.5" />
               </span>
-              <span className="text-[10px] font-extrabold text-[#9AA5B3] dark:text-[#8091A5]">{item.label}</span>
+              <span className="text-xs font-extrabold text-[#9AA5B3] dark:text-[#8091A5]">{item.label}</span>
             </div>
-            <p className="mt-3 text-[25px] font-black tracking-[-0.04em] text-[#172334] dark:text-[#E7EDF5]">{item.value}</p>
+            <p className="mt-3 text-[28px] font-black tracking-[-0.04em] text-[#172334] dark:text-[#E7EDF5] sm:text-[25px]">{item.value}</p>
           </div>
         ))}
       </section>
