@@ -77,6 +77,17 @@ interface BrainTopic {
   concept: string;
 }
 
+interface ResumeTopic {
+  topic_id: string;
+  discipline_id: string;
+  topic_name: string;
+  discipline_name: string;
+  progress: number;
+  last_position: number;
+  section_title: string | null;
+  last_activity_at: string | null;
+}
+
 function Icon({
   name,
   className = "",
@@ -132,6 +143,7 @@ function AppDashboard() {
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
   const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
+  const [resumeTopics, setResumeTopics] = useState<ResumeTopic[]>([]);
   const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
   const [focusedDisciplineNames, setFocusedDisciplineNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,7 +172,7 @@ function AppDashboard() {
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
-      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, focusResult, learningSignalsResult] =
+      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, focusResult, learningSignalsResult, resumeProgressResult] =
         await Promise.all([
           supabase.from("student_profiles").select("display_name, institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
@@ -175,6 +187,13 @@ function AppDashboard() {
             .order("severity", { ascending: false })
             .order("last_seen", { ascending: false })
             .limit(24),
+          supabase
+            .from("student_topic_progress")
+            .select("topic_id, status, last_position, last_learning_activity_at, updated_at")
+            .neq("status", "completed")
+            .not("last_learning_activity_at", "is", null)
+            .order("last_learning_activity_at", { ascending: false })
+            .limit(8),
         ]);
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
@@ -195,6 +214,82 @@ function AppDashboard() {
       }
       if (!learningSignalsResult.error && learningSignalsResult.data) {
         setLearningSignals(learningSignalsResult.data as LearningSignal[]);
+      }
+
+      if (!resumeProgressResult.error && resumeProgressResult.data) {
+        const progressRows = resumeProgressResult.data as Array<{
+          topic_id: string;
+          status: string;
+          last_position: number | null;
+          last_learning_activity_at: string | null;
+          updated_at: string | null;
+        }>;
+        const topicIds = [...new Set(progressRows.map((row) => row.topic_id))];
+
+        if (topicIds.length) {
+          const { data: topicRows } = await supabase
+            .from("topics")
+            .select("id, name, discipline_id")
+            .in("id", topicIds)
+            .eq("published", true);
+
+          const disciplineIds = [...new Set((topicRows ?? []).map((topic) => topic.discipline_id))];
+          const { data: disciplineRows } = disciplineIds.length
+            ? await supabase.from("disciplines").select("id, name").in("id", disciplineIds)
+            : { data: [] as Array<{ id: string; name: string }> };
+
+          const { data: materialRows } = await supabase
+            .from("materials")
+            .select("id, topic_id")
+            .in("topic_id", topicIds)
+            .eq("status", "published");
+
+          const materialIds = (materialRows ?? []).map((material) => material.id);
+          const { data: sectionRows } = materialIds.length
+            ? await supabase
+                .from("material_sections")
+                .select("material_id, title, position")
+                .in("material_id", materialIds)
+                .order("position", { ascending: true })
+            : { data: [] as Array<{ material_id: string; title: string; position: number }> };
+
+          const topicMap = new Map((topicRows ?? []).map((topic) => [topic.id, topic]));
+          const disciplineMap = new Map((disciplineRows ?? []).map((discipline) => [discipline.id, discipline]));
+          const materialMap = new Map((materialRows ?? []).map((material) => [material.topic_id, material.id]));
+          const sectionsByMaterial = new Map<string, Array<{ title: string; position: number }>>();
+
+          for (const section of sectionRows ?? []) {
+            const current = sectionsByMaterial.get(section.material_id) ?? [];
+            current.push({ title: section.title, position: section.position });
+            sectionsByMaterial.set(section.material_id, current);
+          }
+
+          setResumeTopics(
+            progressRows
+              .map((row) => {
+                const topic = topicMap.get(row.topic_id);
+                const discipline = topic ? disciplineMap.get(topic.discipline_id) : undefined;
+                const materialId = materialMap.get(row.topic_id);
+                const sections = materialId ? sectionsByMaterial.get(materialId) ?? [] : [];
+                const position = Math.max(0, row.last_position ?? 0);
+                const section = sections[position];
+
+                return topic && discipline
+                  ? {
+                      topic_id: topic.id,
+                      discipline_id: discipline.id,
+                      topic_name: topic.name,
+                      discipline_name: discipline.name,
+                      progress: topicsProgress.find((item) => item.topic_id === topic.id)?.progress ?? 0,
+                      last_position: position,
+                      section_title: section?.title ?? null,
+                      last_activity_at: row.last_learning_activity_at ?? row.updated_at,
+                    }
+                  : null;
+              })
+              .filter((item): item is ResumeTopic => Boolean(item)),
+          );
+        }
       }
 
       const today = new Date().toISOString().slice(0, 10);
@@ -254,6 +349,15 @@ function AppDashboard() {
 
   const activeTopics = focusedTopics.filter(
     (topic) => topic.review_count > 0 || topic.status !== "completed" || topic.progress < 100,
+  );
+
+  const focusedResumeTopics = useMemo(
+    () =>
+      (focusedDisciplineIds.length
+        ? resumeTopics.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
+        : resumeTopics
+      ).slice(0, 3),
+    [focusedDisciplineIds, resumeTopics],
   );
 
   const todayPercent =
@@ -472,51 +576,32 @@ function AppDashboard() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
-            <h2 id="continue-heading" className="mt-1 text-[21px] font-black tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">
-              Continuar estudando
-            </h2>
+            <h2 id="continue-heading" className="mt-1 text-[21px] font-black tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">Continuar de onde você parou</h2>
           </div>
-          <Link to="/app/disciplinas" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Ver tudo</Link>
+          <Link to="/app/disciplinas" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Ver disciplinas</Link>
         </div>
-
         <div className="mt-4 space-y-3">
-          {activeTopics.length > 0 ? (
-            activeTopics.slice(0, 3).map((topic) => (
-              <Link
-                key={topic.topic_id}
-                to="/app/disciplinas/$disciplineId/$topicId"
-                params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }}
-                className="app-card group flex items-center gap-4 p-4 sm:p-5 transition-transform hover:-translate-y-px"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
-                  <Icon name="book" className="h-[19px] w-[19px]" />
-                </div>
+          {focusedResumeTopics.length > 0 ? (
+            focusedResumeTopics.map((topic) => (
+              <Link key={topic.topic_id} to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }} className="app-card group flex items-center gap-4 p-4 sm:p-5 transition-transform hover:-translate-y-px">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="book" className="h-[19px] w-[19px]" /></div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{topic.topic_name}</p>
                   <p className="mt-0.5 truncate text-xs font-semibold text-[#8A96A5] dark:text-[#8B9CAE]">{topic.discipline_name}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E9EEF5] dark:bg-[#293A50]">
-                      <div className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]" style={{ width: `${topic.progress}%` }} />
-                    </div>
-                    <span className="text-[10px] font-black text-[#718096] dark:text-[#98A9BB]">{topic.progress}%</span>
-                  </div>
+                  <p className="mt-2 truncate text-xs font-bold text-[#0242D7] dark:text-[#78A9FF]">{topic.section_title ? <>Parou em: <span className="font-black">{topic.section_title}</span></> : `Parou na parte ${topic.last_position + 1}`}</p>
+                  <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E9EEF5] dark:bg-[#293A50]"><div className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]" style={{ width: `${topic.progress}%` }} /></div><span className="text-[10px] font-black text-[#718096] dark:text-[#98A9BB]">{topic.progress}%</span></div>
                 </div>
-                <Icon name="chevron" className="h-4 w-4 shrink-0 text-[#A0AAB7] transition-transform group-hover:translate-x-0.5" />
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#0242D7] px-3 py-2 text-xs font-black text-white">Continuar <Icon name="arrow" className="h-3.5 w-3.5" /></span>
               </Link>
             ))
           ) : (
             <div className="app-card p-5">
-              <p className="text-sm font-black text-[#334155] dark:text-[#DCE5EE]">
-                {disciplines.length ? "Seu percurso está sendo preparado." : "Adicione uma disciplina para começar."}
-              </p>
-              <Link to="/app/disciplinas" className="mt-3 inline-flex text-sm font-black text-[#0242D7] dark:text-[#78A9FF]">
-                {disciplines.length ? "Ver disciplinas" : "Explorar disciplinas"} <Icon name="arrow" className="ml-1 h-4 w-4" />
-              </Link>
+              <p className="text-sm font-black text-[#334155] dark:text-[#DCE5EE]">{disciplines.length ? "Você ainda não começou nenhum tópico." : "Escolha uma disciplina para começar."}</p>
+              <Link to="/app/disciplinas" className="mt-3 inline-flex text-sm font-black text-[#0242D7] dark:text-[#78A9FF]">{disciplines.length ? "Começar a estudar" : "Explorar disciplinas"} <Icon name="arrow" className="ml-1 h-4 w-4" /></Link>
             </div>
           )}
         </div>
       </section>
-
       <section className="mt-10 grid gap-4 sm:grid-cols-2" aria-label="Resumo diário">
         <div className="app-card flex items-center gap-4 p-4">
           <ProgressRing value={todayPercent} size={70} />
