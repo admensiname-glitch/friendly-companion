@@ -2711,7 +2711,7 @@ function EvaluationSection({
                           : "w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-left text-sm text-[#334155] hover:border-[#BFDBFE]"
                       }
                     >
-                      {String.fromCharCode(65 + index)}. {option}
+                      {String.fromCharCode(65 + index)}. {String(option).replace(/^\s*[A-D][.)]\s*/i, "")}
                     </button>
                   ))}
                 </div>
