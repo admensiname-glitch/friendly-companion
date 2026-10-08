@@ -300,7 +300,7 @@ function ExamPage() {
 
         <article className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-8">
           <div className="flex items-start justify-between gap-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8796]">Questão {current+1}</p>
+            <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8796]">Questão {current+1}</p><p className="mt-1 text-xs font-bold text-[#0242D7]">{question.question_type === "open_text" ? "Questão discursiva" : "Questão objetiva"}</p></div>
             <button type="button" onClick={() => setFlagged((old) => old.includes(question.id) ? old.filter(id=>id!==question.id) : [...old,question.id])} className="min-h-10 rounded-lg border border-[#DCE5F0] px-3 py-2 text-xs font-bold text-[#536174]">
               {flagged.includes(question.id) ? "✓ Marcada para revisar" : "Marcar para revisar"}
             </button>
@@ -367,7 +367,7 @@ function ExamPage() {
       <header className="border-b border-[#DCE5F0] pb-7">
         <p className="text-sm font-semibold text-[#0242D7]">Prática formal</p>
         <h1 id="exam-config" className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] sm:text-[40px]">Modo Prova</h1>
-        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">Uma experiência separada do estudo: você responde sem feedback imediato e recebe o diagnóstico somente ao entregar.</p>
+        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">Uma experiência separada do estudo: você responde sem feedback imediato e recebe o diagnóstico somente ao entregar. A prova combina questões objetivas e discursivas.</p>
       </header>
 
       {error && <div role="alert" className="mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">{error}</div>}
@@ -386,6 +386,8 @@ function ExamPage() {
             </select>
           </label>
         </div>
+
+        <div className="mt-3 rounded-xl bg-[#F7FAFF] p-3 text-sm leading-6 text-[#536174]">As provas misturam questões objetivas e discursivas. A composição é adaptada ao tamanho escolhido: 5, 10, 15 ou 20 questões.</div>
 
         <div className="mt-6">
           <p className="text-sm font-semibold text-[#344154]">Tópicos <span className="font-normal text-[#8792A0]">(opcional)</span></p>
