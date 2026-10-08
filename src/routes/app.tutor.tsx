@@ -22,6 +22,20 @@ type VisualAid = {
   } | null;
 };
 
+type MicroAssessment = {
+  id: string;
+  question: string;
+  options: string[];
+  difficulty: "introductory" | "intermediate" | "advanced";
+  concept_tags: string[];
+  revealed: boolean;
+  answered: boolean;
+  selectedOptionIndex?: number;
+  isCorrect?: boolean;
+  correctOptionIndex?: number;
+  explanation?: string;
+};
+
 type Message = {
   role: "user" | "assistant";
   content: string;
@@ -32,6 +46,7 @@ type Message = {
     reason: string;
     video?: TopicVideo | null;
   } | null;
+  microAssessment?: MicroAssessment | null;
   learningNextStep?: any;
 };
 
@@ -116,6 +131,7 @@ function TutorPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
+  const [answeringAssessmentId, setAnsweringAssessmentId] = useState<string | null>(null);
 
   async function downloadVisualImage(image: NonNullable<VisualAid["image"]>) {
     try {
@@ -335,6 +351,79 @@ function TutorPage() {
     [recommendation],
   );
 
+  async function answerMicroAssessment(
+    messageIndex: number,
+    assessment: MicroAssessment,
+    selectedOptionIndex: number,
+  ) {
+    if (answeringAssessmentId || assessment.answered) return;
+
+    setAnsweringAssessmentId(assessment.id);
+    setError(null);
+
+    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
+      body: {
+        action: "answer_microassessment",
+        micro_assessment_id: assessment.id,
+        selected_option_index: selectedOptionIndex,
+      },
+    });
+
+    if (invokeError || data?.error) {
+      setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
+      setAnsweringAssessmentId(null);
+      return;
+    }
+
+    setMessages((current) => {
+      const next = [...current];
+      const currentMessage = next[messageIndex];
+      if (!currentMessage?.microAssessment) return current;
+
+      next[messageIndex] = {
+        ...currentMessage,
+        microAssessment: {
+          ...currentMessage.microAssessment,
+          revealed: true,
+          answered: true,
+          selectedOptionIndex,
+          isCorrect: data.is_correct === true,
+          correctOptionIndex: Number(data.correct_option_index),
+          explanation: data.explanation ?? "",
+        },
+      };
+
+      if (data.next_micro_assessment?.id) {
+        next.push({
+          role: "assistant",
+          content:
+            data.next_message ??
+            (data.is_correct
+              ? "Muito bem. Vamos aumentar um pouco o desafio."
+              : "Vamos reforçar esse conceito com uma nova questão."),
+          microAssessment: {
+            id: data.next_micro_assessment.id,
+            question: data.next_micro_assessment.question,
+            options: data.next_micro_assessment.options,
+            difficulty: data.next_micro_assessment.difficulty,
+            concept_tags: data.next_micro_assessment.concept_tags ?? [],
+            revealed: false,
+            answered: false,
+          },
+        });
+      } else if (data.next_message) {
+        next.push({
+          role: "assistant",
+          content: data.next_message,
+        });
+      }
+
+      return next;
+    });
+
+    setAnsweringAssessmentId(null);
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
@@ -373,6 +462,13 @@ function TutorPage() {
           shareable: data.shareable === true,
           visualAid,
           videoRecommendation: data.video_recommendation ?? null,
+          microAssessment: data.micro_assessment
+            ? {
+                ...data.micro_assessment,
+                revealed: false,
+                answered: false,
+              }
+            : null,
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
@@ -412,6 +508,108 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
+                {message.role === "assistant" && message.microAssessment && (
+                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">
+                          Verificação de compreensão
+                        </p>
+                        <p className="mt-1 text-sm font-black text-[#172334]">
+                          Quero ver se você realmente entendeu?
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[#F4F8FF] px-2.5 py-1 text-[10px] font-black uppercase text-[#0242D7]">
+                        {message.microAssessment.difficulty === "introductory"
+                          ? "Inicial"
+                          : message.microAssessment.difficulty === "advanced"
+                            ? "Avançada"
+                            : "Intermediária"}
+                      </span>
+                    </div>
+
+                    {!message.microAssessment.revealed ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMessages((current) =>
+                            current.map((item, itemIndex) =>
+                              item === message && itemIndex === index && item.microAssessment
+                                ? {
+                                    ...item,
+                                    microAssessment: {
+                                      ...item.microAssessment,
+                                      revealed: true,
+                                    },
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="mt-4 w-full rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-black text-white transition hover:opacity-95"
+                      >
+                        Quero a pergunta
+                      </button>
+                    ) : (
+                      <div className="mt-4">
+                        <p className="text-sm font-black leading-6 text-[#172334]">
+                          {message.microAssessment.question}
+                        </p>
+
+                        <div className="mt-3 space-y-2">
+                          {message.microAssessment.options.map((option, optionIndex) => {
+                            const selected = message.microAssessment?.selectedOptionIndex === optionIndex;
+                            const correct = message.microAssessment?.correctOptionIndex === optionIndex;
+                            const answered = message.microAssessment?.answered === true;
+
+                            return (
+                              <button
+                                key={optionIndex}
+                                type="button"
+                                disabled={answered || answeringAssessmentId === message.microAssessment?.id}
+                                onClick={() =>
+                                  void answerMicroAssessment(index, message.microAssessment!, optionIndex)
+                                }
+                                className={
+                                  "w-full rounded-xl border px-4 py-3 text-left text-sm leading-5 transition " +
+                                  (answered && correct
+                                    ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
+                                    : answered && selected && !correct
+                                      ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
+                                      : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
+                                }
+                              >
+                                <span className="mr-2 font-black">
+                                  {String.fromCharCode(65 + optionIndex)}.
+                                </span>
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {message.microAssessment.answered && (
+                          <div
+                            className={
+                              "mt-4 rounded-xl px-4 py-3 text-sm leading-6 " +
+                              (message.microAssessment.isCorrect
+                                ? "bg-[#ECFDF5] text-[#166534]"
+                                : "bg-[#FEF3F2] text-[#B42318]")
+                            }
+                          >
+                            <p className="font-black">
+                              {message.microAssessment.isCorrect ? "Acertou." : "Ainda não."}
+                            </p>
+                            {message.microAssessment.explanation && (
+                              <p className="mt-1">{message.microAssessment.explanation}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {message.role === "assistant" && message.learningNextStep?.enabled && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
