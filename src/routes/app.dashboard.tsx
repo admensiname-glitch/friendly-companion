@@ -688,7 +688,7 @@ function AppDashboard() {
         <div className="grid grid-cols-3 gap-2">
           <Link to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="spark" className="h-4 w-4" /></span>
-            <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Estudar agora</span>
+            <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">O que estudar agora</span>
           </Link>
           <Link to="/app/prova" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F1F8F4] text-[#16804A] dark:bg-[#153025] dark:text-[#70D3A1]"><Icon name="book" className="h-4 w-4" /></span>
