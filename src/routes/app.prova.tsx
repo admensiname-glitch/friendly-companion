@@ -10,6 +10,7 @@ type ExamQuestion = {
   attempt_question_id: string;
   position: number;
   question_text: string;
+  question_type: "multiple_choice" | "open_text";
   options: Option[];
 };
 
@@ -27,7 +28,7 @@ type ExamResult = {
   total_questions: number;
   answered_questions: number;
   topic_breakdown?: ExamTopicResult[];
-  wrong_answers?: Array<{ question_id: string; question_text: string; selected_option: string | null; correct_option: string | null; feedback_incorrect: string; feedback_hint: string | null }>;
+  wrong_answers?: Array<{ question_id: string; question_type?: string; question_text: string; selected_option: string | null; correct_option: string | null; response_text?: string | null; rubric_score?: number | null; ai_feedback?: string | null; feedback_incorrect: string; feedback_hint: string | null }>;
 };
 
 export const Route = createFileRoute("/app/prova")({ component: ExamPage });
@@ -42,6 +43,7 @@ function ExamPage() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<string[]>([]);
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
@@ -51,6 +53,7 @@ function ExamPage() {
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [grading, setGrading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -76,11 +79,13 @@ function ExamPage() {
   async function startExam() {
     setError("");
     setLoading(true);
-    const { data, error: rpcError } = await supabase.rpc("start_exam", {
-      _discipline_id: (disciplineId || null) as unknown as string,
-      _topic_ids: selectedTopics,
-      _question_count: count,
-      _duration_seconds: duration * 60,
+    const { data, error: rpcError } = await supabase.functions.invoke("prepare-exam", {
+      body: {
+        discipline_id: disciplineId || null,
+        topic_ids: selectedTopics,
+        question_count: count,
+        duration_seconds: duration * 60,
+      },
     });
     const payload = data as { attempt_id?: string; questions?: ExamQuestion[] } | null;
     if (rpcError || !payload?.attempt_id || !Array.isArray(payload.questions)) {
@@ -93,6 +98,7 @@ function ExamPage() {
     setAttemptId(String(payload.attempt_id));
     setQuestions(payload.questions);
     setAnswers({});
+    setTextAnswers({});
     setFlagged([]);
     setStreak(0);
     setBestStreak(0);
@@ -104,7 +110,7 @@ function ExamPage() {
   }
 
   async function selectAnswer(optionId: string) {
-    if (!question || !attemptId || saving) return;
+    if (!question || !attemptId || saving || question.question_type !== "multiple_choice") return;
     setSaving(true);
     setError("");
     const { error: answerError } = await supabase.rpc("save_exam_answer", {
@@ -135,6 +141,24 @@ function ExamPage() {
     setSaving(false);
   }
 
+  async function saveTextAnswer() {
+    if (!question || !attemptId || saving || question.question_type !== "open_text") return;
+    const response = (textAnswers[question.id] ?? "").trim();
+    if (response.length < 10) {
+      setError("Escreva uma resposta um pouco mais desenvolvida para registrar a questão discursiva.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    const { error: answerError } = await supabase.rpc("save_exam_text_answer", {
+      _attempt_question_id: question.attempt_question_id,
+      _response_text: response,
+    });
+    if (answerError) setError(answerError.message.includes("ANSWER_TOO_SHORT") ? "A resposta precisa ter pelo menos 10 caracteres." : "Não foi possível registrar esta resposta.");
+    else setAnswers((old) => ({ ...old, [question.id]: response }));
+    setSaving(false);
+  }
+
   async function finishExam() {
     if (!attemptId) return;
     if (answeredCount < questions.length) {
@@ -142,6 +166,19 @@ function ExamPage() {
       if (!ok) return;
     }
     setSaving(true);
+    const hasDiscursive = questions.some((q) => q.question_type === "open_text");
+    if (hasDiscursive) {
+      setGrading(true);
+      const { error: gradeError } = await supabase.functions.invoke("grade-exam", {
+        body: { attempt_id: attemptId },
+      });
+      setGrading(false);
+      if (gradeError) {
+        setError("Não foi possível corrigir as respostas discursivas agora. A prova não foi encerrada; tente entregar novamente.");
+        setSaving(false);
+        return;
+      }
+    }
     const { data, error: finishError } = await supabase.rpc("finish_exam", { _attempt_id: attemptId });
     if (finishError) {
       console.error("[Ensina-me] Erro ao finalizar prova:", finishError);
@@ -225,8 +262,9 @@ function ExamPage() {
                   <details key={wrong.question_id} className="rounded-xl border border-[#F1DFC4] bg-white p-4">
                     <summary className="cursor-pointer list-none text-sm font-bold text-[#273547]">Questão {index + 1}: {wrong.question_text}</summary>
                     <div className="mt-3 space-y-2 text-sm leading-6">
-                      <p className="text-[#B42318]"><strong>Sua resposta:</strong> {wrong.selected_option ?? "Não respondida"}</p>
-                      <p className="text-[#187A59]"><strong>Resposta correta:</strong> {wrong.correct_option ?? "—"}</p>
+                      <p className="text-[#B42318]"><strong>Sua resposta:</strong> {wrong.question_type === "open_text" ? (wrong.response_text ?? "Não respondida") : (wrong.selected_option ?? "Não respondida")}</p>
+                      {wrong.question_type === "open_text" ? <p className="text-[#0242D7]"><strong>Avaliação:</strong> {typeof wrong.rubric_score === "number" ? `${Math.round(wrong.rubric_score * 10) / 10}/10` : "—"}</p> : <p className="text-[#187A59]"><strong>Resposta correta:</strong> {wrong.correct_option ?? "—"}</p>}
+                      {wrong.question_type === "open_text" && wrong.ai_feedback && <p className="text-[#475569]"><strong>Feedback:</strong> {wrong.ai_feedback}</p>}
                       <p className="text-[#475569]"><strong>Entenda:</strong> {wrong.feedback_incorrect}</p>
                       {wrong.feedback_hint && <p className="text-[#64748B]"><strong>Pista:</strong> {wrong.feedback_hint}</p>}
                     </div>
@@ -268,16 +306,33 @@ function ExamPage() {
             </button>
           </div>
           <h2 className="mt-4 text-lg font-semibold leading-7 text-[#172334] sm:text-xl">{question.question_text}</h2>
-          <div className="mt-6 space-y-3">
-            {question.options.map((option, index) => (
-              <button key={option.id} type="button" onClick={() => void selectAnswer(option.id)}
-                className={answers[question.id] === option.id
-                  ? "w-full rounded-xl border-2 border-[#0242D7] bg-[#EFF5FF] px-4 py-4 text-left text-sm font-medium text-[#0242D7]"
-                  : "w-full rounded-xl border border-[#DCE5F0] px-4 py-4 text-left text-sm font-medium text-[#344154] hover:border-[#9FB8DC]"}>
-                <span className="mr-3 font-bold">{String.fromCharCode(65+index)}.</span>{option.content}
+          {question.question_type === "multiple_choice" ? (
+            <div className="mt-6 space-y-3">
+              {question.options.map((option, index) => (
+                <button key={option.id} type="button" onClick={() => void selectAnswer(option.id)}
+                  className={answers[question.id] === option.id
+                    ? "w-full rounded-xl border-2 border-[#0242D7] bg-[#EFF5FF] px-4 py-4 text-left text-sm font-medium text-[#0242D7]"
+                    : "w-full rounded-xl border border-[#DCE5F0] px-4 py-4 text-left text-sm font-medium text-[#344154] hover:border-[#9FB8DC]"}>
+                  <span className="mr-3 font-bold">{String.fromCharCode(65+index)}.</span>{option.content}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6">
+              <p className="mb-3 text-sm font-semibold text-[#536174]">Responda com suas próprias palavras. Sua resposta será corrigida ao final da prova.</p>
+              <textarea
+                value={textAnswers[question.id] ?? ""}
+                onChange={(e) => setTextAnswers((old) => ({ ...old, [question.id]: e.target.value }))}
+                rows={8}
+                placeholder="Escreva sua resposta..."
+                className="w-full rounded-xl border border-[#CBD5E1] px-4 py-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]"
+              />
+              <button type="button" onClick={() => void saveTextAnswer()} disabled={saving}
+                className="mt-3 min-h-11 rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+                {saving ? "Salvando..." : answers[question.id] ? "Resposta salva ✓" : "Salvar resposta"}
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </article>
 
         <div className="sticky bottom-[4.5rem] z-20 mt-4 flex gap-2 rounded-2xl border border-[#DCE5F0] bg-white/95 p-2 shadow-[0_-6px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-[#2B3A4F] dark:bg-[#111B2A]/95 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
@@ -287,7 +342,7 @@ function ExamPage() {
             onClick={()=>current<questions.length-1 ? setCurrent((v)=>v+1) : void finishExam()}
             className="min-h-11 flex-1 rounded-xl bg-[#0242D7] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
           >
-            {saving ? "Entregando..." : current<questions.length-1 ? "Próxima questão" : "Entregar prova"}
+            {grading ? "Corrigindo discursivas..." : saving ? "Entregando..." : current<questions.length-1 ? "Próxima questão" : "Entregar prova"}
           </button>
         </div>
 
