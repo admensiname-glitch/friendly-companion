@@ -280,7 +280,7 @@ function AppDashboard() {
       ]),
     );
 
-    return learningSignals
+    return focusedSignals
       .filter((signal) => signal.status !== "mastered")
       .map((signal) => {
         const topic = topicMap.get(signal.topic_id);
@@ -303,7 +303,7 @@ function AppDashboard() {
     mastered: focusedTopics.filter((topic) => topic.progress >= 80).length,
     review: focusedTopics.filter((topic) => topic.progress >= 50 && topic.progress < 80).length,
     difficulty: brainTopics.filter((topic) => topic.severity >= 4).length,
-  }), [topicsProgress, brainTopics]);
+  }), [focusedTopics, brainTopics]);
 
   const disciplineProgress = useMemo(() => {
     const map = new Map<string, { discipline_id: string; discipline_name: string; progress: number; topics: number; completed: number }>();
@@ -333,7 +333,7 @@ function AppDashboard() {
     continue: "Continue de onde parou",
     start: "Seu próximo passo",
     none: "Percurso em dia",
-  }[recommendation?.reason ?? "start"];
+  }[focusedRecommendation?.reason ?? "start"];
 
   return (
     <section className="w-full" aria-labelledby="app-dashboard-title">
