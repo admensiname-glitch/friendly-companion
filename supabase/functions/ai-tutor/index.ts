@@ -1160,6 +1160,76 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!questions) {
+        // Garantia de disponibilidade: o tópico pode possuir uma avaliação-base
+        // publicada no banco. Ela funciona como plano B quando o provedor de IA
+        // estiver temporariamente indisponível. A IA continua sendo a rota
+        // principal para gerar uma prova inédita.
+        const { data: bankExercise } = await supabase
+          .from("exercises")
+          .select("id")
+          .eq("topic_id", topicId)
+          .eq("exercise_type", "evaluation")
+          .eq("published", true)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (bankExercise?.id) {
+          const { data: bankQuestions } = await supabase
+            .from("exercise_questions")
+            .select("id, question_text, position, feedback_hint")
+            .eq("exercise_id", bankExercise.id)
+            .order("position", { ascending: true })
+            .limit(40);
+
+          const bankIds = (bankQuestions ?? []).map((q) => q.id);
+          const { data: bankOptions } = bankIds.length
+            ? await supabase
+                .from("exercise_options")
+                .select("question_id, content, is_correct, position")
+                .in("question_id", bankIds)
+                .order("position", { ascending: true })
+            : { data: [] };
+
+          const previousTexts = new Set(
+            previousAttempt.map((item) => normalizeForComparison(item.question_text)),
+          );
+
+          const fallback = (bankQuestions ?? [])
+            .map((q) => {
+              const options = (bankOptions ?? [])
+                .filter((o) => o.question_id === q.id)
+                .sort((a, b) => a.position - b.position);
+              const correctIndex = options.findIndex((o) => o.is_correct);
+              if (
+                options.length !== 4 ||
+                correctIndex < 0 ||
+                previousTexts.has(normalizeForComparison(q.question_text))
+              ) {
+                return null;
+              }
+              return {
+                question_text: q.question_text,
+                options: options.map((o) => o.content),
+                correct_option_index: correctIndex,
+                explanation:
+                  q.feedback_hint ??
+                  "A alternativa correta aplica o conceito estudado ao problema apresentado.",
+                difficulty: "intermediate" as const,
+                concept_tags: [topic.name],
+              };
+            })
+            .filter((item): item is GeneratedFormalEvaluationQuestion => Boolean(item))
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 10);
+
+          if (fallback.length === 10) {
+            questions = fallback;
+          }
+        }
+      }
+
+      if (!questions) {
         console.error(
           "[Ensina-me] ai-tutor: falha ao gerar avaliação formal",
           rateLimited ? "rate_limit" : "validation_or_provider_error",
