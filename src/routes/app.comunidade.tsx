@@ -16,6 +16,11 @@ type Post = {
   course_id: string | null;
   discipline_id: string | null;
   topic_id: string | null;
+  is_official: boolean;
+  official_until: string | null;
+  author_display_name: string | null;
+  author_avatar_url: string | null;
+  author_is_verified: boolean;
   courses?: { name: string } | null;
   disciplines?: { name: string } | null;
   topics?: { name: string } | null;
@@ -70,24 +75,39 @@ function CommunityPage() {
       return;
     }
 
-    const [postResult, likeResult, saveResult, courseResult] = await Promise.all([
+    const nowIso = new Date().toISOString();
+    const [postResult, officialResult, likeResult, saveResult, courseResult] = await Promise.all([
       supabase
         .from("community_posts")
-        .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,courses(name),disciplines(name),topics(name)")
+        .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("community_posts")
+        .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
+        .eq("is_official", true)
+        .gt("official_until", nowIso)
+        .order("created_at", { ascending: false })
+        .limit(10),
       supabase.from("community_likes").select("post_id").eq("user_id", userId),
       supabase.from("community_saves").select("post_id").eq("user_id", userId),
       supabase.from("courses").select("id,name").eq("published", true).order("name"),
     ]);
 
-    if (postResult.error || likeResult.error || saveResult.error || courseResult.error) {
+    if (postResult.error || officialResult.error || likeResult.error || saveResult.error || courseResult.error) {
       setError("Não foi possível carregar a comunidade agora.");
       setLoading(false);
       return;
     }
 
-    const nextPosts = (postResult.data ?? []) as unknown as Post[];
+    const mergedPosts = [...((officialResult.data ?? []) as unknown as Post[]), ...((postResult.data ?? []) as unknown as Post[])];
+    const uniquePosts = Array.from(new Map(mergedPosts.map((post) => [post.id, post])).values());
+    const nextPosts = uniquePosts.sort((a, b) => {
+      const aPriority = a.is_official && !!a.official_until && new Date(a.official_until).getTime() > Date.now();
+      const bPriority = b.is_official && !!b.official_until && new Date(b.official_until).getTime() > Date.now();
+      if (aPriority !== bPriority) return aPriority ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     setPosts(nextPosts);
     setLiked(new Set((likeResult.data ?? []).map((item) => item.post_id)));
     setSaved(new Set((saveResult.data ?? []).map((item) => item.post_id)));
@@ -348,7 +368,7 @@ function CommunityPage() {
             <div className="flex items-start gap-3">
               <button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#0242D7] text-xs font-black text-white" aria-label="Editar perfil">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : "EM"}</button>
               <div className="min-w-0 flex-1">
-                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><details className="mt-2 relative"><summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm font-bold text-[#475569]">😊 Emoji</summary><div className="mt-2 flex max-w-[420px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-lg">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); const next = body + item; setBody(next); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
+                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button>{currentUserId === "bcebd090-39ae-4b5f-a641-3b0ac648c1d9" && <span title="Conta oficial do Ensina-me" aria-label="Conta oficial verificada" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#1877F2] text-[10px] font-black text-white">✓</span>}<button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><details className="mt-2 relative"><summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm font-bold text-[#475569]">😊 Emoji</summary><div className="mt-2 flex max-w-[420px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-lg">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); const next = body + item; setBody(next); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <select value={selectedCourse} onChange={(event) => setSelectedCourse(event.target.value)} className="rounded-xl border border-[#DCE5F0] bg-white px-3 py-2.5 text-sm text-[#334155]">
                     <option value="">Curso (opcional)</option>
@@ -386,10 +406,10 @@ function CommunityPage() {
           ) : posts.map((post) => (
             <article key={post.id} className="rounded-2xl border border-[#DCE5F0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,.04)]">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#EAF1FF] text-xs font-black text-[#0242D7]">{post.author_id === currentUserId && avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : post.author_id === currentUserId ? "EM" : "E"}</div>
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#EAF1FF] text-xs font-black text-[#0242D7]">{post.author_avatar_url ? <img src={post.author_avatar_url} alt="" className="h-full w-full object-cover" /> : post.author_id === currentUserId && avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : post.author_id === currentUserId ? "GA" : "E"}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-[#172334]">{post.author_id === currentUserId ? profileName : "Estudante Ensina-me"}</p>
+                    <p className="text-sm font-black text-[#172334]">{post.author_display_name || (post.author_id === currentUserId ? profileName : "Estudante Ensina-me")}</p>{post.author_is_verified && <span title="Conta oficial do Ensina-me" aria-label="Conta oficial verificada" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-[10px] font-black text-white">✓</span>}{post.is_official && post.official_until && new Date(post.official_until).getTime() > Date.now() && <span className="rounded-full bg-[#EAF1FF] px-2 py-0.5 text-[10px] font-black text-[#0242D7]">Atualização oficial</span>}
                     <span className="text-xs text-[#94A3B8]">· {new Date(post.created_at).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span>
                   </div>
                   {(post.courses?.name || post.disciplines?.name || post.topics?.name) && (
