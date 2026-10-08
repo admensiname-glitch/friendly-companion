@@ -87,7 +87,7 @@ function DisciplinesPage() {
   const [courseDisciplines, setCourseDisciplines] = useState<CourseDiscipline[]>([]);
   const [loading, setLoading] = useState(true);
   const [disciplinesLoading, setDisciplinesLoading] = useState(false);
-  const [focusedDisciplineId, setFocusedDisciplineId] = useState<string | null>(null);
+  const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
   const [focusSaving, setFocusSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,20 +131,30 @@ function DisciplinesPage() {
 
   useEffect(() => {
     void (async () => {
-      const { data } = await supabase.rpc("get_student_focus_discipline");
-      if (data && typeof data === "object" && "discipline_id" in data) {
-        setFocusedDisciplineId(String((data as { discipline_id: string }).discipline_id));
+      const { data } = await supabase.rpc("get_student_focus_disciplines");
+      if (Array.isArray(data)) {
+        setFocusedDisciplineIds(
+          data
+            .map((item) => (item && typeof item === "object" && "discipline_id" in item ? String((item as { discipline_id: string }).discipline_id) : null))
+            .filter((id): id is string => Boolean(id)),
+        );
       }
     })();
   }, []);
 
   const focusDiscipline = async (disciplineId: string) => {
     setFocusSaving(disciplineId);
-    const { error: focusError } = await supabase.rpc("set_student_focus_discipline", { _discipline_id: disciplineId });
+    const isFocused = focusedDisciplineIds.includes(disciplineId);
+    const { error: focusError } = isFocused
+      ? await supabase.rpc("remove_student_focus_discipline", { _discipline_id: disciplineId })
+      : await supabase.rpc("set_student_focus_discipline", { _discipline_id: disciplineId });
+
     if (focusError) {
-      setError("Não foi possível definir esta disciplina como foco.");
+      setError(isFocused ? "Não foi possível remover esta disciplina do foco." : "Não foi possível adicionar esta disciplina ao foco.");
     } else {
-      setFocusedDisciplineId(disciplineId);
+      setFocusedDisciplineIds((current) =>
+        isFocused ? current.filter((id) => id !== disciplineId) : [...current, disciplineId],
+      );
       window.dispatchEvent(new CustomEvent("ensina-me-focus-updated"));
     }
     setFocusSaving(null);
@@ -191,7 +201,7 @@ function DisciplinesPage() {
             {selectedCourse.name}
           </h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688] dark:text-[#AAB7C7]">
-            Escolha uma disciplina para entrar no percurso. Você também pode definir uma como <strong>foco de estudo</strong>; a tela Início usará essa escolha para conduzir seu próximo passo.
+            Escolha as disciplinas que você está cursando. Você pode marcar <strong>quantas quiser como foco de estudo</strong>; a tela Início usará todas elas para conduzir seus próximos passos.
           </p>
         </header>
         {disciplinesLoading ? (
@@ -205,7 +215,7 @@ function DisciplinesPage() {
         ) : (
           <div className="mt-5 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
             {courseDisciplines.map((discipline, index) => {
-              const focused = focusedDisciplineId === discipline.id;
+              const focused = focusedDisciplineIds.includes(discipline.id);
               return (
                 <div key={discipline.id} className="grid gap-3 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center">
                   <Link
@@ -228,7 +238,7 @@ function DisciplinesPage() {
                         ? "inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#EAF1FF] px-3 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]"
                         : "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#D8E1EC] px-3 py-2 text-xs font-black text-[#657385] hover:border-[#9BB7E8] hover:text-[#0242D7] dark:border-[#344A63] dark:text-[#AAB7C7]"}
                     >
-                      {focusSaving === discipline.id ? "Salvando..." : focused ? "✓ Foco atual" : "Focar estudo"}
+                      {focusSaving === discipline.id ? "Salvando..." : focused ? "✓ No foco" : "Focar estudo"}
                     </button>
                     <Link to="/app/disciplinas/$disciplineId" params={{ disciplineId: discipline.id }} className="hidden items-center gap-2 text-sm font-bold text-[#0242D7] dark:text-[#7DB0FF] sm:inline-flex">
                       Estudar <Icon name="arrow" className="h-4 w-4" />
