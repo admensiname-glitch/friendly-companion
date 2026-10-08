@@ -434,48 +434,8 @@ function AppDashboard() {
       .sort((a, b) => b.progress - a.progress);
   }, [topicsProgress]);
 
-  const recommendationLabel = {
-    assessment: "Preparação para avaliação",
-    review: "Revisão necessária",
-    continue: "Continue de onde parou",
-    start: "Seu próximo passo",
-    none: "Percurso em dia",
-  }[focusedRecommendation?.reason ?? "start"];
-
   return (
     <section className="w-full" aria-labelledby="app-dashboard-title">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Início</p>
-          <h1 id="app-dashboard-title" className="mt-1.5 text-[28px] font-black tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[38px]">
-            Olá, {firstName}! 👋
-          </h1>
-          <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">
-            {focusedDisciplineNames.length
-              ? <>Focos atuais: <strong className="text-[#172334] dark:text-[#E7EDF5]">{focusedDisciplineNames.slice(0, 3).join(", ")}{focusedDisciplineNames.length > 3 ? " +" + (focusedDisciplineNames.length - 3) : ""}</strong>. O Ensina-me vai conduzir seus próximos passos dentro delas.</>
-              : "Escolha quantas disciplinas quiser para focar seu estudo. O Ensina-me adapta seus próximos passos a essas escolhas."}
-          </p>
-        </div>
-        <Link to="/app/desempenho" className="app-icon-button hidden sm:inline-flex" aria-label="Ver meu desempenho">
-          <Icon name="chart" className="h-[18px] w-[18px]" />
-        </Link>
-      </header>
-
-
-      <section className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-[#DCE5F0] bg-white px-4 py-3 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7A8796]">Foco de estudo</p>
-          <p className="mt-0.5 truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">
-            {focusedDisciplineNames.length
-              ? focusedDisciplineNames.slice(0, 2).join(", ") + (focusedDisciplineNames.length > 2 ? " +" + (focusedDisciplineNames.length - 2) : "")
-              : "Nenhuma disciplina escolhida"}
-          </p>
-        </div>
-        <Link to="/app/disciplinas" className="shrink-0 rounded-xl bg-[#EEF4FF] px-3.5 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]">
-          {focusedDisciplineNames.length ? "Gerenciar focos" : "Escolher disciplinas"}
-        </Link>
-      </section>
-
       <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
         <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
@@ -683,6 +643,22 @@ function AppDashboard() {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="mt-10 overflow-hidden rounded-[16px] border border-[#DCE5F0] bg-white dark:border-[#2B3A4F] dark:bg-[#111B2A]" aria-label="Foco de estudo">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7A8796]">Foco de estudo</p>
+            <p className="mt-0.5 truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">
+              {focusedDisciplineNames.length
+                ? focusedDisciplineNames.slice(0, 3).join(", ") + (focusedDisciplineNames.length > 3 ? " +" + (focusedDisciplineNames.length - 3) : "")
+                : "Nenhuma disciplina escolhida"}
+            </p>
+          </div>
+          <Link to="/app/disciplinas" className="shrink-0 rounded-xl bg-[#EEF4FF] px-3.5 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]">
+            {focusedDisciplineNames.length ? "Gerenciar focos" : "Escolher disciplinas"}
+          </Link>
+        </div>
       </section>
 
       <section className="mt-10 pb-3">
