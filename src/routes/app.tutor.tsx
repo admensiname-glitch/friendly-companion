@@ -31,6 +31,7 @@ type Message = {
     reason: string;
     video?: TopicVideo | null;
   } | null;
+};
 
 type TopicVideo = {
   id: string;
