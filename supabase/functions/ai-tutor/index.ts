@@ -1353,77 +1353,85 @@ Deno.serve(async (req: Request) => {
         ),
       ].filter(Boolean).join("\n\n");
 
-      const generated = await generateAdaptiveMicroAssessment({
-        apiKey: groqApiKey,
-        topicName: topic.name,
-        topicDescription: topic.description,
-        context: truncateText(context, 9000),
-        previousQuestion,
-        previousTags: [concept],
-        wasCorrect: false,
-        nextDifficulty: "intermediate",
-        consecutiveCorrect: 0,
-        consecutiveIncorrect: 1,
-        weakestConcept: concept,
-        recentQuestions: [previousQuestion],
-      });
+      // Primeiro tenta uma questão acadêmica já publicada e validada do mesmo tópico/conceito.
+      // A IA só entra quando não existe uma questão adequada no banco.
+      let recoveryQuestion = null;
+      let recoveryMessage = "Vamos tentar este conceito por outro caminho. Leia com atenção e prove o que entendeu.";
 
-      let recoveryQuestion = generated?.microassessment ?? null;
-      let recoveryMessage = generated?.message ?? "Vamos reconstruir este conceito e testar novamente.";
+      const { data: fallbackRows } = await supabase
+        .from("formal_evaluation_questions")
+        .select("question_text, options, correct_option_index, explanation, difficulty, concept_tags, attempt_id")
+        .contains("concept_tags", [concept])
+        .neq("question_text", previousQuestion)
+        .order("created_at", { ascending: false })
+        .limit(20);
 
-      // Guardrail pedagógico: a recuperação precisa ter quatro alternativas,
-      // uma única resposta marcada e não pode reapresentar rótulos A./B./C./D.
-      if (recoveryQuestion) {
-        const options = recoveryQuestion.options.map((option: string) =>
-          String(option).replace(/^\\s*[A-D][.)]\\s*/i, "").trim()
+      if (fallbackRows?.length) {
+        const { data: topicAttempts } = await supabase
+          .from("evaluation_attempts")
+          .select("id")
+          .eq("topic_id", topicId)
+          .limit(100);
+
+        const allowedAttempts = new Set((topicAttempts ?? []).map((row: { id: string }) => row.id));
+        const fallback = fallbackRows.find((row: { attempt_id: string; options: unknown }) =>
+          allowedAttempts.has(row.attempt_id) &&
+          Array.isArray(row.options) &&
+          row.options.length === 4
         );
-        const validShape =
-          recoveryQuestion.question.trim().length >= 30 &&
-          options.length === 4 &&
-          options.every((option: string) => option.length >= 8) &&
-          new Set(options.map((option: string) => option.toLowerCase())).size === 4 &&
-          Number.isInteger(recoveryQuestion.correct_option_index) &&
-          recoveryQuestion.correct_option_index >= 0 &&
-          recoveryQuestion.correct_option_index < 4 &&
-          String(recoveryQuestion.explanation ?? "").trim().length >= 20;
 
-        recoveryQuestion = validShape
-          ? { ...recoveryQuestion, options }
-          : null;
+        if (fallback) {
+          recoveryQuestion = {
+            question: fallback.question_text,
+            options: (fallback.options as string[]).map((option) =>
+              String(option).replace(/^\\s*[A-D][.)]\\s*/i, "").trim()
+            ),
+            correct_option_index: fallback.correct_option_index,
+            explanation: fallback.explanation,
+            difficulty: fallback.difficulty,
+            concept_tags: Array.isArray(fallback.concept_tags) && fallback.concept_tags.length
+              ? fallback.concept_tags
+              : [concept],
+          };
+        }
       }
 
       if (!recoveryQuestion) {
-        const { data: fallbackRows } = await supabase
-          .from("formal_evaluation_questions")
-          .select("question_text, options, correct_option_index, explanation, difficulty, concept_tags, attempt_id")
-          .contains("concept_tags", [concept])
-          .neq("question_text", previousQuestion)
-          .order("created_at", { ascending: false })
-          .limit(20);
+        const generated = await generateAdaptiveMicroAssessment({
+          apiKey: groqApiKey,
+          topicName: topic.name,
+          topicDescription: topic.description,
+          context: truncateText(context, 9000),
+          previousQuestion,
+          previousTags: [concept],
+          wasCorrect: false,
+          nextDifficulty: "intermediate",
+          consecutiveCorrect: 0,
+          consecutiveIncorrect: 1,
+          weakestConcept: concept,
+          recentQuestions: [previousQuestion],
+        });
 
-        if (fallbackRows?.length) {
-          const { data: topicAttempts } = await supabase
-            .from("evaluation_attempts")
-            .select("id")
-            .eq("topic_id", topicId)
-            .limit(100);
+        recoveryQuestion = generated?.microassessment ?? null;
+        recoveryMessage = generated?.message ?? "Vamos reconstruir este conceito e testar novamente.";
 
-          const allowedAttempts = new Set((topicAttempts ?? []).map((row: { id: string }) => row.id));
-          const fallback = fallbackRows.find((row: { attempt_id: string }) => allowedAttempts.has(row.attempt_id));
+        if (recoveryQuestion) {
+          const options = recoveryQuestion.options.map((option: string) =>
+            String(option).replace(/^\\s*[A-D][.)]\\s*/i, "").trim()
+          );
+          const validShape =
+            recoveryQuestion.question.trim().length >= 30 &&
+            options.length === 4 &&
+            options.every((option: string) => option.length >= 8) &&
+            new Set(options.map((option: string) => option.toLowerCase())).size === 4 &&
+            Number.isInteger(recoveryQuestion.correct_option_index) &&
+            recoveryQuestion.correct_option_index >= 0 &&
+            recoveryQuestion.correct_option_index < 4 &&
+            String(recoveryQuestion.explanation ?? "").trim().length >= 20;
 
-          if (fallback && Array.isArray(fallback.options) && fallback.options.length === 4) {
-            recoveryQuestion = {
-              question: fallback.question_text,
-              options: fallback.options as string[],
-              correct_option_index: fallback.correct_option_index,
-              explanation: fallback.explanation,
-              difficulty: fallback.difficulty,
-              concept_tags: Array.isArray(fallback.concept_tags) && fallback.concept_tags.length
-                ? fallback.concept_tags
-                : [concept],
-            };
-            recoveryMessage = "Vamos tentar este conceito por outro caminho. Leia com atenção e prove o que entendeu.";
-          }
+          recoveryQuestion = validShape
+            ? { ...recoveryQuestion, options }
+            : null;
         }
       }
 
