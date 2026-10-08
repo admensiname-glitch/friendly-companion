@@ -321,18 +321,12 @@ function AppDashboard() {
     const greetings = {
       morning: [
         `Bom dia, ${firstName}`,
-        `Bom dia, ${firstName}. Pronto para mais um passo?`,
-        `Bom dia, ${firstName}. Vamos avançar hoje?`,
       ],
       afternoon: [
         `Boa tarde, ${firstName}`,
-        `Boa tarde, ${firstName}. Vamos continuar?`,
-        `Boa tarde, ${firstName}. Mais um passo hoje?`,
       ],
       night: [
         `Boa noite, ${firstName}`,
-        `Boa noite, ${firstName}. Vamos fechar mais um passo?`,
-        `Boa noite, ${firstName}. Pronto para estudar?`,
       ],
     } as const;
     const options = greetings[period];
@@ -461,14 +455,14 @@ function AppDashboard() {
 
   return (
     <section className="w-full" aria-labelledby="app-dashboard-title">
-      <section className="mb-5 px-1 pt-2" aria-labelledby="dashboard-greeting">
-        <h1 id="dashboard-greeting" className="text-[28px] font-black tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
+      <section className="mb-3 px-1 pt-1 sm:mb-5 sm:pt-2" aria-labelledby="dashboard-greeting">
+        <h1 id="dashboard-greeting" className="text-[23px] font-black leading-tight tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
           {greeting}
         </h1>
       </section>
 
-      <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
-        <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
+      <section className="mt-3 overflow-hidden rounded-[18px] bg-[#0242D7] shadow-[0_10px_26px_rgba(2,66,215,.13)] dark:bg-[#0B3FA8] sm:mt-5 lg:mt-8 lg:rounded-[20px] lg:shadow-[0_18px_42px_rgba(2,66,215,.16)]" aria-labelledby="next-study-title">
+        <div className="relative p-4 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
           <div className="relative">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
@@ -478,24 +472,24 @@ function AppDashboard() {
               O que estudar agora
             </div>
 
-            <h2 id="next-study-title" className="mt-5 max-w-3xl text-[28px] font-black leading-9 tracking-[-0.035em] text-white sm:text-[34px] lg:text-[40px] lg:leading-[1.08]">
+            <h2 id="next-study-title" className="mt-3 max-w-3xl text-[23px] font-black leading-7 tracking-[-0.035em] text-white sm:mt-5 sm:text-[34px] sm:leading-9 lg:text-[40px] lg:leading-[1.08]">
               {focusedRecommendation?.topic_name ?? activeTopics[0]?.topic_name ?? "Seu próximo passo começa aqui"}
             </h2>
-            <p className="mt-2 text-base font-bold text-white/80 lg:text-lg">
+            <p className="mt-1 text-sm font-bold text-white/80 sm:mt-2 sm:text-base lg:text-lg">
               {focusedRecommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? "Escolha uma disciplina para começar."}
             </p>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/80 lg:text-[17px] lg:leading-7">
+            <p className="mt-2 max-w-3xl text-sm leading-5 text-white/80 sm:mt-4 sm:text-base sm:leading-7 lg:text-[17px] lg:leading-7">
               {focusedRecommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-white/75">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-white/75 sm:mt-5 sm:text-xs">
               <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">
                 ⏱️ Estudo sugerido: {focusedRecommendation?.reason === "assessment" ? "30" : focusedRecommendation?.reason === "review" ? "20" : "15"} min
               </span>
               {focusedRecommendation?.reason === "review" && <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">Baseado nos seus sinais de dificuldade</span>}
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
               {focusedRecommendation?.topic_id && focusedRecommendation.discipline_id ? (
                 <Link
                   to="/app/disciplinas/$disciplineId/$topicId"
@@ -564,7 +558,7 @@ function AppDashboard() {
         ))}
       </section>
 
-      <section className="mt-10" aria-labelledby="continue-heading">
+      <section className="mt-6 sm:mt-10" aria-labelledby="continue-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
@@ -594,7 +588,7 @@ function AppDashboard() {
           )}
         </div>
       </section>
-      <section className="mt-10 grid gap-4 sm:grid-cols-2" aria-label="Resumo diário">
+      <section className="mt-6 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4" aria-label="Resumo diário">
         <div className="app-card flex items-center gap-4 p-4">
           <ProgressRing value={todayPercent} size={70} />
           <div className="min-w-0">
@@ -692,7 +686,7 @@ function AppDashboard() {
         </div>
       </section>
 
-      <section className="mt-10 pb-3">
+      <section className="mt-6 pb-3 sm:mt-10">
         <div className="grid grid-cols-3 gap-2">
           <Link to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="spark" className="h-4 w-4" /></span>
