@@ -1371,6 +1371,27 @@ Deno.serve(async (req: Request) => {
       let recoveryQuestion = generated?.microassessment ?? null;
       let recoveryMessage = generated?.message ?? "Vamos reconstruir este conceito e testar novamente.";
 
+      // Guardrail pedagógico: a recuperação precisa ter quatro alternativas,
+      // uma única resposta marcada e não pode reapresentar rótulos A./B./C./D.
+      if (recoveryQuestion) {
+        const options = recoveryQuestion.options.map((option: string) =>
+          String(option).replace(/^\\s*[A-D][.)]\\s*/i, "").trim()
+        );
+        const validShape =
+          recoveryQuestion.question.trim().length >= 30 &&
+          options.length === 4 &&
+          options.every((option: string) => option.length >= 8) &&
+          new Set(options.map((option: string) => option.toLowerCase())).size === 4 &&
+          Number.isInteger(recoveryQuestion.correct_option_index) &&
+          recoveryQuestion.correct_option_index >= 0 &&
+          recoveryQuestion.correct_option_index < 4 &&
+          String(recoveryQuestion.explanation ?? "").trim().length >= 20;
+
+        recoveryQuestion = validShape
+          ? { ...recoveryQuestion, options }
+          : null;
+      }
+
       if (!recoveryQuestion) {
         const { data: fallbackRows } = await supabase
           .from("formal_evaluation_questions")
