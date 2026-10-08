@@ -1026,7 +1026,7 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Tópico é obrigatório." }, 400);
       }
 
-      const { data: globalLearningSignals } = await supabase
+      const { data: rawGlobalLearningSignals } = await supabase
       .from("student_learning_signals")
       .select("topic_id, discipline_id, concept, signal_type, severity, occurrences, correct_count, status, last_seen")
       .eq("user_id", userData.user.id)
@@ -1034,6 +1034,55 @@ Deno.serve(async (req: Request) => {
       .order("severity", { ascending: false })
       .order("occurrences", { ascending: false })
       .limit(12);
+
+    const globalTopicIds = [
+      ...new Set(
+        (rawGlobalLearningSignals ?? [])
+          .map((item: { topic_id: string }) => item.topic_id)
+          .filter(Boolean),
+      ),
+    ];
+    const globalDisciplineIds = [
+      ...new Set(
+        (rawGlobalLearningSignals ?? [])
+          .map((item: { discipline_id: string }) => item.discipline_id)
+          .filter(Boolean),
+      ),
+    ];
+
+    const [{ data: globalTopics }, { data: globalDisciplines }] = await Promise.all([
+      globalTopicIds.length
+        ? supabase.from("topics").select("id, name").in("id", globalTopicIds)
+        : Promise.resolve({ data: [] }),
+      globalDisciplineIds.length
+        ? supabase.from("disciplines").select("id, name").in("id", globalDisciplineIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const topicNameById = new Map(
+      (globalTopics ?? []).map((item: { id: string; name: string }) => [item.id, item.name]),
+    );
+    const disciplineNameById = new Map(
+      (globalDisciplines ?? []).map((item: { id: string; name: string }) => [item.id, item.name]),
+    );
+
+    const globalLearningSignals = (rawGlobalLearningSignals ?? []).map(
+      (item: {
+        topic_id: string;
+        discipline_id: string;
+        concept: string;
+        signal_type: string;
+        severity: number;
+        occurrences: number;
+        correct_count: number;
+        status: string;
+      }) => ({
+        ...item,
+        topic_name: topicNameById.get(item.topic_id) ?? "Tópico não identificado",
+        discipline_name:
+          disciplineNameById.get(item.discipline_id) ?? "Disciplina não identificada",
+      }),
+    );
 
     const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
       if (!groqApiKey) {
@@ -1624,8 +1673,12 @@ Deno.serve(async (req: Request) => {
                 occurrences: number;
                 correct_count: number;
                 status: string;
+                topic_name: string;
+                discipline_name: string;
               }) =>
-                item.concept +
+                item.discipline_name +
+                " → " + item.topic_name +
+                " → " + item.concept +
                 " | sinal=" + item.signal_type +
                 " | intensidade=" + item.severity +
                 " | ocorrências=" + item.occurrences +
