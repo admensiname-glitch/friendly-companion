@@ -23,7 +23,6 @@ type IconName =
   | "user"
   | "more"
   | "close"
-  | "bell"
   | "chevron"
   | "tutor"
   | "community";
@@ -43,7 +42,6 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
     user: <><path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" /></>,
     more: <><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></>,
     close: <><path d="m6 6 12 12" /><path d="m18 6-12 12" /></>,
-    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
     chevron: <path d="m9 18 6-6-6-6" />,
     tutor: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M8 8h8" /><path d="M8 12h5" /><path d="M15 15h3" /></>,
     community: <><circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><path d="M2.5 20a5.5 5.5 0 0 1 11 0" /><path d="M10.5 20a5.5 5.5 0 0 1 11 0" /></>,
@@ -73,7 +71,6 @@ function AppLayout() {
   const location = useLocation();
   const [authChecking, setAuthChecking] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [notificationOpen, setNotificationOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [profileName, setProfileName] = useState("Meu perfil");
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
@@ -296,21 +293,7 @@ function AppLayout() {
             {mobileContext.back && <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A96A5] dark:text-[#8797AA]">Ensina-me</p>}
           </div>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            className="app-icon-button"
-            aria-label="Notificações"
-            aria-expanded={notificationOpen}
-            onClick={() => setNotificationOpen((open) => !open)}
-          >
-            <Icon name="bell" className="h-[19px] w-[19px]" />
-            <span className="app-notification-dot" aria-hidden="true" />
-          </button>
-          <Link to="/app/perfil" className="app-avatar app-avatar-small" aria-label="Meu perfil">
-            EM
-          </Link>
-        </div>
+        <div className="ml-auto" aria-hidden="true" />
       </header>
 
       <header className="app-desktop-header sticky top-0 z-30 hidden border-b lg:block lg:ml-[252px]">
@@ -331,54 +314,6 @@ function AppLayout() {
           </div>
         </div>
       </header>
-
-      {notificationOpen && (
-        <div className="fixed inset-0 z-[70] lg:hidden" role="presentation">
-          <button
-            type="button"
-            className="absolute inset-0 bg-[#0F172A]/30 backdrop-blur-[2px]"
-            onClick={() => setNotificationOpen(false)}
-            aria-label="Fechar notificações"
-          />
-          <section
-            className="absolute right-3 top-[calc(4.5rem+env(safe-area-inset-top))] w-[min(360px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[#DCE5F0] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] dark:border-[#304158] dark:bg-[#111C2A]"
-            aria-label="Notificações"
-          >
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-4 py-3 dark:border-[#2B3A4F]">
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#7DB0FF]">Ensina-me</p>
-                <h2 className="mt-1 text-base font-extrabold text-[#172334] dark:text-[#E7EDF5]">Notificações</h2>
-              </div>
-              <button
-                type="button"
-                className="app-icon-button"
-                onClick={() => setNotificationOpen(false)}
-                aria-label="Fechar"
-              >
-                <Icon name="close" className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-3">
-              <div className="rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 dark:border-[#2B3A4F] dark:bg-[#172437]">
-                <p className="text-sm font-extrabold text-[#243245] dark:text-[#E7EDF5]">Continue seu percurso</p>
-                <p className="mt-1 text-xs leading-5 text-[#687688] dark:text-[#AAB7C7]">
-                  O Ensina-me está pronto para indicar o próximo passo do seu estudo.
-                </p>
-                <Link
-                  to="/app/estude-agora"
-                  onClick={() => setNotificationOpen(false)}
-                  className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-extrabold text-white"
-                >
-                  Ver próximo passo
-                </Link>
-              </div>
-              <p className="px-1 pb-1 pt-3 text-[11px] text-[#8A95A3] dark:text-[#7F90A3]">
-                Novas notificações aparecerão aqui quando houver atividades, revisões ou avaliações importantes.
-              </p>
-            </div>
-          </section>
-        </div>
-      )}
 
       <main className="lg:ml-[252px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-3 sm:px-6 sm:pt-6 lg:px-8 lg:pb-12 lg:pt-8">
