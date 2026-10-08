@@ -243,7 +243,7 @@ function AppDashboard() {
           const disciplineIds = [...new Set((topicRows ?? []).map((topic) => topic.discipline_id))];
           const { data: disciplineRows } = disciplineIds.length
             ? await supabase.from("disciplines").select("id, name").in("id", disciplineIds)
-            : { data: [] as Array<{ id: string; name: string }>; };
+            : { data: [] as Array<{ id: string; name: string }> };
 
           const materialIds = (materialRows ?? []).map((material) => material.id);
           const { data: sectionRows } = materialIds.length
