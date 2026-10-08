@@ -68,6 +68,7 @@ async function generateFormalEvaluationQuestions(args: {
   previousAttempt: Array<{ question_text: string; options: string[] }>;
   seed: string;
   temperature?: number;
+  model?: string;
 }): Promise<{ questions: GeneratedFormalEvaluationQuestion[] | null; rateLimited: boolean }> {
   const previousQuestions = args.previousAttempt
     .slice(0, 20)
@@ -116,12 +117,12 @@ async function generateFormalEvaluationQuestions(args: {
           Authorization: "Bearer " + args.apiKey,
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
+          model: args.model ?? "openai/gpt-oss-120b",
           messages: [
             { role: "system", content: prompt },
             { role: "user", content: "Gere agora as 10 questões da nova tentativa." },
           ],
-          max_completion_tokens: 2600,
+          max_completion_tokens: 2400,
           temperature: args.temperature ?? 0.35,
           reasoning_effort: "low",
           include_reasoning: false,
@@ -1123,26 +1124,39 @@ Deno.serve(async (req: Request) => {
         previousAttempt,
       };
 
-      // Não expor ao aluno o mecanismo de tentativa. O Tutor simplesmente
-      // continua gerando até obter uma avaliação válida e inédita.
+      // Não expor ao aluno o mecanismo de tentativa. O Tutor continua gerando
+      // até obter uma avaliação válida e inédita. Em caso de 429 no modelo
+      // principal, troca automaticamente para um segundo modelo compatível.
       let questions: GeneratedFormalEvaluationQuestion[] | null = null;
-      const temperatures = [0.35, 0.5, 0.65];
       let rateLimited = false;
+      const models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+      const temperatures = [0.35, 0.5];
 
-      for (let attempt = 0; attempt < temperatures.length && !questions; attempt += 1) {
-        const generated = await generateFormalEvaluationQuestions({
-          ...evaluationGenerationArgs,
-          context: truncateText(evaluationGenerationArgs.context, 10000),
-          seed: crypto.randomUUID(),
-          temperature: temperatures[attempt],
-        });
+      for (const model of models) {
+        for (const temperature of temperatures) {
+          const generated = await generateFormalEvaluationQuestions({
+            ...evaluationGenerationArgs,
+            context: truncateText(evaluationGenerationArgs.context, 9000),
+            seed: crypto.randomUUID(),
+            temperature,
+            model,
+          });
 
-        if (generated.rateLimited) {
-          rateLimited = true;
-          break;
+          if (generated.rateLimited) {
+            rateLimited = true;
+            break;
+          }
+
+          if (generated.questions) {
+            questions = generated.questions;
+            break;
+          }
         }
 
-        questions = generated.questions;
+        if (questions) break;
+        if (!rateLimited) continue;
+        // O modelo principal atingiu o limite: passa imediatamente ao fallback.
+        rateLimited = false;
       }
 
       if (!questions) {
@@ -1152,11 +1166,11 @@ Deno.serve(async (req: Request) => {
         );
         return json(
           {
-            error: rateLimited
-              ? "O serviço de avaliação está temporariamente ocupado. Tente novamente em alguns segundos."
-              : "Não foi possível gerar a avaliação agora. Tente novamente.",
+            evaluation_unavailable: true,
+            retryable: true,
+            error: "A avaliação está sendo preparada. Tente novamente em alguns segundos.",
           },
-          rateLimited ? 429 : 500,
+          200,
         );
       }
 
