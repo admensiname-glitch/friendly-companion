@@ -28,15 +28,10 @@ function NotificationsPage() {
       if (cancelled) return;
       if (data) setPrefs({ ...defaults, ...data });
       setConfigured(!keyError && Boolean(keyData?.configured && keyData?.publicKey));
-      if ("serviceWorker" in navigator && "PushManager" in window) {
-        try {
-          const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-          const subscription = await registration.pushManager.getSubscription();
-          if (!cancelled) setDeviceSubscribed(Boolean(subscription));
-        } catch {
-          if (!cancelled) setDeviceSubscribed(false);
-        }
-      }
+      // A subscription stored in this browser does not prove that this account
+      // is registered on the server (it may belong to another account/device).
+      // Keep the activation action visible until this account explicitly registers it.
+      if (!cancelled) setDeviceSubscribed(false);
       setLoading(false);
     })();
     return () => { cancelled = true; };
