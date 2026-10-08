@@ -2248,11 +2248,9 @@ function EvaluationSection({
 
     setLoading(true);
     setGenerationError(null);
-    setResult(null);
-    setStarted(false);
-    onCompletedChange(false);
-    setAnswers({});
-    setQuestions([]);
+    // Preserve the current evaluation while the next attempt is being prepared.
+    // Clearing the whole section here caused a visible flash/layout remount.
+    setGenerationError(null);
 
     const { data, error } = await supabase.functions.invoke("ai-tutor", {
       body: {
@@ -2354,6 +2352,17 @@ function EvaluationSection({
             className="mt-5 rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm leading-6 text-[#991B1B]"
           >
             {generationError}
+          </div>
+        )}
+
+        {loading && (started || result) && (
+          <div
+            className="mt-4 flex items-center gap-3 rounded-lg border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1D4ED8]"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#93C5FD] border-t-[#1D4ED8]" />
+            Preparando sua nova avaliação…
           </div>
         )}
 
