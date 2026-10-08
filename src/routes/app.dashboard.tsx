@@ -461,13 +461,13 @@ function AppDashboard() {
 
   return (
     <section className="w-full" aria-labelledby="app-dashboard-title">
-      <section className="mb-3 px-1 pt-0" aria-labelledby="dashboard-greeting">
+      <section className="mb-5 px-1 pt-2" aria-labelledby="dashboard-greeting">
         <h1 id="dashboard-greeting" className="text-[28px] font-black tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
           {greeting}
         </h1>
       </section>
 
-      <section className="mt-3 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-4" aria-labelledby="next-study-title">
+      <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
         <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
           <div className="relative">
