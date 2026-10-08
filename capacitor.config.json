@@ -7,5 +7,10 @@
   "android": {
     "minWebViewVersion": 60,
     "initialFocus": true
+  },
+  "server": {
+    "url": "https://ensina-me-sigma.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
   }
 }
