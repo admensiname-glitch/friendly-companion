@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
 
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
+// Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
 
 type VisualAid = {
   enabled: boolean;
@@ -30,13 +31,6 @@ type Message = {
     enabled: boolean;
     reason: string;
     video?: TopicVideo | null;
-  } | null;
-  learningNextStep?: {
-    enabled: boolean;
-    title: string;
-    reason: string;
-    action: "practice" | "review" | "clarify" | "none";
-    prompt: string;
   } | null;
 };
 
@@ -378,7 +372,6 @@ function TutorPage() {
           shareable: data.shareable === true,
           visualAid,
           videoRecommendation: data.video_recommendation ?? null,
-          learningNextStep: data.learning_next_step ?? null,
         },
       ]);
     }
@@ -417,20 +410,6 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
-                {message.role === "assistant" && message.learningNextStep?.enabled && message.learningNextStep?.action !== "none" && (
-                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 sm:p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
-                    <h3 className="mt-1 text-sm font-black text-[#172334]">{message.learningNextStep?.title}</h3>
-                    <p className="mt-2 text-xs leading-5 text-[#687688]">{message.learningNextStep?.reason}</p>
-                    <button
-                      type="button"
-                      onClick={() => setInput(message.learningNextStep?.prompt ?? "")}
-                      className="mt-4 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-xs font-black text-white hover:bg-[#0038B8]"
-                    >
-                      Praticar agora
-                    </button>
-                  </div>
-                )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
                     href={`/app/comunidade?share_text=${encodeURIComponent(message.content.slice(0, 1900))}${topicId ? `&topic_id=${encodeURIComponent(topicId)}` : ""}${recommendation?.discipline_id ? `&discipline_id=${encodeURIComponent(recommendation.discipline_id)}` : ""}`}
@@ -462,16 +441,8 @@ function TutorPage() {
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto atual</p>
           <p className="mt-2 text-sm font-bold text-[#334155]">{contextLabel}</p>
           <p className="mt-2 text-sm leading-6 text-[#687688]">
-            O Tutor cruza sua pergunta com o tópico, seu histórico de conversa e as dificuldades que já apareceram no seu percurso.
+            O Tutor não é um chat genérico: ele deve permanecer ligado ao conteúdo acadêmico do tópico.
           </p>
-          {recommendation?.topic_name && (
-            <div className="mt-5 rounded-xl border border-[#DCE5F0] bg-white p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#687688]">Por que esta conversa é personalizada</p>
-              <p className="mt-2 text-sm font-bold leading-6 text-[#334155]">
-                Se você já teve dificuldade neste assunto, o Tutor usa esse sinal para mudar a explicação e sugerir a próxima atividade — em vez de simplesmente responder de novo.
-              </p>
-            </div>
-          )
           {!courseNames.length && (
             <Link to="/app/catalogo" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Adicionar curso</Link>
           )}
