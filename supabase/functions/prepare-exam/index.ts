@@ -45,7 +45,25 @@ Deno.serve(async(req)=>{
    const p=await resp.json(); let parsed:any; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
    generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
    const uniq=new Set<string>(); generated=generated.filter(q=>{const n=norm(q.question_text);if(uniq.has(n))return false;uniq.add(n);return true;});
-   if(generated.filter(q=>q.type==="multiple_choice").length<needObj||generated.filter(q=>q.type==="open_text").length<needEssay)return json({error:"A IA não conseguiu completar a prova com questões válidas. Tente novamente."},503);
+   let generatedObj=generated.filter(q=>q.type==="multiple_choice");
+   let generatedEssay=generated.filter(q=>q.type==="open_text");
+   // A composição híbrida é obrigatória. Se a primeira geração devolver objetivas demais,
+   // fazemos uma chamada dedicada para discursivas em vez de iniciar uma prova sem elas.
+   if(generatedEssay.length<needEssay){
+    const essayPrompt=`Você é avaliador universitário do Ensina-me. Gere EXATAMENTE ${needEssay-generatedEssay.length} questões DISCURSIVAS adicionais. Não gere nenhuma objetiva. Use somente o material acadêmico fornecido e não invente fatos. Cada questão deve exigir construção de resposta e avaliar explicação, comparação, análise, aplicação ou justificativa. Cada questão deve conter uma rubrica com pelo menos 3 critérios e minimum_lines: 2 para definição, 3 para explicação, 4 para comparação e 5 para análise/aplicação/justificativa. Cada questão deve usar um TOPIC_ID fornecido. Responda JSON válido com a chave questions e type=open_text em todas as questões.
+
+MATERIAL:
+${contexts.join("\n\n").slice(0,14000)}`;
+    const essayResp=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:essayPrompt},{role:"user",content:"Gere somente JSON válido, contendo exclusivamente questões discursivas."}],temperature:.2,reasoning_effort:"low",max_completion_tokens:3500,response_format:{type:"json_object"}})});
+    if(essayResp.status===429)return json({error:"A IA está temporariamente no limite. Tente novamente em alguns instantes.",retryable:true},429);
+    if(!essayResp.ok)return json({error:"Não foi possível gerar as questões discursivas da prova agora.",retryable:true},503);
+    const ep=await essayResp.json(); let parsedEssay:any; try{parsedEssay=JSON.parse(ep?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração das questões discursivas retornou um formato inválido. Tente novamente."},503);}
+    const extraEssay=(Array.isArray(parsedEssay.questions)?parsedEssay.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&q.type==="open_text"&&typeof q.question_text==="string"&&q.question_text.trim()&&Array.isArray(q.rubric)&&q.rubric.length>=3);
+    const existingTexts=new Set(generated.map(q=>norm(q.question_text)));
+    for(const q of extraEssay){if(generatedEssay.length>=needEssay)break;const n=norm(q.question_text);if(existingTexts.has(n))continue;existingTexts.add(n);generatedEssay.push(q);}
+    generated=[...generatedObj,...generatedEssay];
+   }
+   if(generatedObj.length<needObj||generatedEssay.length<needEssay)return json({error:"Não foi possível completar a composição híbrida da prova. As questões discursivas são obrigatórias para esta quantidade.",retryable:true},503);
   }
   const admin=createClient(url,service);
   const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
