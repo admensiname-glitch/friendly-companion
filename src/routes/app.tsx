@@ -316,7 +316,7 @@ function AppLayout() {
       </header>
 
       <main className="lg:ml-[252px]">
-        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-1 sm:px-6 sm:pt-2 lg:px-8 lg:pb-12 lg:pt-1">
+        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
           </div>
