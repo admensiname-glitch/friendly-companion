@@ -2383,7 +2383,10 @@ function EvaluationSection({
 
     if (error || !data) {
       console.error("[Ensina-me] Erro ao finalizar avaliação:", error);
-      setGenerationError("Não foi possível finalizar sua avaliação. Tente novamente.");
+      const rpcMessage =
+        (error as { message?: string } | null)?.message ??
+        "Não foi possível finalizar sua avaliação. Tente novamente.";
+      setGenerationError(rpcMessage);
       return;
     }
 
