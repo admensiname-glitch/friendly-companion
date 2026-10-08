@@ -483,7 +483,7 @@ function AppDashboard() {
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
                 <Icon name="spark" className="h-3.5 w-3.5" />
               </span>
-              {recommendationLabel}
+              O que estudar agora
             </div>
 
             <h2 id="next-study-title" className="mt-5 max-w-3xl text-[28px] font-black leading-9 tracking-[-0.035em] text-white sm:text-[34px] lg:text-[40px] lg:leading-[1.08]">
