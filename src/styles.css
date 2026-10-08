@@ -1092,4 +1092,12 @@
 @layer utilities {
   .text-xs { font-size: 0.8125rem; line-height: 1.25rem; }
   .text-sm { font-size: 0.9375rem; line-height: 1.4rem; }
+
+  /* Mobile: priorizar leitura e toque sem alterar títulos. */
+  @media (max-width: 639px) {
+    .text-xs { font-size: 0.875rem; line-height: 1.3rem; }
+    .text-sm { font-size: 1rem; line-height: 1.5rem; }
+    .text-base { font-size: 1.0625rem; line-height: 1.6rem; }
+    button, a { min-height: 44px; }
+  }
 }
