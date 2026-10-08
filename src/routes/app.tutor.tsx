@@ -417,11 +417,11 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
-                {message.role === "assistant" && message.learningNextStep?.enabled && message.learningNextStep.action !== "none" && (
+                {message.role === "assistant" && message.learningNextStep?.enabled && message.learningNextStep?.action !== "none" && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 sm:p-5">
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
-                    <h3 className="mt-1 text-sm font-black text-[#172334]">{message.learningNextStep.title}</h3>
-                    <p className="mt-2 text-xs leading-5 text-[#687688]">{message.learningNextStep.reason}</p>
+                    <h3 className="mt-1 text-sm font-black text-[#172334]">{message.learningNextStep?.title}</h3>
+                    <p className="mt-2 text-xs leading-5 text-[#687688]">{message.learningNextStep?.reason}</p>
                     <button
                       type="button"
                       onClick={() => setInput(message.learningNextStep?.prompt ?? "")}
