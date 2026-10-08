@@ -32,6 +32,7 @@ type Message = {
     reason: string;
     video?: TopicVideo | null;
   } | null;
+  learningNextStep?: any;
 };
 
 type TopicVideo = {
@@ -372,6 +373,7 @@ function TutorPage() {
           shareable: data.shareable === true,
           visualAid,
           videoRecommendation: data.video_recommendation ?? null,
+          learningNextStep: data.learning_next_step ?? null,
         },
       ]);
     }
