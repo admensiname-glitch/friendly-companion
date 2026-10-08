@@ -105,7 +105,7 @@ async function generateFormalEvaluationQuestions(args: {
     args.context;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch(
@@ -122,7 +122,7 @@ async function generateFormalEvaluationQuestions(args: {
             { role: "system", content: prompt },
             { role: "user", content: "Gere agora as 10 questões da nova tentativa." },
           ],
-          max_completion_tokens: 2400,
+          max_completion_tokens: 2000,
           temperature: args.temperature ?? 0.35,
           reasoning_effort: "low",
           include_reasoning: false,
@@ -1129,34 +1129,28 @@ Deno.serve(async (req: Request) => {
       // principal, troca automaticamente para um segundo modelo compatível.
       let questions: GeneratedFormalEvaluationQuestion[] | null = null;
       let rateLimited = false;
-      const models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
-      const temperatures = [0.35, 0.5];
+      // Keep the start flow responsive: at most one fast model attempt and
+      // one fallback attempt. The previous implementation could make four
+      // sequential 30s calls before reaching the bank fallback.
+      const models = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"];
 
       for (const model of models) {
-        for (const temperature of temperatures) {
-          const generated = await generateFormalEvaluationQuestions({
-            ...evaluationGenerationArgs,
-            context: truncateText(evaluationGenerationArgs.context, 9000),
-            seed: crypto.randomUUID(),
-            temperature,
-            model,
-          });
+        const generated = await generateFormalEvaluationQuestions({
+          ...evaluationGenerationArgs,
+          context: truncateText(evaluationGenerationArgs.context, 7000),
+          seed: crypto.randomUUID(),
+          temperature: 0.35,
+          model,
+        });
 
-          if (generated.rateLimited) {
-            rateLimited = true;
-            break;
-          }
-
-          if (generated.questions) {
-            questions = generated.questions;
-            break;
-          }
+        if (generated.questions) {
+          questions = generated.questions;
+          break;
         }
 
-        if (questions) break;
-        if (!rateLimited) continue;
-        // O modelo principal atingiu o limite: passa imediatamente ao fallback.
-        rateLimited = false;
+        if (generated.rateLimited) {
+          rateLimited = true;
+        }
       }
 
       if (!questions) {
