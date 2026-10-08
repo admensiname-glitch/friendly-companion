@@ -222,7 +222,7 @@ function AppDashboard() {
     ? topicsProgress.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
     : topicsProgress;
 
-  const focusedSignals = focusedDisciplineId
+  const focusedSignals = focusedDisciplineIds.length
     ? learningSignals.filter((signal) => focusedTopics.some((topic) => topic.topic_id === signal.topic_id))
     : learningSignals;
 
