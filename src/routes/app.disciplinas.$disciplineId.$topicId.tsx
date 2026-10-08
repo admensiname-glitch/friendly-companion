@@ -2348,8 +2348,25 @@ function EvaluationSection({
   }
 
   async function finishEvaluation() {
-    if (!attemptId || questions.length !== 10 || Object.keys(answers).length !== 10) return;
+    if (loading) return;
 
+    if (!attemptId) {
+      setGenerationError("Esta avaliação perdeu a identificação da tentativa. Atualize a página e tente novamente.");
+      return;
+    }
+
+    if (questions.length !== 10) {
+      setGenerationError("A avaliação não carregou as 10 questões necessárias para a correção. Atualize a página e tente novamente.");
+      return;
+    }
+
+    const unanswered = questions.filter((question) => answers[question.id] === undefined);
+    if (unanswered.length > 0) {
+      setGenerationError(`Ainda faltam ${unanswered.length} questão(ões) para responder.`);
+      return;
+    }
+
+    setGenerationError(null);
     setLoading(true);
 
     const answerPayload = questions.map((question) => ({
@@ -2496,7 +2513,7 @@ function EvaluationSection({
             aria-live="polite"
           >
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#93C5FD] border-t-[#1D4ED8]" />
-            Preparando sua nova avaliação…
+            {started ? "Finalizando e corrigindo sua avaliação…" : "Preparando sua nova avaliação…"}
           </div>
         )}
 
@@ -2580,7 +2597,7 @@ function EvaluationSection({
                   disabled={loading || Object.keys(answers).length !== 10}
                   className="min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  {loading ? "Calculando..." : "Finalizar avaliação"}
+                  {loading ? "Finalizando..." : "Finalizar avaliação"}
                 </button>
               </div>
             </div>
