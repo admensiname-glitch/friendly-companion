@@ -12,6 +12,7 @@ type ExamQuestion = {
   question_text: string;
   question_type: "multiple_choice" | "open_text";
   options: Option[];
+  minimum_lines?: number;
 };
 
 type ExamTopicResult = {
@@ -32,6 +33,18 @@ type ExamResult = {
 };
 
 export const Route = createFileRoute("/app/prova")({ component: ExamPage });
+
+function getDiscursiveMinimumLines(text: string) {
+  const q = text.toLowerCase();
+  if (/\b(compare|diferenc|relacione|distinga|contraste)\b/.test(q)) return 4;
+  if (/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/.test(q)) return 5;
+  if (/\b(explique|descreva|como funciona|por que|por quê)\b/.test(q)) return 3;
+  return 2;
+}
+
+function effectiveLineCount(text: string) {
+  return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).length;
+}
 
 function ExamPage() {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
@@ -144,8 +157,13 @@ function ExamPage() {
   async function saveTextAnswer() {
     if (!question || !attemptId || saving || question.question_type !== "open_text") return;
     const response = (textAnswers[question.id] ?? "").trim();
+    const minimumLines = question.minimum_lines ?? getDiscursiveMinimumLines(question.question_text);
     if (response.length < 10) {
       setError("Escreva uma resposta um pouco mais desenvolvida para registrar a questão discursiva.");
+      return;
+    }
+    if (effectiveLineCount(response) < minimumLines) {
+      setError(`Esta questão exige desenvolvimento. Escreva pelo menos ${minimumLines} linhas, separando suas ideias em linhas diferentes.`);
       return;
     }
     setSaving(true);
@@ -319,14 +337,15 @@ function ExamPage() {
             </div>
           ) : (
             <div className="mt-6">
-              <p className="mb-3 text-sm font-semibold text-[#536174]">Responda com suas próprias palavras. Sua resposta será corrigida ao final da prova.</p>
+              <p className="mb-3 text-sm font-semibold text-[#536174]">Responda com suas próprias palavras. A correção verifica compreensão real, não quantidade de texto.</p>
               <textarea
                 value={textAnswers[question.id] ?? ""}
                 onChange={(e) => setTextAnswers((old) => ({ ...old, [question.id]: e.target.value }))}
                 rows={8}
-                placeholder="Escreva sua resposta..."
+                placeholder={`Desenvolva sua resposta... mínimo de ${question.minimum_lines ?? getDiscursiveMinimumLines(question.question_text)} linhas`}
                 className="w-full rounded-xl border border-[#CBD5E1] px-4 py-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]"
               />
+              <p className="mt-2 text-xs leading-5 text-[#687688]">Desenvolvimento esperado: pelo menos {question.minimum_lines ?? getDiscursiveMinimumLines(question.question_text)} linhas. Uma resposta longa não compensa erro conceitual.</p>
               <button type="button" onClick={() => void saveTextAnswer()} disabled={saving}
                 className="mt-3 min-h-11 rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
                 {saving ? "Salvando..." : answers[question.id] ? "Resposta salva ✓" : "Salvar resposta"}
