@@ -31,14 +31,6 @@ type Message = {
     reason: string;
     video?: TopicVideo | null;
   } | null;
-  learningNextStep?: {
-    enabled: boolean;
-    title: string;
-    reason: string;
-    action: "practice" | "review" | "clarify" | "none";
-    prompt: string;
-  } | null;
-};
 
 type TopicVideo = {
   id: string;
@@ -378,7 +370,6 @@ function TutorPage() {
           shareable: data.shareable === true,
           visualAid,
           videoRecommendation: data.video_recommendation ?? null,
-          learningNextStep: data.learning_next_step ?? null,
         },
       ]);
     }
@@ -416,9 +407,6 @@ function TutorPage() {
                 )}
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
-                )}
-                {message.role === "assistant" && message.learningNextStep?.enabled && (
-                  <LearningNextStep nextStep={message.learningNextStep} />
                 )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
