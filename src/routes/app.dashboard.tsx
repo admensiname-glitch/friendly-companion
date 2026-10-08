@@ -132,6 +132,8 @@ function AppDashboard() {
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
   const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
+  const [focusedDisciplineId, setFocusedDisciplineId] = useState<string | null>(null);
+  const [focusedDisciplineName, setFocusedDisciplineName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -158,13 +160,14 @@ function AppDashboard() {
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
-      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, learningSignalsResult] =
+      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, focusResult, learningSignalsResult] =
         await Promise.all([
           supabase.from("student_profiles").select("display_name, institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
+          supabase.rpc("get_student_focus_discipline"),
           supabase
             .from("student_learning_signals")
             .select("topic_id, concept, severity, occurrences, correct_count, status, last_seen")
@@ -182,6 +185,11 @@ function AppDashboard() {
       }
       if (!todayResult.error && todayResult.data) {
         setTodayStudy(todayResult.data as unknown as TodayStudy);
+      }
+      if (!focusResult.error && focusResult.data && typeof focusResult.data === "object" && "discipline_id" in focusResult.data) {
+        const focus = focusResult.data as { discipline_id: string; discipline_name?: string };
+        setFocusedDisciplineId(focus.discipline_id);
+        setFocusedDisciplineName(focus.discipline_name ?? null);
       }
       if (!learningSignalsResult.error && learningSignalsResult.data) {
         setLearningSignals(learningSignalsResult.data as LearningSignal[]);
@@ -208,7 +216,41 @@ function AppDashboard() {
     [profile?.display_name, user],
   );
 
-  const activeTopics = topicsProgress.filter(
+  const focusedTopics = focusedDisciplineId
+    ? topicsProgress.filter((topic) => topic.discipline_id === focusedDisciplineId)
+    : topicsProgress;
+
+  const focusedSignals = focusedDisciplineId
+    ? learningSignals.filter((signal) => focusedTopics.some((topic) => topic.topic_id === signal.topic_id))
+    : learningSignals;
+
+  const focusedRecommendation =
+    focusedDisciplineId && recommendation?.discipline_id !== focusedDisciplineId
+      ? (() => {
+          const candidates = focusedTopics
+            .filter((topic) => topic.progress < 100 || topic.review_count > 0)
+            .sort((a, b) => {
+              const aSignal = focusedSignals.find((signal) => signal.topic_id === a.topic_id);
+              const bSignal = focusedSignals.find((signal) => signal.topic_id === b.topic_id);
+              return (bSignal?.severity ?? 0) - (aSignal?.severity ?? 0) || a.progress - b.progress;
+            });
+          const topic = candidates[0];
+          return topic
+            ? {
+                topic_id: topic.topic_id,
+                discipline_id: topic.discipline_id,
+                topic_name: topic.topic_name,
+                discipline_name: topic.discipline_name,
+                reason: topic.review_count > 0 ? "review" as const : "start" as const,
+                message: topic.review_count > 0
+                  ? "Você escolheu esta disciplina como foco. Há pontos aqui que pedem revisão."
+                  : "Você escolheu esta disciplina como foco. Este é o próximo tópico para avançar.",
+              }
+            : null;
+        })()
+      : recommendation;
+
+  const activeTopics = focusedTopics.filter(
     (topic) => topic.review_count > 0 || topic.status !== "completed" || topic.progress < 100,
   );
 
@@ -217,16 +259,16 @@ function AppDashboard() {
       ? Math.min(100, Math.round((todayStudy.minutes / profile.daily_study_minutes) * 100))
       : 0;
 
-  const bestScore = topicsProgress.some((topic) => topic.best_score !== null)
-    ? Math.max(...topicsProgress.filter((topic) => topic.best_score !== null).map((topic) => topic.best_score as number))
+  const bestScore = focusedTopics.some((topic) => topic.best_score !== null)
+    ? Math.max(...focusedTopics.filter((topic) => topic.best_score !== null).map((topic) => topic.best_score as number))
     : null;
 
-  const overallProgress = topicsProgress.length
-    ? Math.round(topicsProgress.reduce((sum, topic) => sum + topic.progress, 0) / topicsProgress.length)
+  const overallProgress = focusedTopics.length
+    ? Math.round(focusedTopics.reduce((sum, topic) => sum + topic.progress, 0) / focusedTopics.length)
     : 0;
 
   const brainTopics = useMemo<BrainTopic[]>(() => {
-    if (!learningSignals.length) return [];
+    if (!focusedSignals.length) return [];
 
     const topicMap = new Map(
       topicsProgress.map((topic) => [
@@ -255,11 +297,11 @@ function AppDashboard() {
       })
       .filter((item): item is BrainTopic => item !== null)
       .sort((a, b) => b.severity - a.severity || b.occurrences - a.occurrences);
-  }, [learningSignals, topicsProgress]);
+  }, [focusedSignals, focusedTopics]);
 
   const brainCounts = useMemo(() => ({
-    mastered: topicsProgress.filter((topic) => topic.progress >= 80).length,
-    review: topicsProgress.filter((topic) => topic.progress >= 50 && topic.progress < 80).length,
+    mastered: focusedTopics.filter((topic) => topic.progress >= 80).length,
+    review: focusedTopics.filter((topic) => topic.progress >= 50 && topic.progress < 80).length,
     difficulty: brainTopics.filter((topic) => topic.severity >= 4).length,
   }), [topicsProgress, brainTopics]);
 
@@ -302,7 +344,9 @@ function AppDashboard() {
             Olá, {firstName}! 👋
           </h1>
           <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">
-            Vamos continuar de onde você parou — estude, pratique e revise no seu ritmo.
+            {focusedDisciplineName
+              ? <>Foco atual: <strong className="text-[#172334] dark:text-[#E7EDF5]">{focusedDisciplineName}</strong>. O Ensina-me vai conduzir seu próximo passo dentro dela.</>
+              : "Escolha uma disciplina para focar seu estudo. O Ensina-me adapta seu próximo passo a essa escolha."}
           </p>
         </div>
         <Link to="/app/desempenho" className="app-icon-button hidden sm:inline-flex" aria-label="Ver meu desempenho">
@@ -310,6 +354,16 @@ function AppDashboard() {
         </Link>
       </header>
 
+
+      <section className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-[#DCE5F0] bg-white px-4 py-3 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7A8796]">Foco de estudo</p>
+          <p className="mt-0.5 truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{focusedDisciplineName ?? "Nenhuma disciplina escolhida"}</p>
+        </div>
+        <Link to="/app/disciplinas" className="shrink-0 rounded-xl bg-[#EEF4FF] px-3.5 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]">
+          {focusedDisciplineName ? "Trocar disciplina" : "Escolher disciplina"}
+        </Link>
+      </section>
 
       <section className="mt-7 overflow-hidden rounded-[20px] bg-[#0242D7] shadow-[0_18px_42px_rgba(2,66,215,.16)] dark:bg-[#0B3FA8] lg:mt-8" aria-labelledby="next-study-title">
         <div className="relative min-h-[240px] p-7 sm:p-9 lg:min-h-[300px] lg:p-11">
@@ -323,30 +377,30 @@ function AppDashboard() {
             </div>
 
             <h2 id="next-study-title" className="mt-5 max-w-3xl text-[28px] font-black leading-9 tracking-[-0.035em] text-white sm:text-[34px] lg:text-[40px] lg:leading-[1.08]">
-              {recommendation?.topic_name ?? activeTopics[0]?.topic_name ?? "Seu próximo passo começa aqui"}
+              {focusedRecommendation?.topic_name ?? activeTopics[0]?.topic_name ?? "Seu próximo passo começa aqui"}
             </h2>
             <p className="mt-2 text-base font-bold text-white/80 lg:text-lg">
-              {recommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? "Escolha uma disciplina para começar."}
+              {focusedRecommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? "Escolha uma disciplina para começar."}
             </p>
             <p className="mt-4 max-w-3xl text-base leading-7 text-white/80 lg:text-[17px] lg:leading-7">
-              {recommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
+              {focusedRecommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-white/75">
               <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">
-                ⏱️ Estudo sugerido: {recommendation?.reason === "assessment" ? "30" : recommendation?.reason === "review" ? "20" : "15"} min
+                ⏱️ Estudo sugerido: {focusedRecommendation?.reason === "assessment" ? "30" : focusedRecommendation?.reason === "review" ? "20" : "15"} min
               </span>
-              {recommendation?.reason === "review" && <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">Baseado nos seus sinais de dificuldade</span>}
+              {focusedRecommendation?.reason === "review" && <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">Baseado nos seus sinais de dificuldade</span>}
             </div>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              {recommendation?.topic_id && recommendation.discipline_id ? (
+              {focusedRecommendation?.topic_id && focusedRecommendation.discipline_id ? (
                 <Link
                   to="/app/disciplinas/$disciplineId/$topicId"
-                  params={{ disciplineId: recommendation.discipline_id, topicId: recommendation.topic_id }}
+                  params={{ disciplineId: focusedRecommendation.discipline_id, topicId: focusedRecommendation.topic_id }}
                   className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#0242D7] shadow-sm"
                 >
-                  {recommendation.reason === "review" ? "Revisar agora" : "Continuar estudo"}
+                  {focusedRecommendation.reason === "review" ? "Revisar agora" : "Continuar estudo"}
                   <Icon name="arrow" className="h-4 w-4" />
                 </Link>
               ) : (
