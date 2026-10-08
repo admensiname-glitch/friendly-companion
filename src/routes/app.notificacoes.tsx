@@ -14,6 +14,7 @@ function NotificationsPage() {
   const [message, setMessage] = useState("");
   const [kind, setKind] = useState<"success" | "error" | "info">("info");
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [deviceSubscribed, setDeviceSubscribed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +28,15 @@ function NotificationsPage() {
       if (cancelled) return;
       if (data) setPrefs({ ...defaults, ...data });
       setConfigured(!keyError && Boolean(keyData?.configured && keyData?.publicKey));
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        try {
+          const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+          const subscription = await registration.pushManager.getSubscription();
+          if (!cancelled) setDeviceSubscribed(Boolean(subscription));
+        } catch {
+          if (!cancelled) setDeviceSubscribed(false);
+        }
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -46,11 +56,29 @@ function NotificationsPage() {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") throw new Error("Permissão não concedida. Ative notificações para o Ensina-me nas configurações do navegador.");
       const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-      const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(keyData.publicKey) });
+      await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        const currentKey = subscription.options.applicationServerKey;
+        const expectedKey = urlBase64ToUint8Array(keyData.publicKey);
+        const sameKey = currentKey && currentKey.byteLength === expectedKey.byteLength &&
+          expectedKey.every((byte, index) => byte === new Uint8Array(currentKey)[index]);
+        if (!sameKey) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+        });
+      }
       const { error } = await supabase.functions.invoke("push-notifications", { body: { action: "register", subscription: subscription.toJSON() } });
       if (error) throw new Error("Não foi possível registrar este navegador no servidor.");
       setPrefs(p => ({ ...p, push_enabled: true }));
-      notify("Notificações ativadas neste navegador. Agora você pode enviar um teste.", "success");
+      setDeviceSubscribed(true);
+      notify("Este navegador foi registrado. Agora você pode enviar uma notificação de teste para sua conta.", "success");
     } catch (err) { notify(err instanceof Error ? err.message : "Não foi possível ativar as notificações.", "error"); }
     finally { setBusy(false); }
   }
@@ -61,7 +89,8 @@ function NotificationsPage() {
       const { error } = await supabase.functions.invoke("push-notifications", { body: { action: "preferences", enabled: false } });
       if (error) throw new Error("Não foi possível salvar a preferência.");
       setPrefs(p => ({ ...p, push_enabled: false }));
-      notify("Notificações desativadas. Você pode ativá-las novamente quando quiser.", "success");
+      setDeviceSubscribed(false);
+      notify("Notificações desativadas para sua conta. Você pode ativá-las novamente quando quiser.", "success");
     } catch (err) { notify(err instanceof Error ? err.message : "Erro ao desativar.", "error"); }
     finally { setBusy(false); }
   }
@@ -108,7 +137,17 @@ function NotificationsPage() {
           <h2 className="text-base font-extrabold">Notificações push neste dispositivo</h2>
           <p className="mt-2 text-sm leading-6 text-[#667487]">Você controla a autorização. O navegador também pode pedir permissão. Se você bloquear o acesso nas configurações do dispositivo, o Ensina-me não conseguirá mostrar alertas.</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {!prefs.push_enabled ? <button disabled={busy} onClick={() => void enablePush()} className="min-h-11 rounded-xl bg-[#0242D7] px-4 text-sm font-bold text-white disabled:opacity-50">{busy ? "Aguarde…" : "Ativar notificações"}</button> : <><span className="inline-flex min-h-11 items-center rounded-xl bg-green-50 px-4 text-sm font-bold text-green-800">Ativadas neste dispositivo</span><button disabled={busy} onClick={() => void disablePush()} className="min-h-11 rounded-xl border border-[#D3DEEA] px-4 text-sm font-bold text-[#526277] disabled:opacity-50">Desativar</button><button disabled={busy} onClick={() => void sendTest()} className="min-h-11 rounded-xl border border-[#0242D7] px-4 text-sm font-bold text-[#0242D7] disabled:opacity-50">Enviar notificação de teste</button></>}
+            {!deviceSubscribed ? (
+              <button disabled={busy || configured === false} onClick={() => void enablePush()} className="min-h-11 rounded-xl bg-[#0242D7] px-4 text-sm font-bold text-white disabled:opacity-50">
+                {busy ? "Aguarde…" : "Ativar neste dispositivo"}
+              </button>
+            ) : (
+              <>
+                <span className="inline-flex min-h-11 items-center rounded-xl bg-green-50 px-4 text-sm font-bold text-green-800">Este dispositivo está registrado</span>
+                <button disabled={busy} onClick={() => void sendTest()} className="min-h-11 rounded-xl border border-[#0242D7] px-4 text-sm font-bold text-[#0242D7] disabled:opacity-50">Enviar notificação de teste</button>
+                <button disabled={busy} onClick={() => void disablePush()} className="min-h-11 rounded-xl border border-[#D3DEEA] px-4 text-sm font-bold text-[#526277] disabled:opacity-50">Desativar notificações</button>
+              </>
+            )}
           </div>
           {configured === false && <p className="mt-4 text-xs leading-5 text-[#8A5A00]">Configuração pendente no servidor: as chaves VAPID ainda não foram cadastradas. O site não deve prometer entrega real até concluir essa etapa.</p>}
         </section>
