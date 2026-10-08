@@ -1249,6 +1249,24 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      for (const concept of assessment.concept_tags ?? []) {
+        const { error: signalError } = await supabase.rpc("record_learning_signal", {
+          _topic_id: assessment.topic_id,
+          _concept: concept,
+          _signal_type: "micro_error",
+          _severity: assessment.is_correct ? 1 : 5,
+          _evidence: assessment.question_text,
+          _correct: Boolean(assessment.is_correct),
+        });
+
+        if (signalError) {
+          console.warn(
+            "[Ensina-me] ai-tutor: não foi possível registrar resultado conceitual da microavaliação",
+            JSON.stringify({ concept, message: signalError.message }),
+          );
+        }
+      }
+
       const { data: recentAssessments } = await supabase
         .from("ai_micro_assessments")
         .select("is_correct, difficulty, concept_tags, question_text, answered_at")
@@ -1615,16 +1633,16 @@ Deno.serve(async (req: Request) => {
                 " | status=" + item.status,
             )
             .join("\n")
-        : "MAPA TRANSVERSAL DE APRENDIZAGEM DO ALUNO: nenhum sinal persistente registrado.\n\n" +
-      ((difficulties ?? []).length
-        ? "DIFICULDADES PENDENTES DO ALUNO: " +
+        : "MAPA TRANSVERSAL DE APRENDIZAGEM DO ALUNO: nenhum sinal persistente registrado.",
+      (difficulties ?? []).length
+        ? "DIFICULDADES PENDENTES DO TÓPICO ATUAL: " +
           (difficulties ?? [])
             .map(
               (d: { difficulty_tag: string; count: number }) =>
                 d.difficulty_tag + " (" + d.count + ")",
             )
             .join(", ")
-        : "DIFICULDADES PENDENTES DO ALUNO: nenhuma registrada.")),
+        : "DIFICULDADES PENDENTES DO TÓPICO ATUAL: nenhuma registrada.",
     ]
       .filter(Boolean)
       .join("\n\n");
