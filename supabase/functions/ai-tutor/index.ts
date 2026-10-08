@@ -1093,24 +1093,26 @@ Deno.serve(async (req: Request) => {
       }
 
       const history = Array.isArray(historyData) ? historyData : [];
-      const latestAttempt = history[0];
 
-      const previousAttempt =
-        latestAttempt && Array.isArray(latestAttempt.questions)
-          ? latestAttempt.questions
-              .filter(
-                (item: unknown): item is { question_text: string; options: unknown } =>
-                  isRecord(item) &&
-                  typeof item.question_text === "string" &&
-                  Array.isArray(item.options),
-              )
-              .map((item) => ({
-                question_text: item.question_text,
-                options: item.options.filter(
-                  (value): value is string => typeof value === "string",
-                ),
-              }))
-          : [];
+      // Todas as avaliações anteriores do mesmo tópico são usadas como memória
+      // de repetição. A nova avaliação precisa ser inédita em relação ao histórico
+      // inteiro, não apenas à última tentativa.
+      const previousAttempt = history.flatMap((attempt: unknown) => {
+        if (!isRecord(attempt) || !Array.isArray(attempt.questions)) return [];
+        return attempt.questions
+          .filter(
+            (item: unknown): item is { question_text: string; options: unknown } =>
+              isRecord(item) &&
+              typeof item.question_text === "string" &&
+              Array.isArray(item.options),
+          )
+          .map((item) => ({
+            question_text: item.question_text,
+            options: item.options.filter(
+              (value): value is string => typeof value === "string",
+            ),
+          }));
+      });
 
       const evaluationGenerationArgs = {
         apiKey: groqApiKey,
@@ -1120,43 +1122,26 @@ Deno.serve(async (req: Request) => {
         previousAttempt,
       };
 
-      let questions = await generateFormalEvaluationQuestions({
-        ...evaluationGenerationArgs,
-        seed: crypto.randomUUID(),
-        temperature: 0.35,
-      });
+      // Não expor ao aluno o mecanismo de tentativa. O Tutor simplesmente
+      // continua gerando até obter uma avaliação válida e inédita.
+      let questions: GeneratedFormalEvaluationQuestion[] | null = null;
+      const temperatures = [0.35, 0.45, 0.55, 0.65, 0.75, 0.85];
 
-      // A primeira tentativa prioriza consistência. Se o modelo repetir alguma
-      // questão, aumenta a diversidade e tenta novamente com uma semente nova.
-      if (!questions) {
+      for (let attempt = 0; attempt < temperatures.length && !questions; attempt += 1) {
         questions = await generateFormalEvaluationQuestions({
           ...evaluationGenerationArgs,
           seed: crypto.randomUUID(),
-          temperature: 0.55,
-        });
-      }
-
-      // Última tentativa: maior diversidade de casos e formulações, mantendo
-      // a validação rígida contra repetição.
-      if (!questions) {
-        questions = await generateFormalEvaluationQuestions({
-          ...evaluationGenerationArgs,
-          seed: crypto.randomUUID(),
-          temperature: 0.75,
+          temperature: temperatures[attempt],
         });
       }
 
       if (!questions) {
-        console.warn(
-          "[Ensina-me] ai-tutor: não foi possível montar 10 questões inéditas após 3 tentativas",
+        console.error(
+          "[Ensina-me] ai-tutor: falha interna ao gerar avaliação inédita após múltiplas variações",
         );
         return json(
-          {
-            error:
-              "Não consegui montar uma nova avaliação inédita agora. O conteúdo deste tópico já foi muito explorado. Tente novamente em instantes.",
-            code: "EVALUATION_VARIETY_EXHAUSTED",
-          },
-          409,
+          { error: "Não foi possível gerar a avaliação agora. Tente novamente." },
+          500,
         );
       }
 
