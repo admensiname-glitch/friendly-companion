@@ -11,6 +11,16 @@ type SaveState="idle"|"saving"|"saved"|"error";
 
 export const Route=createFileRoute("/app/perfil")({component:ProfilePage});
 
+interface CompletedTopic {
+ id: string;
+ topic_id: string;
+ topic_name: string;
+ discipline_id: string;
+ discipline_name: string;
+ completed_at: string | null;
+ best_score: number | null;
+}
+
 function Icon({name,className=""}:{name:"back"|"book"|"clock"|"plus"|"close"|"logout"|"check";className?:string}){
  const paths={back:<><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></>,book:<><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H20v17H7.5A2.5 2.5 0 0 0 5 21.5z"/><path d="M5 4.5v17"/><path d="M9 6h7"/></>,clock:<><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></>,plus:<><path d="M12 5v14"/><path d="M5 12h14"/></>,close:<><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>,logout:<><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 4v16"/></>,check:<path d="m5 12 4 4L19 6"/>} as const;
  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className}>{paths[name]}</svg>;
@@ -19,22 +29,46 @@ function Icon({name,className=""}:{name:"back"|"book"|"clock"|"plus"|"close"|"lo
 function ProfilePage(){
  const navigate=useNavigate();
  const [name,setName]=useState("Aluno"),[email,setEmail]=useState(""),[avatarUrl,setAvatarUrl]=useState<string|null>(null),[profileFile,setProfileFile]=useState<File|null>(null);
- const [profile,setProfile]=useState<ProfileData|null>(null),[courses,setCourses]=useState<CourseOption[]>([]),[disciplineOptions,setDisciplineOptions]=useState<DisciplineOption[]>([]),[studentDisciplines,setStudentDisciplines]=useState<StudentDiscipline[]>([]),[newDiscipline,setNewDiscipline]=useState(""),[exams,setExams]=useState<StudentExam[]>([]),[newExamDiscipline,setNewExamDiscipline]=useState(""),[newExamType,setNewExamType]=useState("Prova"),[newExamDate,setNewExamDate]=useState(""),[loading,setLoading]=useState(true),[disciplineLoading,setDisciplineLoading]=useState(false),[saveState,setSaveState]=useState<SaveState>("idle"),[message,setMessage]=useState<string|null>(null),[pendingCourseRemoval,setPendingCourseRemoval]=useState(false),[logoutPending,setLogoutPending]=useState(false),[profileSaving,setProfileSaving]=useState(false);
+ const [profile,setProfile]=useState<ProfileData|null>(null),[courses,setCourses]=useState<CourseOption[]>([]),[disciplineOptions,setDisciplineOptions]=useState<DisciplineOption[]>([]),[studentDisciplines,setStudentDisciplines]=useState<StudentDiscipline[]>([]),[completedTopics,setCompletedTopics]=useState<CompletedTopic[]>([]),[newDiscipline,setNewDiscipline]=useState(""),[exams,setExams]=useState<StudentExam[]>([]),[newExamDiscipline,setNewExamDiscipline]=useState(""),[newExamType,setNewExamType]=useState("Prova"),[newExamDate,setNewExamDate]=useState(""),[loading,setLoading]=useState(true),[disciplineLoading,setDisciplineLoading]=useState(false),[saveState,setSaveState]=useState<SaveState>("idle"),[message,setMessage]=useState<string|null>(null),[pendingCourseRemoval,setPendingCourseRemoval]=useState(false),[logoutPending,setLogoutPending]=useState(false),[profileSaving,setProfileSaving]=useState(false);
 
  const loadProfileData=useCallback(async()=>{
   const {data:sessionData}=await supabase.auth.getSession(); if(!sessionData.session){await navigate({to:"/login"});return}
   const user=sessionData.session.user; const fullName=user.user_metadata?.["full_name"]||user.user_metadata?.["name"];
   setName(fullName?.split(" ")[0]||"Aluno"); setEmail(user.email||"");
-  const [{data:courseData},{data:profileData},{data:disciplineData},{data:examData}]=await Promise.all([
+  const [{data:courseData},{data:profileData},{data:disciplineData},{data:examData},{data:completedProgressData}]=await Promise.all([
    supabase.from("courses").select("id,name").eq("published",true).order("name",{ascending:true}),
    supabase.from("student_profiles").select("course_id,institution,semester,daily_study_minutes,difficulties,display_name,avatar_url").eq("user_id",user.id).maybeSingle(),
    supabase.from("student_disciplines").select("id,discipline_name").eq("user_id",user.id).order("created_at",{ascending:true}),
-   supabase.from("student_exams").select("id,discipline,exam_type,exam_date").eq("user_id",user.id).order("exam_date",{ascending:true})
+   supabase.from("student_exams").select("id,discipline,exam_type,exam_date").eq("user_id",user.id).order("exam_date",{ascending:true}),
+   supabase.from("student_topic_progress").select("id,topic_id,completed_at,best_score").eq("user_id",user.id).eq("status","completed").order("completed_at",{ascending:false})
   ]);
   const pd=profileData as (ProfileData&{display_name?:string|null;avatar_url?:string|null})|null;
   setName(pd?.display_name||fullName?.split(" ")[0]||"Aluno"); setAvatarUrl(pd?.avatar_url||null);
   setCourses((courseData??[]) as CourseOption[]); setProfile(pd?{course_id:pd.course_id,institution:pd.institution,semester:pd.semester,daily_study_minutes:pd.daily_study_minutes,difficulties:pd.difficulties}:{course_id:null,institution:null,semester:null,daily_study_minutes:60,difficulties:null});
-  setStudentDisciplines((disciplineData??[]) as StudentDiscipline[]); setExams((examData??[]) as StudentExam[]); setLoading(false);
+  setStudentDisciplines((disciplineData??[]) as StudentDiscipline[]);
+  setExams((examData??[]) as StudentExam[]);
+
+  const completedRows=(completedProgressData??[]) as Array<{id:string;topic_id:string;completed_at:string|null;best_score:number|null}>;
+  if(completedRows.length){
+    const topicIds=[...new Set(completedRows.map(row=>row.topic_id))];
+    const {data:topicRows}=await supabase.from("topics").select("id,name,discipline_id").in("id",topicIds);
+    const disciplineIds=[...new Set((topicRows??[]).map(row=>row.discipline_id))];
+    const {data:completedDisciplines}=disciplineIds.length
+      ? await supabase.from("disciplines").select("id,name").in("id",disciplineIds)
+      : {data:[]};
+    const topicMap=new Map((topicRows??[]).map(row=>[row.id,row]));
+    const disciplineMap=new Map((completedDisciplines??[]).map(row=>[row.id,row]));
+    setCompletedTopics(completedRows.map(row=>{
+      const topic=topicMap.get(row.topic_id);
+      const discipline=topic?disciplineMap.get(topic.discipline_id):undefined;
+      return topic&&discipline
+        ? {id:row.id,topic_id:topic.id,topic_name:topic.name,discipline_id:discipline.id,discipline_name:discipline.name,completed_at:row.completed_at,best_score:row.best_score}
+        : null;
+    }).filter((row):row is CompletedTopic=>Boolean(row)));
+  } else {
+    setCompletedTopics([]);
+  }
+  setLoading(false);
  },[navigate]);
 
  useEffect(()=>{void loadProfileData()},[loadProfileData]);
@@ -89,6 +123,30 @@ function ProfilePage(){
    <div className="grid border-t border-[#E4EAF1] sm:grid-cols-2"><label className="border-b border-[#E4EAF1] py-5 sm:border-b-0 sm:border-r sm:pr-5"><span className="text-sm font-bold text-[#273547]">Instituição</span><input value={profile?.institution??""} onChange={e=>setProfile(c=>c?{...c,institution:e.target.value}:c)} onBlur={()=>profile&&void saveProfile({institution:profile.institution})} placeholder="Opcional" className="mt-2 h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"/></label><label className="border-t border-[#E4EAF1] py-5 sm:border-t-0 sm:pl-5"><span className="text-sm font-bold text-[#273547]">Período</span><select value={profile?.semester??""} onChange={e=>{const semester=e.target.value?Number(e.target.value):null;setProfile(c=>c?{...c,semester}:c);void saveProfile({semester})}} className="mt-2 h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"><option value="">Não definido</option>{Array.from({length:20},(_,i)=>i+1).map(s=><option key={s} value={s}>{s}º período</option>)}</select></label></div></div>
   </section>
   <section className="mt-10" aria-labelledby="disciplines-heading"><div className="mb-4"><p className="text-sm font-semibold text-[#0242D7]">Seu percurso</p><h2 id="disciplines-heading" className="mt-1 text-xl font-bold text-[#172334]">Disciplinas</h2></div><div className="border-y border-[#DCE5F0]">{profile?.course_id?<div className="py-5"><div className="flex flex-col gap-3 sm:flex-row"><input type="search" list="profile-discipline-options" value={newDiscipline} onChange={e=>setNewDiscipline(e.target.value)} placeholder={disciplineLoading?"Carregando disciplinas...":"Adicionar disciplina..."} disabled={disciplineLoading} className="min-h-11 flex-1 rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"/><datalist id="profile-discipline-options">{disciplineOptions.map(d=><option key={d.id} value={d.name}/>)}</datalist><button type="button" onClick={()=>void addDiscipline()} disabled={!newDiscipline.trim()||disciplineLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0242D7] px-4 text-sm font-bold text-white"><Icon name="plus" className="h-4 w-4"/>Adicionar</button></div>{studentDisciplines.length===0?<p className="mt-4 text-sm text-[#7A8796]">Nenhuma disciplina no seu percurso.</p>:<div className="mt-5 divide-y divide-[#E8EDF2] border-y border-[#E8EDF2]">{studentDisciplines.map(d=><div key={d.id} className="flex items-center justify-between gap-4 py-3.5"><div className="flex min-w-0 items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0F5FF] text-[#0242D7]"><Icon name="book" className="h-4 w-4"/></span><p className="truncate text-sm font-semibold text-[#273547]">{d.discipline_name}</p></div><button type="button" onClick={()=>void removeDiscipline(d.id)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8A96A5] hover:text-[#B42318]" aria-label={"Remover "+d.discipline_name}><Icon name="close" className="h-4 w-4"/></button></div>)}</div>}</div>:<div className="py-6"><p className="text-sm font-semibold text-[#344154]">Escolha um curso antes de adicionar disciplinas.</p></div>}</div></section>
+  <section className="mt-10" aria-labelledby="completed-heading">
+   <div className="mb-4">
+    <p className="text-sm font-semibold text-[#0242D7]">Seu histórico</p>
+    <h2 id="completed-heading" className="mt-1 text-xl font-bold text-[#172334]">Concluídos</h2>
+    <p className="mt-1 text-sm text-[#718093]">Aqui ficam os tópicos que você já concluiu. Eles não ocupam espaço no seu Início.</p>
+   </div>
+   <div className="border-y border-[#DCE5F0]">
+    {completedTopics.length===0
+      ? <p className="py-5 text-sm text-[#7A8796]">Você ainda não concluiu nenhum tópico.</p>
+      : <div className="divide-y divide-[#E8EDF2]">
+        {completedTopics.map(item=><div key={item.id} className="flex items-center justify-between gap-4 py-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-[#273547]">{item.topic_name}</p>
+            <p className="mt-0.5 truncate text-xs text-[#7A8796]">{item.discipline_name}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF7EF] px-2.5 py-1 text-[11px] font-black text-[#166534]"><Icon name="check" className="h-3.5 w-3.5"/>Concluído</span>
+            {item.completed_at&&<p className="mt-1 text-[10px] text-[#8A96A5]">{new Date(item.completed_at).toLocaleDateString("pt-BR")}</p>}
+          </div>
+        </div>)}
+      </div>}
+   </div>
+  </section>
+
   <section className="mt-10" aria-labelledby="exams-heading"><div className="mb-4"><p className="text-sm font-semibold text-[#0242D7]">Próximas avaliações</p><h2 id="exams-heading" className="mt-1 text-xl font-bold text-[#172334]">Provas e avaliações</h2><p className="mt-1 text-sm text-[#718093]">Registre uma avaliação para que o Ensina-me possa considerar a data nas próximas recomendações de estudo.</p></div><div className="border-y border-[#DCE5F0]"><div className="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_150px_160px_auto]"><input type="search" list="profile-exam-discipline-options" value={newExamDiscipline} onChange={e=>setNewExamDiscipline(e.target.value)} placeholder={disciplineLoading?"Carregando disciplinas...":"Disciplina"} disabled={disciplineLoading||!profile?.course_id} className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"/><datalist id="profile-exam-discipline-options">{disciplineOptions.map(d=><option key={d.id} value={d.name}/>)}</datalist><input type="text" value={newExamType} onChange={e=>setNewExamType(e.target.value)} placeholder="Tipo" className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"/><input type="date" min={new Date().toISOString().slice(0,10)} value={newExamDate} onChange={e=>setNewExamDate(e.target.value)} className="min-h-11 w-full rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547]"/><button type="button" onClick={()=>void addExam()} disabled={!profile?.course_id||disciplineLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0242D7] px-4 text-sm font-bold text-white"><Icon name="plus" className="h-4 w-4"/>Registrar</button></div>{exams.length===0?<p className="border-t border-[#E4EAF1] py-5 text-sm text-[#7A8796]">Nenhuma avaliação futura registrada.</p>:<div className="border-t border-[#E4EAF1]">{exams.map(e=><div key={e.id} className="grid gap-3 border-b border-[#E8EDF2] py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_130px_auto] sm:items-center"><div><p className="text-sm font-bold text-[#273547]">{e.discipline}</p><p className="mt-0.5 text-xs text-[#7A8796]">{e.exam_type}</p></div><span className="text-sm font-semibold text-[#536276]">{e.exam_date?new Date(e.exam_date+"T12:00:00").toLocaleDateString("pt-BR"):"Data não definida"}</span><button type="button" onClick={()=>void removeExam(e.id)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8A96A5] hover:text-[#B42318]" aria-label={"Remover "+e.exam_type+" de "+e.discipline}><Icon name="close" className="h-4 w-4"/></button></div>)}</div>}</div></section>
   <section className="mt-10" aria-labelledby="study-heading"><div className="mb-4"><p className="text-sm font-semibold text-[#0242D7]">Sua rotina</p><h2 id="study-heading" className="mt-1 text-xl font-bold text-[#172334]">Meta diária de estudo</h2><p className="mt-1 text-sm text-[#718093]">Escolha um ritmo que faça sentido para sua rotina.</p></div><div className="border-y border-[#DCE5F0] py-5"><div className="flex flex-wrap gap-2">{[20,30,45,60,90,120].map(minutes=>{const active=profile?.daily_study_minutes===minutes;return <button key={minutes} type="button" onClick={()=>{setProfile(c=>c?{...c,daily_study_minutes:minutes}:c);void saveProfile({daily_study_minutes:minutes})}} className={active?"rounded-full bg-[#0242D7] px-4 py-2 text-sm font-bold text-white":"rounded-full border border-[#D3DEEA] bg-[#F8FAFC] px-4 py-2 text-sm font-semibold text-[#56667A]"}>{minutes>=60?Math.floor(minutes/60)+"h"+(minutes%60?" "+minutes%60+"min":""):minutes+" min"}</button>})}</div><div className="mt-5 flex items-center justify-between gap-4"><div className="flex items-center gap-2"><Icon name="clock" className="h-4 w-4 text-[#0242D7]"/><span className="text-sm font-bold text-[#273547]">Meta atual: {studyTimeLabel}</span></div><p className="text-xs text-[#7A8796]">Você pode mudar quando quiser.</p></div></div></section>
   <section className="mt-10 border-t border-[#DCE5F0] pt-7"><button type="button" onClick={()=>void handleLogout()} disabled={logoutPending} className="inline-flex items-center gap-2 text-sm font-bold text-[#667487] hover:text-[#0F172A]"><Icon name="logout" className="h-4 w-4"/>{logoutPending?"Saindo...":"Sair da conta"}</button></section>
