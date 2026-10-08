@@ -280,7 +280,7 @@ function AppDashboard() {
                       discipline_id: discipline.id,
                       topic_name: topic.name,
                       discipline_name: discipline.name,
-                      progress: topicsProgress.find((item) => item.topic_id === topic.id)?.progress ?? 0,
+                      progress: ((topicsResult.data ?? []) as DashboardTopic[]).find((item) => item.topic_id === topic.id)?.progress ?? 0,
                       last_position: position,
                       section_title: section?.title ?? null,
                       last_activity_at: row.last_learning_activity_at ?? row.updated_at,
