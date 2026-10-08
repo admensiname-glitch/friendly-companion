@@ -29,6 +29,7 @@ import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
+import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppProvaRouteImport } from './routes/app.prova'
 import { Route as AppRevisaoRouteImport } from './routes/app.revisao'
@@ -137,6 +138,11 @@ const AppEstudeAgoraRoute = AppEstudeAgoraRouteImport.update({
   path: '/estude-agora',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotificacoesRoute = AppNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -196,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/app/desempenho': typeof AppDesempenhoRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
+  '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/perfil': typeof AppPerfilRoute
   '/app/prova': typeof AppProvaRoute
   '/app/revisao': typeof AppRevisaoRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/app/desempenho'
     | '/app/disciplinas'
     | '/app/estude-agora'
+    | '/app/notificacoes'
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/app/desempenho'
     | '/app/disciplinas'
     | '/app/estude-agora'
+    | '/app/notificacoes'
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/app/desempenho'
     | '/app/disciplinas'
     | '/app/estude-agora'
+    | '/app/notificacoes'
     | '/app/perfil'
     | '/app/prova'
     | '/app/revisao'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEstudeAgoraRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/notificacoes': {
+      id: '/app/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/app/notificacoes'
+      preLoaderRoute: typeof AppNotificacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/perfil': {
       id: '/app/perfil'
       path: '/perfil'
@@ -621,6 +640,7 @@ interface AppRouteChildren {
   AppDesempenhoRoute: typeof AppDesempenhoRoute
   AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
   AppEstudeAgoraRoute: typeof AppEstudeAgoraRoute
+  AppNotificacoesRoute: typeof AppNotificacoesRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppProvaRoute: typeof AppProvaRoute
   AppRevisaoRoute: typeof AppRevisaoRoute
@@ -634,6 +654,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDesempenhoRoute: AppDesempenhoRoute,
   AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
   AppEstudeAgoraRoute: AppEstudeAgoraRoute,
+  AppNotificacoesRoute: AppNotificacoesRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppProvaRoute: AppProvaRoute,
   AppRevisaoRoute: AppRevisaoRoute,
