@@ -1762,7 +1762,9 @@ Deno.serve(async (req: Request) => {
       "- reason deve explicar em uma frase por que o vídeo encontrado ajuda exatamente nesta pergunta.\n\n" +
       "MICROAVALIAÇÃO ADAPTATIVA\n" +
       "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
+      "- Após uma explicação acadêmica substantiva, verifique automaticamente se o aluno compreendeu o que acabou de ser ensinado; o aluno não precisa pedir uma questão.\n" +
       "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
+      "- Não gere microavaliação para saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno explicitamente disser que não quer ser testado.\n" +
       "- A microavaliação NÃO é uma questão aleatória do banco/conteúdo do tópico. Ela é uma verificação da compreensão da CONVERSA ATUAL.\n" +
       "- Antes de criar a questão, identifique a dúvida, pergunta, conceito ou raciocínio que o aluno acabou de discutir com o Tutor.\n" +
       "- Quando o pedido atual for uma continuação como 'quero a pergunta', 'pode me testar', 'manda a questão' ou equivalente, NUNCA trate esse texto como o assunto da questão. Volte ao histórico e use a última dúvida substantiva do aluno e a explicação do Tutor imediatamente anterior.\n" +
@@ -1788,12 +1790,37 @@ Deno.serve(async (req: Request) => {
       "\n\nHISTÓRICO DA CONVERSA — FONTE PRIORITÁRIA PARA MICROAVALIAÇÃO:\n" +
       (conversationContext || "Nenhum histórico disponível.");
 
+    const normalizedUserMessage = userMessage
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "");
+
     const isContinuationPracticeRequest =
       /^(quero|pode|manda|me manda|envia|envie|pode mandar|quero ver|vamos|bora).{0,80}(pergunta|questao|questão|teste|quiz|exercicio|exercício)/i.test(userMessage.trim());
 
+    const explicitlyDeclinesPractice =
+      /(nao quero|não quero|sem pergunta|sem questao|sem questão|nao me teste|não me teste|nao precisa testar|não precisa testar)/i.test(
+        userMessage.trim(),
+      );
+
+    const isCasualOrNavigationMessage =
+      /^(oi|ola|olá|bom dia|boa tarde|boa noite|obrigado|obrigada|valeu|beleza|ok|tá bom|ta bom|entendi|certo|sim|não|nao|voltar|sair|menu|ajuda)$/i.test(
+        normalizedUserMessage.trim(),
+      );
+
+    const isSubstantiveAcademicTurn =
+      !isCasualOrNavigationMessage &&
+      !explicitlyDeclinesPractice &&
+      userMessage.trim().length >= 18;
+
+    const shouldGenerateComprehensionCheck =
+      learningAction === "practice" ||
+      isSubstantiveAcademicTurn ||
+      hasSubstantiveConversationHistory;
+
     const microAssessmentDirective =
-      learningAction === "practice" && (!isContinuationPracticeRequest || hasSubstantiveConversationHistory)
-        ? "MICROAVALIAÇÃO=GERAR: gere uma microavaliação adaptativa com exatamente 4 alternativas. O foco obrigatório é a última dúvida substantiva do ALUNO e a explicação do TUTOR na conversa."
+      shouldGenerateComprehensionCheck && (!explicitlyDeclinesPractice)
+        ? "MICROAVALIAÇÃO=GERAR: após ensinar ou esclarecer uma dúvida acadêmica substantiva, verifique automaticamente a compreensão do aluno com exatamente 1 questão de múltipla escolha e 4 alternativas. A questão deve avaliar o conceito/raciocínio que acabou de ser ensinado, não outro assunto. Se o aluno tiver pedido explicitamente uma questão/teste/exercício, gere-a da mesma forma. Não gere em saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno disser explicitamente que não quer ser testado."
         : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\"\", explanation=\"\", concept_tags=[] e correct_option_index=0.";
 
     const messages = [
