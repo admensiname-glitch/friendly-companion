@@ -1566,6 +1566,12 @@ Deno.serve(async (req: Request) => {
       .join("\n\n");
 
     const safeContext = truncateText(context, MAX_CONTEXT_CHARACTERS);
+    const conversationContext = recentHistory
+      .map((item) => `${item.role === "user" ? "ALUNO" : "TUTOR"}: ${item.content}`)
+      .join("\n");
+    const hasSubstantiveConversationHistory = recentHistory.some(
+      (item) => item.role === "user" && item.content.trim().length > 12,
+    );
 
     const systemPrompt =
       "Você é o Tutor acadêmico do Ensina-me: um professor particular digital, paciente, preciso e orientado à aprendizagem.\n\n" +
@@ -1602,14 +1608,19 @@ Deno.serve(async (req: Request) => {
       "MICROAVALIAÇÃO ADAPTATIVA\n" +
       "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
       "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
+      "- A microavaliação NÃO é uma questão aleatória do banco/conteúdo do tópico. Ela é uma verificação da compreensão da CONVERSA ATUAL.\n" +
+      "- Antes de criar a questão, identifique a dúvida, pergunta, conceito ou raciocínio que o aluno acabou de discutir com o Tutor.\n" +
+      "- Quando o pedido atual for uma continuação como 'quero a pergunta', 'pode me testar', 'manda a questão' ou equivalente, NUNCA trate esse texto como o assunto da questão. Volte ao histórico e use a última dúvida substantiva do aluno e a explicação do Tutor imediatamente anterior.\n" +
+      "- A pergunta deve verificar se o aluno realmente compreendeu aquela explicação específica: relação causal, mecanismo, distinção conceitual, aplicação ou raciocínio discutido na conversa.\n" +
+      "- O TÓPICO ACADÊMICO é apenas uma fronteira de segurança e fonte de precisão; ele NÃO deve substituir o foco da conversa.\n" +
+      "- Se não houver histórico substantivo suficiente para identificar o que o aluno queria entender, não invente um foco e não escolha uma questão genérica do tópico; mantenha microassessment.enabled=false.\n" +
       "- Faça exatamente uma questão de múltipla escolha com 4 alternativas.\n" +
-      "- A questão deve avaliar o conceito mais relevante do tópico e, quando houver, atacar uma dificuldade pendente do aluno.\n" +
-      "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +
+      "- A alternativa correta deve ser inequivocamente correta com base na explicação e no contexto acadêmico.\n" +
       "- Evite pistas óbvias, pegadinhas artificiais e ambiguidades.\n" +
       "- Quando uma microavaliação for gerada, NÃO repita a questão nem as alternativas no campo message; no texto, apenas convide o aluno a responder a questão apresentada abaixo.\n" +
       "- Explique o gabarito de forma curta e pedagógica.\n" +
       "- Ajuste a dificuldade: introductory para primeira compreensão, intermediate para aplicação, advanced para análise.\n" +
-      "- concept_tags deve conter de 1 a 3 conceitos avaliados.\n\n" +
+      "- concept_tags deve conter de 1 a 3 conceitos avaliados e deve refletir o conceito discutido na conversa, não um conceito aleatório do tópico.\n" +
       "PRECISÃO EM ALFABETIZAÇÃO E LINGUAGEM\n" +
       "- Não confunda consciência fonológica, consciência fonêmica, fonema, sílaba, rima, aliteração, grafema e relação grafofonêmica.\n" +
       "- Em exemplos de rima, confirme a semelhança sonora relevante na terminação; compartilhar apenas uma vogal final não basta.\n\n" +
@@ -1618,11 +1629,16 @@ Deno.serve(async (req: Request) => {
       "- Não infantilize o aluno.\n" +
       "- Use organização visual apenas quando melhorar a compreensão.\n\n" +
       "CONTEXTO ACADÊMICO DO TÓPICO:\n" +
-      safeContext;
+      safeContext +
+      "\n\nHISTÓRICO DA CONVERSA — FONTE PRIORITÁRIA PARA MICROAVALIAÇÃO:\n" +
+      (conversationContext || "Nenhum histórico disponível.");
+
+    const isContinuationPracticeRequest =
+      /^(quero|pode|manda|me manda|envia|envie|pode mandar|quero ver|vamos|bora).{0,80}(pergunta|questao|questão|teste|quiz|exercicio|exercício)/i.test(userMessage.trim());
 
     const microAssessmentDirective =
-      learningAction === "practice"
-        ? "MICROAVALIAÇÃO=GERAR: gere uma microavaliação adaptativa com exatamente 4 alternativas."
+      learningAction === "practice" && (!isContinuationPracticeRequest || hasSubstantiveConversationHistory)
+        ? "MICROAVALIAÇÃO=GERAR: gere uma microavaliação adaptativa com exatamente 4 alternativas. O foco obrigatório é a última dúvida substantiva do ALUNO e a explicação do TUTOR na conversa."
         : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\"\", explanation=\"\", concept_tags=[] e correct_option_index=0.";
 
     const messages = [
