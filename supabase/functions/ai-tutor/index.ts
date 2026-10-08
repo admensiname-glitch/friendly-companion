@@ -8,12 +8,15 @@ const corsHeaders = {
 };
 
 type Body = {
-  action?: "chat" | "answer_microassessment" | "start_formal_evaluation";
+  action?: "chat" | "answer_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
   topic_id?: string;
   conversation_id?: string | null;
   message?: string;
   micro_assessment_id?: string;
   selected_option_index?: number;
+  recovery_concept?: string;
+  recovery_question?: string;
+  recovery_explanation?: string;
 };
 
 type GeneratedMicroAssessment = {
@@ -841,7 +844,7 @@ async function generateAdaptiveMicroAssessment(args: {
     args.context;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch(
@@ -853,7 +856,7 @@ async function generateAdaptiveMicroAssessment(args: {
           Authorization: "Bearer " + args.apiKey,
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
+          model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: systemPrompt },
             {
@@ -864,9 +867,9 @@ async function generateAdaptiveMicroAssessment(args: {
                   : "Continue a sequência com uma explicação curta, um exemplo correto e uma nova questão de reforço.",
             },
           ],
-          max_completion_tokens: 1400,
+          max_completion_tokens: 900,
           temperature: 0.2,
-          reasoning_effort: "medium",
+          reasoning_effort: "low",
           include_reasoning: false,
           response_format: {
             type: "json_schema",
@@ -1296,6 +1299,150 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+
+    if (body.action === "generate_recovery_question") {
+      const topicId = body.topic_id?.trim();
+      const concept = body.recovery_concept?.trim();
+      const previousQuestion = body.recovery_question?.trim();
+      const explanation = body.recovery_explanation?.trim();
+
+      if (!topicId || !concept || !previousQuestion || !explanation) {
+        return json({ error: "Os dados do ponto fraco são obrigatórios." }, 400);
+      }
+
+      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+      if (!groqApiKey) {
+        return json({ error: "O Tutor ainda não foi configurado." }, 503);
+      }
+
+      const { data: topic, error: topicError } = await supabase
+        .from("topics")
+        .select("id, name, description")
+        .eq("id", topicId)
+        .eq("published", true)
+        .maybeSingle();
+
+      if (topicError || !topic) {
+        return json({ error: "Tópico não encontrado." }, 404);
+      }
+
+      const { data: material } = await supabase
+        .from("materials")
+        .select("id, title, introduction")
+        .eq("topic_id", topicId)
+        .eq("status", "published")
+        .maybeSingle();
+
+      const { data: sections } = material
+        ? await supabase
+            .from("material_sections")
+            .select("title, content, position")
+            .eq("material_id", material.id)
+            .order("position", { ascending: true })
+        : { data: [] };
+
+      const context = [
+        "TÓPICO: " + topic.name,
+        topic.description ? "DESCRIÇÃO: " + topic.description : "",
+        material
+          ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "")
+          : "",
+        ...(sections ?? []).map(
+          (section: { title: string; content: string }) =>
+            "SEÇÃO — " + section.title + "\n" + section.content,
+        ),
+      ].filter(Boolean).join("\n\n");
+
+      const generated = await generateAdaptiveMicroAssessment({
+        apiKey: groqApiKey,
+        topicName: topic.name,
+        topicDescription: topic.description,
+        context: truncateText(context, 9000),
+        previousQuestion,
+        previousTags: [concept],
+        wasCorrect: false,
+        nextDifficulty: "intermediate",
+        consecutiveCorrect: 0,
+        consecutiveIncorrect: 1,
+        weakestConcept: concept,
+        recentQuestions: [previousQuestion],
+      });
+
+      let recoveryQuestion = generated?.microassessment ?? null;
+      let recoveryMessage = generated?.message ?? "Vamos reconstruir este conceito e testar novamente.";
+
+      if (!recoveryQuestion) {
+        const { data: fallbackRows } = await supabase
+          .from("formal_evaluation_questions")
+          .select("question_text, options, correct_option_index, explanation, difficulty, concept_tags, attempt_id")
+          .contains("concept_tags", [concept])
+          .neq("question_text", previousQuestion)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (fallbackRows?.length) {
+          const { data: topicAttempts } = await supabase
+            .from("evaluation_attempts")
+            .select("id")
+            .eq("topic_id", topicId)
+            .limit(100);
+
+          const allowedAttempts = new Set((topicAttempts ?? []).map((row: { id: string }) => row.id));
+          const fallback = fallbackRows.find((row: { attempt_id: string }) => allowedAttempts.has(row.attempt_id));
+
+          if (fallback && Array.isArray(fallback.options) && fallback.options.length === 4) {
+            recoveryQuestion = {
+              question: fallback.question_text,
+              options: fallback.options as string[],
+              correct_option_index: fallback.correct_option_index,
+              explanation: fallback.explanation,
+              difficulty: fallback.difficulty,
+              concept_tags: Array.isArray(fallback.concept_tags) && fallback.concept_tags.length
+                ? fallback.concept_tags
+                : [concept],
+            };
+            recoveryMessage = "Vamos tentar este conceito por outro caminho. Leia com atenção e prove o que entendeu.";
+          }
+        }
+      }
+
+      if (!recoveryQuestion) {
+        return json({ error: "Não foi possível preparar uma questão de recuperação agora. Tente novamente em instantes." }, 503);
+      }
+
+      const { data: saved, error: insertError } = await supabase
+        .from("ai_micro_assessments")
+        .insert({
+          user_id: userData.user.id,
+          topic_id: topicId,
+          question_text: recoveryQuestion.question,
+          options: recoveryQuestion.options,
+          correct_option_index: recoveryQuestion.correct_option_index,
+          explanation: recoveryQuestion.explanation,
+          difficulty: recoveryQuestion.difficulty,
+          concept_tags: recoveryQuestion.concept_tags.length
+            ? recoveryQuestion.concept_tags
+            : [concept],
+        })
+        .select("id")
+        .single();
+
+      if (insertError || !saved) {
+        console.error("[Ensina-me] ai-tutor: erro ao criar questão de recuperação", insertError?.message ?? "resultado vazio");
+        return json({ error: "Não foi possível preparar a questão de recuperação." }, 500);
+      }
+
+      return json({
+        assessment_id: saved.id,
+        message: recoveryMessage,
+        question: recoveryQuestion.question,
+        options: recoveryQuestion.options,
+        difficulty: recoveryQuestion.difficulty,
+        concept_tags: recoveryQuestion.concept_tags.length
+          ? recoveryQuestion.concept_tags
+          : [concept],
+      });
+    }
 
     if (body.action === "answer_microassessment") {
       const assessmentId = body.micro_assessment_id?.trim();
