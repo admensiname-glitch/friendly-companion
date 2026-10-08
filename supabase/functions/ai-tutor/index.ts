@@ -1972,7 +1972,7 @@ Deno.serve(async (req: Request) => {
       clearTimeout(timeout);
     }
 
-    const payload = await groqResponse.json();
+    let payload = await groqResponse.json();
 
     if (!groqResponse.ok) {
       const providerErrorRecord =
@@ -1992,20 +1992,82 @@ Deno.serve(async (req: Request) => {
         }),
       );
 
-      const userFacingError =
-        groqResponse.status === 401 || groqResponse.status === 403
-          ? "A credencial do Tutor não foi aceita pelo provedor de IA. Verifique a configuração do GROQ_API_KEY no Supabase."
-          : groqResponse.status === 429
-            ? "O limite gratuito do provedor de IA foi atingido temporariamente. Tente novamente mais tarde."
-            : "O Tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+      // Alguns modelos/provedores podem recusar o JSON Schema estrito mesmo
+      // aceitando a mesma resposta em JSON mode. Tente uma segunda vez para
+      // não transformar uma falha de formatação do provedor em um erro do Tutor.
+      if (groqResponse.status >= 400 && groqResponse.status < 500) {
+        try {
+          const fallbackController = new AbortController();
+          const fallbackTimeout = setTimeout(() => fallbackController.abort(), 30000);
 
-      return json(
-        {
-          error: userFacingError,
-          conversation_id: conversationId,
-        },
-        502,
-      );
+          try {
+            const fallbackResponse = await fetch(
+              "https://api.groq.com/openai/v1/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + groqApiKey,
+                },
+                body: JSON.stringify({
+                  model: "openai/gpt-oss-20b",
+                  messages,
+                  max_completion_tokens: 1800,
+                  temperature: 0.2,
+                  reasoning_effort: "medium",
+                  include_reasoning: false,
+                  response_format: { type: "json_object" },
+                }),
+                signal: fallbackController.signal,
+              },
+            );
+
+            const fallbackPayload = await fallbackResponse.json();
+
+            if (fallbackResponse.ok) {
+              payload = fallbackPayload;
+            } else {
+              console.error(
+                "[Ensina-me] ai-tutor: fallback JSON também falhou",
+                JSON.stringify({
+                  status: fallbackResponse.status,
+                  request_id: fallbackResponse.headers.get("x-request-id"),
+                  message:
+                    isRecord(fallbackPayload) &&
+                    isRecord(fallbackPayload.error) &&
+                    typeof fallbackPayload.error.message === "string"
+                      ? fallbackPayload.error.message
+                      : "erro não especificado",
+                }),
+              );
+            }
+          } finally {
+            clearTimeout(fallbackTimeout);
+          }
+        } catch (fallbackError) {
+          console.error(
+            "[Ensina-me] ai-tutor: exceção no fallback JSON",
+            fallbackError instanceof Error ? fallbackError.message : "unknown error",
+          );
+        }
+      }
+
+      if (!groqResponse.ok && !isRecord(payload?.choices)) {
+        const userFacingError =
+          groqResponse.status === 401 || groqResponse.status === 403
+            ? "A credencial do Tutor não foi aceita pelo provedor de IA. Verifique a configuração do GROQ_API_KEY no Supabase."
+            : groqResponse.status === 429
+              ? "O limite gratuito do provedor de IA foi atingido temporariamente. Tente novamente mais tarde."
+              : "O Tutor de IA não conseguiu gerar a resposta. Tente novamente.";
+
+        return json(
+          {
+            error: userFacingError,
+            conversation_id: conversationId,
+          },
+          502,
+        );
+      }
     }
 
     const tutorResult = extractTutorResult(payload);
