@@ -2524,6 +2524,28 @@ function TopicDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
+  const saveSectionPosition = useCallback(
+    async (position: number) => {
+      const { error: positionError } = await supabase.rpc("save_student_topic_position", {
+        _topic_id: topicId,
+        _position: Math.max(0, position),
+      });
+      if (positionError) {
+        console.error("[Ensina-me] Erro ao salvar ponto de retomada:", positionError);
+      }
+    },
+    [topicId],
+  );
+
+  const goToSection = useCallback(
+    (position: number) => {
+      const nextPosition = Math.max(0, Math.min(position, Math.max(0, sections.length - 1)));
+      setActiveSectionIndex(nextPosition);
+      void saveSectionPosition(nextPosition);
+    },
+    [saveSectionPosition, sections.length],
+  );
+
   const refreshDifficulties = useCallback(async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
@@ -2616,7 +2638,7 @@ function TopicDetailPage() {
       }
     });
 
-    setActiveSectionIndex(bestIndex);
+    goToSection(bestIndex);
 
     window.requestAnimationFrame(() => {
       document.getElementById("estudo-guiado")?.scrollIntoView({
@@ -2624,7 +2646,7 @@ function TopicDetailPage() {
         block: "start",
       });
     });
-  }, [completedSectionIds, sections]);
+  }, [completedSectionIds, goToSection, sections]);
 
   const markSectionComplete = useCallback(
     async (sectionId: string) => {
@@ -2656,11 +2678,9 @@ function TopicDetailPage() {
         });
       }
 
-      setActiveSectionIndex((current) =>
-        Math.min(current + 1, Math.max(0, sections.length - 1)),
-      );
+      goToSection(Math.min(activeSectionIndex + 1, Math.max(0, sections.length - 1)));
     },
-    [completedSectionIds, sections.length],
+    [activeSectionIndex, completedSectionIds, goToSection, sections.length],
   );
 
   useEffect(() => {
@@ -2826,12 +2846,27 @@ function TopicDetailPage() {
           (section) => !completedIds.includes(section.id),
         );
 
+        const { data: topicProgressData } = await supabase
+          .from("student_topic_progress")
+          .select("last_position,status")
+          .eq("user_id", userId)
+          .eq("topic_id", topicId)
+          .maybeSingle();
+
+        const savedPosition =
+          typeof topicProgressData?.last_position === "number"
+            ? Math.max(0, Math.min(topicProgressData.last_position, Math.max(0, loadedSections.length - 1)))
+            : null;
+
+        const resumePosition =
+          savedPosition !== null
+            ? savedPosition
+            : firstIncompleteIndex >= 0
+              ? firstIncompleteIndex
+              : Math.max(0, loadedSections.length - 1);
+
         setCompletedSectionIds(completedIds);
-        setActiveSectionIndex(
-          firstIncompleteIndex >= 0
-            ? firstIncompleteIndex
-            : Math.max(0, loadedSections.length - 1),
-        );
+        setActiveSectionIndex(resumePosition);
         setContentProgress({
           completed: completedIds.length,
           total: loadedSections.length,
@@ -3190,7 +3225,7 @@ function TopicDetailPage() {
                         <button
                           key={section.id}
                           type="button"
-                          onClick={() => setActiveSectionIndex(sectionIndex)}
+                          onClick={() => goToSection(sectionIndex)}
                           aria-current={isActive ? "step" : undefined}
                           className={`flex min-w-[190px] items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors lg:w-full lg:min-w-0 ${
                             isActive
@@ -3233,14 +3268,8 @@ function TopicDetailPage() {
                       total={sections.length}
                       completed={completedSectionIds.includes(sections[activeSectionIndex].id)}
                       onComplete={() => void markSectionComplete(sections[activeSectionIndex]!.id)}
-                      onPrevious={() =>
-                        setActiveSectionIndex((current) => Math.max(0, current - 1))
-                      }
-                      onNext={() =>
-                        setActiveSectionIndex((current) =>
-                          Math.min(current + 1, sections.length - 1),
-                        )
-                      }
+                      onPrevious={() => goToSection(activeSectionIndex - 1)}
+                      onNext={() => goToSection(activeSectionIndex + 1)}
                     />
                   )}
 
