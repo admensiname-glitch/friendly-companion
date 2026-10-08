@@ -68,12 +68,10 @@ async function generateFormalEvaluationQuestions(args: {
   previousAttempt: Array<{ question_text: string; options: string[] }>;
   seed: string;
   temperature?: number;
-}): Promise<GeneratedFormalEvaluationQuestion[] | null> {
+}): Promise<{ questions: GeneratedFormalEvaluationQuestion[] | null; rateLimited: boolean }> {
   const previousQuestions = args.previousAttempt
-    .map((item, index) =>
-      (index + 1) + ". " + item.question_text +
-      "\nAlternativas: " + item.options.join(" | ")
-    )
+    .slice(0, 20)
+    .map((item, index) => (index + 1) + ". " + item.question_text)
     .join("\n");
 
   const prompt =
@@ -123,9 +121,9 @@ async function generateFormalEvaluationQuestions(args: {
             { role: "system", content: prompt },
             { role: "user", content: "Gere agora as 10 questões da nova tentativa." },
           ],
-          max_completion_tokens: 3600,
+          max_completion_tokens: 2600,
           temperature: args.temperature ?? 0.35,
-          reasoning_effort: "medium",
+          reasoning_effort: "low",
           include_reasoning: false,
           response_format: {
             type: "json_schema",
@@ -191,19 +189,22 @@ async function generateFormalEvaluationQuestions(args: {
     const payload = await response.json();
     if (!response.ok) {
       console.warn("[Ensina-me] ai-tutor: falha ao gerar avaliação formal", response.status);
-      return null;
+      return {
+        questions: null,
+        rateLimited: response.status === 429,
+      };
     }
 
     const raw = extractOutputText(payload);
-    if (!raw) return null;
+    if (!raw) return { questions: null, rateLimited: false };
 
     const parsed = JSON.parse(raw) as { questions?: unknown };
-    if (!Array.isArray(parsed.questions) || parsed.questions.length !== 10) return null;
+    if (!Array.isArray(parsed.questions) || parsed.questions.length !== 10) return { questions: null, rateLimited: false };
 
     const questions: GeneratedFormalEvaluationQuestion[] = [];
 
     for (const item of parsed.questions) {
-      if (!isRecord(item)) return null;
+      if (!isRecord(item)) return { questions: null, rateLimited: false };
       const questionText =
         typeof item.question_text === "string" ? item.question_text.trim() : "";
       const options = Array.isArray(item.options)
@@ -238,7 +239,7 @@ async function generateFormalEvaluationQuestions(args: {
           difficulty !== "advanced") ||
         tags.length === 0
       ) {
-        return null;
+        return { questions: null, rateLimited: false };
       }
 
       questions.push({
@@ -252,7 +253,7 @@ async function generateFormalEvaluationQuestions(args: {
     }
 
     if (!uniqueNormalized(questions.map((question) => question.question_text))) {
-      return null;
+      return { questions: null, rateLimited: false };
     }
 
     if (args.previousAttempt.length > 0) {
@@ -279,17 +280,17 @@ async function generateFormalEvaluationQuestions(args: {
           ),
         )
       ) {
-        return null;
+        return { questions: null, rateLimited: false };
       }
     }
 
-    return questions;
+    return { questions, rateLimited: false };
   } catch (error) {
     console.warn(
       "[Ensina-me] ai-tutor: erro ao gerar avaliação formal",
       error instanceof Error ? error.message : "unknown error",
     );
-    return null;
+    return { questions: null, rateLimited: false };
   } finally {
     clearTimeout(timeout);
   }
@@ -1125,23 +1126,37 @@ Deno.serve(async (req: Request) => {
       // Não expor ao aluno o mecanismo de tentativa. O Tutor simplesmente
       // continua gerando até obter uma avaliação válida e inédita.
       let questions: GeneratedFormalEvaluationQuestion[] | null = null;
-      const temperatures = [0.35, 0.45, 0.55, 0.65, 0.75, 0.85];
+      const temperatures = [0.35, 0.5, 0.65];
+      let rateLimited = false;
 
       for (let attempt = 0; attempt < temperatures.length && !questions; attempt += 1) {
-        questions = await generateFormalEvaluationQuestions({
+        const generated = await generateFormalEvaluationQuestions({
           ...evaluationGenerationArgs,
+          context: truncateText(evaluationGenerationArgs.context, 10000),
           seed: crypto.randomUUID(),
           temperature: temperatures[attempt],
         });
+
+        if (generated.rateLimited) {
+          rateLimited = true;
+          break;
+        }
+
+        questions = generated.questions;
       }
 
       if (!questions) {
         console.error(
-          "[Ensina-me] ai-tutor: falha interna ao gerar avaliação inédita após múltiplas variações",
+          "[Ensina-me] ai-tutor: falha ao gerar avaliação formal",
+          rateLimited ? "rate_limit" : "validation_or_provider_error",
         );
         return json(
-          { error: "Não foi possível gerar a avaliação agora. Tente novamente." },
-          500,
+          {
+            error: rateLimited
+              ? "O serviço de avaliação está temporariamente ocupado. Tente novamente em alguns segundos."
+              : "Não foi possível gerar a avaliação agora. Tente novamente.",
+          },
+          rateLimited ? 429 : 500,
         );
       }
 
