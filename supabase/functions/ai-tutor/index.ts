@@ -2052,7 +2052,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      if (!groqResponse.ok && !isRecord(payload?.choices)) {
+      if (!groqResponse.ok && !(isRecord(payload) && Array.isArray(payload.choices))) {
         const userFacingError =
           groqResponse.status === 401 || groqResponse.status === 403
             ? "A credencial do Tutor não foi aceita pelo provedor de IA. Verifique a configuração do GROQ_API_KEY no Supabase."
