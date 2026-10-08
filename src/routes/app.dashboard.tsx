@@ -132,8 +132,8 @@ function AppDashboard() {
   const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
   const [nextExam, setNextExam] = useState<StudentExam | null>(null);
   const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
-  const [focusedDisciplineId, setFocusedDisciplineId] = useState<string | null>(null);
-  const [focusedDisciplineName, setFocusedDisciplineName] = useState<string | null>(null);
+  const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
+  const [focusedDisciplineNames, setFocusedDisciplineNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ function AppDashboard() {
           supabase.rpc("get_student_dashboard_topics"),
           supabase.rpc("get_student_study_recommendation"),
           supabase.rpc("get_student_today_study"),
-          supabase.rpc("get_student_focus_discipline"),
+          supabase.rpc("get_student_focus_disciplines"),
           supabase
             .from("student_learning_signals")
             .select("topic_id, concept, severity, occurrences, correct_count, status, last_seen")
@@ -186,10 +186,12 @@ function AppDashboard() {
       if (!todayResult.error && todayResult.data) {
         setTodayStudy(todayResult.data as unknown as TodayStudy);
       }
-      if (!focusResult.error && focusResult.data && typeof focusResult.data === "object" && "discipline_id" in focusResult.data) {
-        const focus = focusResult.data as { discipline_id: string; discipline_name?: string };
-        setFocusedDisciplineId(focus.discipline_id);
-        setFocusedDisciplineName(focus.discipline_name ?? null);
+      if (!focusResult.error && Array.isArray(focusResult.data)) {
+        const focuses = focusResult.data as Array<{ discipline_id: string; discipline_name?: string }>;
+        setFocusedDisciplineIds(focuses.map((focus) => focus.discipline_id));
+        setFocusedDisciplineNames(
+          focuses.map((focus) => focus.discipline_name).filter((name): name is string => Boolean(name)),
+        );
       }
       if (!learningSignalsResult.error && learningSignalsResult.data) {
         setLearningSignals(learningSignalsResult.data as LearningSignal[]);
@@ -216,8 +218,8 @@ function AppDashboard() {
     [profile?.display_name, user],
   );
 
-  const focusedTopics = focusedDisciplineId
-    ? topicsProgress.filter((topic) => topic.discipline_id === focusedDisciplineId)
+  const focusedTopics = focusedDisciplineIds.length
+    ? topicsProgress.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
     : topicsProgress;
 
   const focusedSignals = focusedDisciplineId
@@ -225,7 +227,7 @@ function AppDashboard() {
     : learningSignals;
 
   const focusedRecommendation =
-    focusedDisciplineId && recommendation?.discipline_id !== focusedDisciplineId
+    focusedDisciplineIds.length > 0 && (!recommendation?.discipline_id || !focusedDisciplineIds.includes(recommendation.discipline_id))
       ? (() => {
           const candidates = focusedTopics
             .filter((topic) => topic.progress < 100 || topic.review_count > 0)
@@ -344,9 +346,9 @@ function AppDashboard() {
             Olá, {firstName}! 👋
           </h1>
           <p className="mt-1 text-sm leading-6 text-[#718096] dark:text-[#9EADBD]">
-            {focusedDisciplineName
-              ? <>Foco atual: <strong className="text-[#172334] dark:text-[#E7EDF5]">{focusedDisciplineName}</strong>. O Ensina-me vai conduzir seu próximo passo dentro dela.</>
-              : "Escolha uma disciplina para focar seu estudo. O Ensina-me adapta seu próximo passo a essa escolha."}
+            {focusedDisciplineNames.length
+              ? <>Focos atuais: <strong className="text-[#172334] dark:text-[#E7EDF5]">{focusedDisciplineNames.slice(0, 3).join(", ")}{focusedDisciplineNames.length > 3 ? " +" + (focusedDisciplineNames.length - 3) : ""}</strong>. O Ensina-me vai conduzir seus próximos passos dentro delas.</>
+              : "Escolha quantas disciplinas quiser para focar seu estudo. O Ensina-me adapta seus próximos passos a essas escolhas."}
           </p>
         </div>
         <Link to="/app/desempenho" className="app-icon-button hidden sm:inline-flex" aria-label="Ver meu desempenho">
@@ -358,10 +360,14 @@ function AppDashboard() {
       <section className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-[#DCE5F0] bg-white px-4 py-3 dark:border-[#2B3A4F] dark:bg-[#111B2A]">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7A8796]">Foco de estudo</p>
-          <p className="mt-0.5 truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{focusedDisciplineName ?? "Nenhuma disciplina escolhida"}</p>
+          <p className="mt-0.5 truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">
+            {focusedDisciplineNames.length
+              ? focusedDisciplineNames.slice(0, 2).join(", ") + (focusedDisciplineNames.length > 2 ? " +" + (focusedDisciplineNames.length - 2) : "")
+              : "Nenhuma disciplina escolhida"}
+          </p>
         </div>
         <Link to="/app/disciplinas" className="shrink-0 rounded-xl bg-[#EEF4FF] px-3.5 py-2 text-xs font-black text-[#0242D7] dark:bg-[#1B3156] dark:text-[#8DB8FF]">
-          {focusedDisciplineName ? "Trocar disciplina" : "Escolher disciplina"}
+          {focusedDisciplineNames.length ? "Gerenciar focos" : "Escolher disciplinas"}
         </Link>
       </section>
 
