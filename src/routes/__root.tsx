@@ -9,6 +9,8 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 import { supabase } from "@/integrations/supabase/client";
 import appCss from "../styles.css?url";
@@ -134,7 +136,7 @@ function RootComponent() {
     });
   }, []);
 
-  // Keep TanStack Router in sync with Supabase auth state.
+  // Register native Android FCM notifications only inside the installed app.\n  useEffect(() => {\n    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;\n    let active = true;\n    const listeners = [\n      PushNotifications.addListener("registration", async (token) => {\n        if (!active || !token.value) return;\n        const { error } = await supabase.functions.invoke("push-notifications", {\n          body: { action: "native-register", token: token.value },\n        });\n        if (error) console.warn("Ensina-me: não foi possível registrar o token FCM.", error.message);\n      }),\n      PushNotifications.addListener("registrationError", (error) => {\n        console.warn("Ensina-me: registro FCM falhou.", error);\n      }),\n      PushNotifications.addListener("pushNotificationReceived", (notification) => {\n        console.info("Ensina-me: notificação recebida.", notification.title);\n      }),\n      PushNotifications.addListener("pushNotificationActionPerformed", (action) => {\n        const target = action.notification.data?.url;\n        if (typeof target === "string" && target.startsWith("/")) {\n          window.location.assign(target);\n        }\n      }),\n    ];\n    void (async () => {\n      try {\n        let permission = await PushNotifications.checkPermissions();\n        if (permission.receive !== "granted") permission = await PushNotifications.requestPermissions();\n        if (active && permission.receive === "granted") await PushNotifications.register();\n      } catch (error) {\n        console.warn("Ensina-me: notificações nativas indisponíveis.", error);\n      }\n    })();\n    return () => {\n      active = false;\n      void Promise.all(listeners.map((listener) => listener.then((handle) => handle.remove())));\n    };\n  }, []);\n\n  // Keep TanStack Router in sync with Supabase auth state.
   // Without this, the router caches the initial (null) session and
   // protected route guards never re-check after login.
   useEffect(() => {
