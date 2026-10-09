@@ -16,6 +16,7 @@ on:
       - "src/router.tsx"
       - "src/styles.css"
       - "src/routes/__root.tsx"
+      - "src/routes/app.notificacoes.tsx"
       - "package.json"
 
 jobs:
