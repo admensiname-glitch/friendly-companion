@@ -100,6 +100,13 @@ function AppLayout() {
       const { data, error } = sessionResult;
       if (!active) return;
 
+      // A slow network must not be treated as a missing authenticated session.
+      if (error instanceof Error && error.message === "AUTH_CHECK_TIMEOUT") {
+        setAuthError("Não foi possível verificar sua sessão agora. Verifique sua conexão e tente novamente.");
+        setAuthChecking(false);
+        return;
+      }
+
       if (error || !data.session) {
         await navigate({ to: "/login", replace: true });
         return;
