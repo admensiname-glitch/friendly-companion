@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 import { supabase } from "@/integrations/supabase/client";
 
 type Preferences = { push_enabled: boolean; study_reminders: boolean; review_reminders: boolean; learning_recommendations: boolean; announcements: boolean };
@@ -15,6 +17,7 @@ function NotificationsPage() {
   const [kind, setKind] = useState<"success" | "error" | "info">("info");
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [deviceSubscribed, setDeviceSubscribed] = useState(false);
+  const isNativeAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +45,18 @@ function NotificationsPage() {
   async function enablePush() {
     setBusy(true); setMessage("");
     try {
+      if (isNativeAndroid) {
+        let permission = await PushNotifications.checkPermissions();
+        if (permission.receive !== "granted") permission = await PushNotifications.requestPermissions();
+        if (permission.receive !== "granted") throw new Error("Permissão de notificações não concedida nas configurações do Android.");
+        await PushNotifications.register();
+        const { error } = await supabase.functions.invoke("push-notifications", { body: { action: "preferences", enabled: true } });
+        if (error) throw new Error("Não foi possível salvar a preferência de notificações no servidor.");
+        setPrefs(p => ({ ...p, push_enabled: true }));
+        setDeviceSubscribed(true);
+        notify("Notificações nativas ativadas neste Android. Você já pode enviar uma notificação de teste.", "success");
+        return;
+      }
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
         notify("Este navegador não oferece suporte a notificações push. Tente no Chrome atualizado ou instale o Ensina-me na Tela de Início.", "error"); return;
       }
@@ -111,7 +126,7 @@ function NotificationsPage() {
   async function sendTest() {
     setBusy(true); setMessage("");
     try {
-      const { data, error } = await supabase.functions.invoke("push-notifications", { body: { action: "test" } });
+      const { data, error } = await supabase.functions.invoke("push-notifications", { body: { action: isNativeAndroid ? "native-test" : "test" } });
       if (error) throw new Error("O servidor não conseguiu concluir o teste. Confira a configuração Web Push.");
       if (!data?.ok) throw new Error(data?.error || "Não foi possível enviar o teste.");
       notify("Teste enviado! Confira as notificações do seu dispositivo.", "success");
@@ -124,7 +139,7 @@ function NotificationsPage() {
       <Link to="/app/perfil" className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#526277]">← Voltar ao perfil</Link>
       <header className="mt-5 flex items-start gap-3">
         <img src="/ensina-me-icon.svg" alt="Ensina-me" className="h-12 w-12 rounded-xl" />
-        <div><p className="text-sm font-bold text-[#0242D7]">Ensina-me</p><h1 className="mt-1 text-2xl font-black">Notificações</h1><p className="mt-2 text-sm leading-6 text-[#667487]">Receba lembretes de estudo e revisão, mesmo quando não estiver com o site aberto, se o navegador oferecer suporte a Web Push.</p></div>
+        <div><p className="text-sm font-bold text-[#0242D7]">Ensina-me</p><h1 className="mt-1 text-2xl font-black">Notificações</h1><p className="mt-2 text-sm leading-6 text-[#667487]">{isNativeAndroid ? "Receba lembretes de estudo e revisão por notificações nativas do Android." : "Receba lembretes de estudo e revisão, mesmo quando não estiver com o site aberto, se o navegador oferecer suporte a Web Push."}</p></div>
       </header>
       {message && <div role="status" className={"mt-5 rounded-xl border p-3 text-sm " + (kind === "error" ? "border-red-200 bg-red-50 text-red-800" : kind === "success" ? "border-green-200 bg-green-50 text-green-800" : "border-blue-200 bg-blue-50 text-blue-900")}>{message}</div>}
       {loading ? <p className="mt-8 text-sm text-[#667487]">Carregando suas preferências…</p> : <div className="mt-7 space-y-5">
