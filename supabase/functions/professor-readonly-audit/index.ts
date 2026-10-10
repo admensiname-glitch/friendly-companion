@@ -134,7 +134,7 @@ Deno.serve(async req => {
   try {
     const table = kind === "question" ? "exercise_questions" : "topics";
     const idField = "id";
-    let ids: string[] = Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, limit) : [];
+    const ids: string[] = Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, limit) : [];
     if (ids.length === 0) {
       const { data: existing, error: existingErr } = await db.from("professor_audit_findings").select("target_id").eq("audit_kind", kind).eq("auditor_version", VERSION);
       if (existingErr) throw existingErr;
