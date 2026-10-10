@@ -98,7 +98,7 @@ Deno.serve(async req => {
       if (claimError) throw claimError;
       if (!claimed) return out({ error: "request already claimed or no longer pending" }, 409);
       try {
-        const result = await native(r.tool_name);
+        const result = await native(r.tool_name.replace(/^native:/, ""));
         const result_hash = await hash(result);
         const { error: finishError } = await db.from("agent_tool_requests").update({ status: "completed", result, evidence: [...(r.evidence ?? []), { result_hash, completed_at: new Date().toISOString() }], updated_at: new Date().toISOString() }).eq("id", r.id).eq("status", "running");
         if (finishError) throw finishError;
