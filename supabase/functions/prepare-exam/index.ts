@@ -65,6 +65,8 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     generated=[...generatedObj,...generatedEssay];
    }
    if(generatedObj.length<needObj||generatedEssay.length<needEssay)return json({error:"Não foi possível completar a composição híbrida da prova. As questões discursivas são obrigatórias para esta quantidade.",retryable:true},503);
+   // Never persist extra generated questions beyond the exact deficits; otherwise random selection can break the promised composition.
+   generated=[...generatedObj.slice(0,needObj),...generatedEssay.slice(0,needEssay)];
   }
   const admin=createClient(url,service);
   const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
