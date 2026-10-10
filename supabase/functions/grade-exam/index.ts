@@ -30,7 +30,7 @@ Deno.serve(async(req)=>{
   if(!answerRows.length)return json({graded:0});
 
   const qids=answerRows.map((a:any)=>a.attempt_question_id);
-  const {data:aq}=await admin.from("exam_attempt_questions").select("id,question_id,position").in("id",qids).order("position");
+  const {data:aq}=await admin.from("exam_attempt_questions").select("id,question_id,position,minimum_lines").in("id",qids).order("position");
   const questionIds=(aq??[]).map((x:any)=>x.question_id);
   const {data:questions}=await admin.from("exercise_questions").select("id,question_text,feedback_hint,difficulty_tag,exercise_id,exercises!inner(topic_id)").in("id",questionIds);
   const topicIds=[...new Set((questions??[]).map((q:any)=>q.exercises?.topic_id).filter(Boolean))];
@@ -48,8 +48,11 @@ Deno.serve(async(req)=>{
    const aqRow=(aq??[]).find((x:any)=>x.id===a.attempt_question_id);
    const q=(questions??[]).find((x:any)=>x.id===aqRow?.question_id);
    const tid=q?.exercises?.topic_id;
-   return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines:expectedLines(q?.question_text??"")};
+   const minimum_lines=Number.isInteger(aqRow?.minimum_lines)&&aqRow.minimum_lines>=1&&aqRow.minimum_lines<=8?aqRow.minimum_lines:expectedLines(q?.question_text??""); const actual_lines=String(a.response_text??"").split(/\r?\n/).map((line:string)=>line.trim()).filter(Boolean).length; return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines,actual_lines};
   }).filter((x:any)=>x.question&&x.response);
+
+  const shortAnswers=items.filter((x:any)=>x.actual_lines<x.minimum_lines);
+  if(shortAnswers.length)return json({error:"MINIMUM_LINES_REQUIRED",message:"Uma ou mais respostas discursivas não atingem o mínimo de linhas exigido. Complete as respostas e tente novamente.",short_answers:shortAnswers.map((x:any)=>({question_id:x.question_id,answer_id:x.id,minimum_lines:x.minimum_lines,actual_lines:x.actual_lines}))},422);
 
   if(!key)return json({error:"A correção discursiva ainda não está configurada."},503);
 
@@ -77,7 +80,7 @@ MATERIAL:
 ${contextParts.join("\n\n").slice(0,12000)}
 
 RESPOSTAS:
-${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
+${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nLINHAS MÍNIMAS="+x.minimum_lines+"\nLINHAS ENVIADAS="+x.actual_lines+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
 
   const resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{
    method:"POST",
