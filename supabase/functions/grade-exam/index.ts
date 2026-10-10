@@ -43,8 +43,13 @@ Deno.serve(async(req)=>{
 
   const contextParts:string[]=[];
   for(const tid of topicIds){
-   const {data:m}=await admin.from("materials").select("title,introduction").eq("topic_id",tid).eq("status","published").maybeSingle();
-   if(m)contextParts.push("TÓPICO: "+topicMap.get(tid)?.name+"\n"+(topicMap.get(tid)?.description??"")+"\n"+m.title+"\n"+(m.introduction??""));
+   const {data:m}=await admin.from("materials").select("id,title,introduction").eq("topic_id",tid).eq("status","published").maybeSingle();
+   if(m){
+    const {data:sections,error:sectionsError}=await admin.from("material_sections").select("title,content,position").eq("material_id",m.id).order("position").limit(12);
+    if(sectionsError)return json({error:"Não foi possível carregar o material acadêmico completo para a correção."},500);
+    const sectionText=(sections??[]).map((s:any)=>String(s.title??"")+"\n"+String(s.content??"")).join("\n\n").slice(0,7000);
+    contextParts.push("TÓPICO: "+topicMap.get(tid)?.name+"\n"+(topicMap.get(tid)?.description??"")+"\nMATERIAL: "+m.title+"\n"+(m.introduction??"")+"\nSEÇÕES DO MATERIAL:\n"+sectionText);
+   }
   }
 
   const expectedLines=(question:string)=>{const q=question.toLowerCase();if(/\b(compare|diferenc|relacione|distinga|contraste)\b/.test(q))return 4;if(/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/.test(q))return 5;if(/\b(explique|descreva|como funciona|por que|por quê)\b/.test(q))return 3;return 2;};
