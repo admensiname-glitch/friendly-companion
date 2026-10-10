@@ -139,10 +139,14 @@ Deno.serve(async req => {
       const { data: existing, error: existingErr } = await db.from("professor_audit_findings").select("target_id").eq("audit_kind", kind).eq("auditor_version", VERSION);
       if (existingErr) throw existingErr;
       const audited = new Set((existing ?? []).map((x: any) => x.target_id));
-      let q = db.from(table).select("id").order("id").limit(100);
-      const { data, error } = await q;
-      if (error) throw error;
-      ids = (data ?? []).map((x: any) => x[idField]).filter((x: string) => !audited.has(x)).slice(0, limit);
+      // Walk bounded pages until enough unaudited targets are found; do not stall after the first 100.
+      for (let offset = 0; offset < 10000 && ids.length < limit; offset += 100) {
+        const { data, error } = await db.from(table).select("id").order("id").range(offset, offset + 99);
+        if (error) throw error;
+        const page = data ?? [];
+        ids.push(...page.map((x: any) => x[idField]).filter((x: string) => !audited.has(x)).slice(0, limit - ids.length));
+        if (page.length < 100) break;
+      }
     }
     if (ids.length === 0) return out({ ok: true, kind, processed: [], message: "No unaudited targets found for this batch", auditor_version: VERSION });
     const processed = [];
