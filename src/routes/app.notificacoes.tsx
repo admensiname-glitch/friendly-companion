@@ -148,7 +148,7 @@ function NotificationsPage() {
           <p className="mt-2 text-sm leading-6 text-[#667487]">Você controla a autorização. O navegador também pode pedir permissão. Se você bloquear o acesso nas configurações do dispositivo, o Ensina-me não conseguirá mostrar alertas.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {!deviceSubscribed ? (
-              <button disabled={busy || configured === false} onClick={() => void enablePush()} className="min-h-11 rounded-xl bg-[#0242D7] px-4 text-sm font-bold text-white disabled:opacity-50">
+              <button disabled={busy || (!isNativeAndroid && configured === false)} onClick={() => void enablePush()} className="min-h-11 rounded-xl bg-[#0242D7] px-4 text-sm font-bold text-white disabled:opacity-50">
                 {busy ? "Aguarde…" : "Ativar neste dispositivo"}
               </button>
             ) : (
