@@ -30,7 +30,7 @@ begin
   if length(trim(coalesce(_response_text,''))) < 10 then raise exception 'ANSWER_TOO_SHORT'; end if;
 
   select count(*) into v_lines
-  from regexp_split_to_table(trim(coalesce(_response_text,'')), E'\\r?\\n') as line
+  from regexp_split_to_table(trim(coalesce(_response_text,'')), E'\r?\n') as line
   where length(trim(line)) > 0;
 
   if v_lines < v_min_lines then
