@@ -159,7 +159,7 @@ function NotificationsPage() {
               </>
             )}
           </div>
-          {configured === false && <p className="mt-4 text-xs leading-5 text-[#8A5A00]">Configuração pendente no servidor: as chaves VAPID ainda não foram cadastradas. O site não deve prometer entrega real até concluir essa etapa.</p>}
+          {!isNativeAndroid && configured === false && <p className="mt-4 text-xs leading-5 text-[#8A5A00]">Configuração pendente no servidor: as chaves VAPID ainda não foram cadastradas. O site não deve prometer entrega real até concluir essa etapa.</p>}
         </section>
         <section className="rounded-2xl border border-[#DCE5F0] bg-white p-5">
           <h2 className="text-base font-extrabold">O que você quer receber?</h2>
