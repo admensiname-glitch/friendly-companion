@@ -24,6 +24,7 @@ Deno.serve(async(req)=>{
   const admin=createClient(url,service);
   const {data:attempt}=await admin.from("exam_attempts").select("id,user_id,status").eq("id",attemptId).eq("user_id",u.user.id).maybeSingle();
   if(!attempt)return json({error:"Prova não encontrada."},404);
+  if(attempt.status!=="in_progress")return json({error:"A prova já foi encerrada e não pode ser corrigida novamente."},409);
 
   const {data:rows}=await admin.from("exam_attempt_answers").select("id,attempt_question_id,response_text").eq("attempt_id",attemptId).not("response_text","is",null);
   const answerRows=rows??[];
