@@ -34,6 +34,9 @@ export const Route = createFileRoute("/admin/dashboard")({
 function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [error, setError] = useState(false);
+  const [auditBusy, setAuditBusy] = useState(false);
+  const [auditResult, setAuditResult] = useState<Record<string, unknown> | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -45,6 +48,29 @@ function AdminDashboard() {
       setStats(data as unknown as AdminStats);
     })();
   }, []);
+
+  async function runProfessorAudit(kind: "question" | "topic", limit: number) {
+    if (auditBusy) return;
+    setAuditBusy(true);
+    setAuditError(null);
+    setAuditResult(null);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke("professor-readonly-audit", {
+        body: { kind, limit },
+      });
+      if (invokeError) {
+        const detail = typeof data?.error === "string" ? data.error : invokeError.message;
+        throw new Error(detail || "A auditoria não pôde ser iniciada.");
+      }
+      if (!data || typeof data !== "object") throw new Error("O auditor retornou uma resposta inválida.");
+      setAuditResult(data as Record<string, unknown>);
+      if (data.error) setAuditError(String(data.error));
+    } catch (caught) {
+      setAuditError(caught instanceof Error ? caught.message : "Falha inesperada ao executar auditoria.");
+    } finally {
+      setAuditBusy(false);
+    }
+  }
 
   return (
     <section aria-labelledby="admin-dashboard-title">
@@ -97,6 +123,23 @@ function AdminDashboard() {
           ))}
         </div>
       )}
+
+      <section className="mt-10 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-7" aria-labelledby="professor-audit-title">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0242D7]">Auditoria acadêmica</p>
+        <h2 id="professor-audit-title" className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[#0F172A]">Professor · revisão assistida por IA</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[#64748B]">Executa auditoria de questões ou tópicos usando a sessão autenticada do administrador. Esta ferramenta registra achados de auditoria, mas não altera questões publicadas nem corrige conteúdo automaticamente.</p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button type="button" disabled={auditBusy} onClick={() => void runProfessorAudit("question", 1)} className="min-h-11 rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{auditBusy ? "Executando..." : "Auditar 1 questão (teste)"}</button>
+          <button type="button" disabled={auditBusy} onClick={() => void runProfessorAudit("question", 5)} className="min-h-11 rounded-xl border border-[#CBD5E1] px-5 py-3 text-sm font-bold text-[#334155] disabled:opacity-50">Auditar lote de 5 questões</button>
+          <button type="button" disabled={auditBusy} onClick={() => void runProfessorAudit("topic", 1)} className="min-h-11 rounded-xl border border-[#CBD5E1] px-5 py-3 text-sm font-bold text-[#334155] disabled:opacity-50">Auditar 1 tópico</button>
+        </div>
+        {auditError && <div role="alert" className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#991B1B]">{auditError}</div>}
+        {auditResult && <div className="mt-5 rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4">
+          <h3 className="font-bold text-[#172334]">Retorno da auditoria</h3>
+          <p className="mt-1 text-xs text-[#64748B]">O retorno abaixo é o resultado real recebido da função; uma auditoria não equivale a correção aprovada.</p>
+          <pre className="mt-3 max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-xs leading-5 text-[#334155]">{JSON.stringify(auditResult, null, 2)}</pre>
+        </div>}
+      </section>
 
       <div className="mt-10 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
