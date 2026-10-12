@@ -1,0 +1,19 @@
+-- Preserve existing ownership checks while allowing auth.uid() to be evaluated once per statement.
+ALTER POLICY community_comments_delete_own ON public.community_comments USING ((select auth.uid()) = author_id);
+ALTER POLICY community_comments_insert_own ON public.community_comments WITH CHECK ((select auth.uid()) = author_id);
+ALTER POLICY community_comments_update_own ON public.community_comments USING ((select auth.uid()) = author_id) WITH CHECK ((select auth.uid()) = author_id);
+ALTER POLICY community_follows_delete_own ON public.community_follows USING ((select auth.uid()) = follower_id);
+ALTER POLICY community_follows_insert_own ON public.community_follows WITH CHECK ((select auth.uid()) = follower_id);
+ALTER POLICY community_likes_delete_own ON public.community_likes USING ((select auth.uid()) = user_id);
+ALTER POLICY community_likes_insert_own ON public.community_likes WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY community_posts_delete_own ON public.community_posts USING ((select auth.uid()) = author_id);
+ALTER POLICY community_posts_insert_own ON public.community_posts WITH CHECK ((select auth.uid()) = author_id);
+ALTER POLICY community_posts_update_own ON public.community_posts USING ((select auth.uid()) = author_id) WITH CHECK ((select auth.uid()) = author_id);
+ALTER POLICY community_saves_delete_own ON public.community_saves USING ((select auth.uid()) = user_id);
+ALTER POLICY community_saves_insert_own ON public.community_saves WITH CHECK ((select auth.uid()) = user_id);
+ALTER POLICY student_focus_discipline_delete_own ON public.student_focus_discipline USING (user_id = (select auth.uid()));
+ALTER POLICY student_focus_discipline_insert_own ON public.student_focus_discipline WITH CHECK (user_id = (select auth.uid()));
+ALTER POLICY student_focus_discipline_select_own ON public.student_focus_discipline USING (user_id = (select auth.uid()));
+ALTER POLICY student_focus_discipline_update_own ON public.student_focus_discipline USING (user_id = (select auth.uid())) WITH CHECK (user_id = (select auth.uid()));
+ALTER POLICY student_topic_difficulties_insert_own ON public.student_topic_difficulties WITH CHECK (user_id = (select auth.uid()));
+ALTER POLICY student_topic_difficulties_update_own ON public.student_topic_difficulties USING (user_id = (select auth.uid())) WITH CHECK (user_id = (select auth.uid()));

@@ -14,7 +14,7 @@ Deno.serve(async(req)=>{
   const {data:u,error:ue}=await sb.auth.getUser(auth.replace("Bearer ","").trim()); if(ue||!u.user)return json({error:"Sessão inválida."},401);
   const {data:role}=await sb.rpc("has_role",{required_role:"student"}); if(!role)return json({error:"Somente alunos podem usar o Modo Prova."},403);
   const body=await req.json(); const disciplineId=body.discipline_id??null; const topicIds=Array.isArray(body.topic_ids)?body.topic_ids.filter((x:unknown)=>typeof x==="string") as string[]:[]; const count=Number(body.question_count); const duration=Number(body.duration_seconds??0);
-  const essayCount=({5:1,10:3,15:4,20:6} as Record<number,number>)[count]??0; const objectiveCount=count-essayCount;
+  const essayCount=({5:1,10:2,15:3,20:3} as Record<number,number>)[count]??0; const objectiveCount=count-essayCount;
   if(![5,10,15,20].includes(count))return json({error:"A prova deve ter 5, 10, 15 ou 20 questões."},400);
   if(duration<0||duration>7200)return json({error:"Tempo inválido."},400);
   let query=sb.from("topics").select("id,name,description,discipline_id").eq("published",true);
