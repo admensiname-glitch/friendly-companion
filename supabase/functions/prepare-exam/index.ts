@@ -84,7 +84,14 @@ ${contexts.join("\n\n").slice(0,14000)}`;
    const {data:q,error:qe}=await admin.from("exercise_questions").insert({exercise_id:exId,question_text:g.question_text,question_type:g.type,position:Math.floor(Math.random()*100000),feedback_hint:g.type==="open_text"?g.rubric.join(" | "):g.explanation,difficulty_tag:g.concept_tags}).select("id").single();
    if(qe||!q){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar uma questão complementar."},500);}
    all.push({...g,id:q.id});
-   if(g.type==="multiple_choice")await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
+   if(g.type==="multiple_choice"){
+    const {error:optionsError}=await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
+    if(optionsError){
+     await admin.from("exam_attempts").delete().eq("id",attempt.id);
+     await admin.from("exercises").delete().in("id",[...generatedExercises.values()]);
+     return json({error:"Não foi possível salvar as alternativas de uma questão complementar."},500);
+    }
+   }
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
   if(chosen.filter((q:any)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q:any)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
