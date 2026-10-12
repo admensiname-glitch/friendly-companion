@@ -172,7 +172,7 @@ function ExamPage() {
       _attempt_question_id: question.attempt_question_id,
       _response_text: response,
     });
-    if (answerError) setError(answerError.message.includes("ANSWER_TOO_SHORT") ? "A resposta precisa ter pelo menos 10 caracteres." : "Não foi possível registrar esta resposta.");
+    if (answerError) setError(answerError.message.includes("ANSWER_TOO_SHORT") ? "A resposta precisa ter pelo menos 10 caracteres." : answerError.message.includes("MINIMUM_LINES_REQUIRED") ? `Esta questão exige pelo menos ${minimumLines} linhas. Separe suas ideias em linhas diferentes.` : "Não foi possível registrar esta resposta.");
     else setAnswers((old) => ({ ...old, [question.id]: response }));
     setSaving(false);
   }
@@ -192,7 +192,7 @@ function ExamPage() {
       });
       setGrading(false);
       if (gradeError) {
-        setError("Não foi possível corrigir as respostas discursivas agora. A prova não foi encerrada; tente entregar novamente.");
+        setError("Não foi possível corrigir/entregar a prova. Confira se todas as respostas discursivas atingem o mínimo de linhas exigido e tente novamente.");
         setSaving(false);
         return;
       }

@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 type Item={type:"multiple_choice"|"open_text";topic_id:string;question_text:string;options:string[];correct_option_index:number|null;explanation:string;difficulty:"introductory"|"intermediate"|"advanced";concept_tags:string[];rubric:string[];minimum_lines?:number};
 const norm=(s:string)=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+const minimumLinesFor=(text:string,provided?:unknown)=>Number.isInteger(provided)&&Number(provided)>=1&&Number(provided)<=8?Number(provided):/\b(compare|diferenc|relacione|distinga|contraste)\b/i.test(text)?4:/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/i.test(text)?5:/\b(explique|descreva|como funciona|por que|por quê)\b/i.test(text)?3:2;
 const json=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...corsHeaders,"Content-Type":"application/json"}});
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
@@ -14,7 +15,7 @@ Deno.serve(async(req)=>{
   const {data:u,error:ue}=await sb.auth.getUser(auth.replace("Bearer ","").trim()); if(ue||!u.user)return json({error:"Sessão inválida."},401);
   const {data:role}=await sb.rpc("has_role",{required_role:"student"}); if(!role)return json({error:"Somente alunos podem usar o Modo Prova."},403);
   const body=await req.json(); const disciplineId=body.discipline_id??null; const topicIds=Array.isArray(body.topic_ids)?body.topic_ids.filter((x:unknown)=>typeof x==="string") as string[]:[]; const count=Number(body.question_count); const duration=Number(body.duration_seconds??0);
-  const essayCount=({5:1,10:3,15:4,20:6} as Record<number,number>)[count]??0; const objectiveCount=count-essayCount;
+  const essayCount=({5:1,10:2,15:3,20:3} as Record<number,number>)[count]??0; const objectiveCount=count-essayCount;
   if(![5,10,15,20].includes(count))return json({error:"A prova deve ter 5, 10, 15 ou 20 questões."},400);
   if(duration<0||duration>7200)return json({error:"Tempo inválido."},400);
   let query=sb.from("topics").select("id,name,description,discipline_id").eq("published",true);
@@ -26,8 +27,8 @@ Deno.serve(async(req)=>{
   const recentIds=new Set((recent??[]).map((x:any)=>x.question_id));
   const {data:existing}=await sb.from("exercise_questions").select("id,question_text,question_type,difficulty_tag,exercises!inner(topic_id,exercise_type,published)").in("exercises.topic_id",[...allowed]).in("question_type",["multiple_choice","open_text"]);
   const pool=(existing??[]).filter((q:any)=>((q.exercises?.published===true)||(q.exercises?.exercise_type==="exam_generated"))&&!recentIds.has(q.id));
-  let obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
-  let essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
+  const obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
+  const essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
   const needObj=objectiveCount-obj.length,needEssay=essayCount-essay.length;
   let generated:Item[]=[];
   if(needObj+needEssay){
@@ -45,8 +46,8 @@ Deno.serve(async(req)=>{
    const p=await resp.json(); let parsed:any; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
    generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
    const uniq=new Set<string>(); generated=generated.filter(q=>{const n=norm(q.question_text);if(uniq.has(n))return false;uniq.add(n);return true;});
-   let generatedObj=generated.filter(q=>q.type==="multiple_choice");
-   let generatedEssay=generated.filter(q=>q.type==="open_text");
+   const generatedObj=generated.filter(q=>q.type==="multiple_choice");
+   const generatedEssay=generated.filter(q=>q.type==="open_text");
    // A composição híbrida é obrigatória. Se a primeira geração devolver objetivas demais,
    // fazemos uma chamada dedicada para discursivas em vez de iniciar uma prova sem elas.
    if(generatedEssay.length<needEssay){
@@ -64,6 +65,8 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     generated=[...generatedObj,...generatedEssay];
    }
    if(generatedObj.length<needObj||generatedEssay.length<needEssay)return json({error:"Não foi possível completar a composição híbrida da prova. As questões discursivas são obrigatórias para esta quantidade.",retryable:true},503);
+   // Never persist extra generated questions beyond the exact deficits; otherwise random selection can break the promised composition.
+   generated=[...generatedObj.slice(0,needObj),...generatedEssay.slice(0,needEssay)];
   }
   const admin=createClient(url,service);
   const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
@@ -85,10 +88,10 @@ ${contexts.join("\n\n").slice(0,14000)}`;
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
   if(chosen.filter((q:any)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q:any)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
-  const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q:any,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1}))).select("id,question_id,position");
+  const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q:any,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1,minimum_lines:(q.question_type==="open_text"||q.type==="open_text")?minimumLinesFor(String(q.question_text??""),q.minimum_lines):null}))).select("id,question_id,position,minimum_lines");
   if(ie||!inserted){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a prova."},500);}
   const ids=chosen.map((q:any)=>q.id); const {data:opts}=await admin.from("exercise_options").select("id,question_id,content").in("question_id",ids).order("position");
-  const questions=chosen.map((q:any)=>{const row=inserted.find((x:any)=>x.question_id===q.id);const text=String(q.question_text??"");const minimum_lines=Number.isInteger(q.minimum_lines)&&q.minimum_lines>=1&&q.minimum_lines<=8?q.minimum_lines:/\\b(compare|diferenc|relacione|distinga|contraste)\\b/i.test(text)?4:/\\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\\b/i.test(text)?5:/\\b(explique|descreva|como funciona|por que|por quê)\\b/i.test(text)?3:2;return{id:q.id,attempt_question_id:row.id,position:row.position,question_text:text,question_type:q.question_type??q.type,minimum_lines:q.question_type==="open_text"||q.type==="open_text"?minimum_lines:undefined,options:(opts??[]).filter((o:any)=>o.question_id===q.id)};});
+  const questions=chosen.map((q:any)=>{const row=inserted.find((x:any)=>x.question_id===q.id);const text=String(q.question_text??"");const minimum_lines=minimumLinesFor(text,q.minimum_lines);return{id:q.id,attempt_question_id:row.id,position:row.position,question_text:text,question_type:q.question_type??q.type,minimum_lines:q.question_type==="open_text"||q.type==="open_text"?(row.minimum_lines??minimum_lines):undefined,options:(opts??[]).filter((o:any)=>o.question_id===q.id)};});
   return json({attempt_id:attempt.id,total_questions:count,objective_questions:objectiveCount,discursive_questions:essayCount,questions});
  }catch(e){console.error("[prepare-exam]",e);return json({error:"Não foi possível preparar a prova agora.",retryable:true},500);}
 });

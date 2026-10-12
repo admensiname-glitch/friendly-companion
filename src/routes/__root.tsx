@@ -161,8 +161,8 @@ function RootComponent() {
     ];
     void (async () => {
       try {
-        let permission = await PushNotifications.checkPermissions();
-        if (permission.receive !== "granted") permission = await PushNotifications.requestPermissions();
+        // Ask for permission only after the user chooses to activate notifications in settings.
+        const permission = await PushNotifications.checkPermissions();
         if (active && permission.receive === "granted") await PushNotifications.register();
       } catch (error) {
         console.warn("Ensina-me: notificações nativas indisponíveis.", error);

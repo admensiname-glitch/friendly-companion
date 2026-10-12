@@ -35,4 +35,11 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    files: ["supabase/functions/**/*.ts"],
+    rules: {
+      // Edge Function payloads currently include untyped PostgREST/Groq JSON; keep this exception scoped to Deno handlers.
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 );
