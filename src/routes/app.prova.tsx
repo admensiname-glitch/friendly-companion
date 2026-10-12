@@ -406,7 +406,7 @@ function ExamPage() {
           </label>
         </div>
 
-        <div className="mt-3 rounded-xl bg-[#F7FAFF] p-3 text-sm leading-6 text-[#536174]">As provas misturam questões objetivas e discursivas. Composição obrigatória: <strong>5 = 4 objetivas + 1 discursiva</strong> · <strong>10 = 7 + 3</strong> · <strong>15 = 11 + 4</strong> · <strong>20 = 14 + 6</strong>.</div>
+        <div className="mt-3 rounded-xl bg-[#F7FAFF] p-3 text-sm leading-6 text-[#536174]">As provas misturam questões objetivas e discursivas. Composição obrigatória: <strong>5 = 4 objetivas + 1 discursiva</strong> · <strong>10 = 8 objetivas + 2 discursivas</strong> · <strong>15 = 12 objetivas + 3 discursivas</strong> · <strong>20 = 17 objetivas + 3 discursivas</strong>.</div>
 
         <div className="mt-6">
           <p className="text-sm font-semibold text-[#344154]">Tópicos <span className="font-normal text-[#8792A0]">(opcional)</span></p>
