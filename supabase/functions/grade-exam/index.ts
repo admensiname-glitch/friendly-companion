@@ -102,20 +102,31 @@ ${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\
   catch{return json({error:"A correção retornou um formato inválido."},503);}
 
   const grades=Array.isArray(parsed.grades)?parsed.grades:[];
-  if(grades.length<items.length)return json({error:"A IA não devolveu a correção de todas as respostas."},503);
-
+  const expectedIds=new Set(items.map((x:any)=>x.id));
+  const receivedIds=new Set<string>();
+  if(grades.length!==items.length)return json({error:"A IA não devolveu exatamente uma correção por resposta."},503);
   for(const g of grades){
    const id=String(g.id??"");
-   const score=Math.max(0,Math.min(10,Math.round(Number(g.score))));
+   const score=Number(g.score);
    const feedback=typeof g.feedback==="string"?g.feedback.trim():"";
-   const answer=items.find((x:any)=>x.id===id);
-   if(!answer||!Number.isFinite(score)||!feedback)continue;
-   await admin.from("exam_attempt_answers")
+   if(!expectedIds.has(id)||receivedIds.has(id)||!Number.isInteger(score)||score<0||score>10||!feedback){
+    return json({error:"A correção recebida está incompleta ou inválida. Nenhuma resposta foi confirmada como corrigida."},503);
+   }
+   receivedIds.add(id);
+  }
+  if(receivedIds.size!==expectedIds.size)return json({error:"Faltam correções para uma ou mais respostas."},503);
+
+  for(const g of grades){
+   const id=String(g.id);
+   const score=Number(g.score);
+   const feedback=String(g.feedback).trim();
+   const {error:updateError}=await admin.from("exam_attempt_answers")
     .update({rubric_score:score,is_correct:score===10,ai_feedback:feedback})
     .eq("id",id).eq("attempt_id",attemptId);
+   if(updateError)return json({error:"Não foi possível salvar todas as correções. Tente novamente."},503);
   }
 
-  return json({graded:items.length,full_credit_threshold:10,partial_credit_range:[1,9]});
+  return json({graded:receivedIds.size,full_credit_threshold:10,partial_credit_range:[1,9]});
  }catch(e){
   console.error("[grade-exam]",e);
   return json({error:"Não foi possível corrigir as discursivas agora.",retryable:true},500);
