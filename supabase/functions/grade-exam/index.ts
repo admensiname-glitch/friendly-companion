@@ -24,23 +24,32 @@ Deno.serve(async(req)=>{
   const admin=createClient(url,service);
   const {data:attempt}=await admin.from("exam_attempts").select("id,user_id,status").eq("id",attemptId).eq("user_id",u.user.id).maybeSingle();
   if(!attempt)return json({error:"Prova não encontrada."},404);
+  if(attempt.status!=="in_progress")return json({error:"A prova não está aberta para correção.",code:"ATTEMPT_NOT_IN_PROGRESS"},409);
 
-  const {data:rows}=await admin.from("exam_attempt_answers").select("id,attempt_question_id,response_text").eq("attempt_id",attemptId).not("response_text","is",null);
+  const {data:rows,error:answersError}=await admin.from("exam_attempt_answers").select("id,attempt_question_id,response_text").eq("attempt_id",attemptId).not("response_text","is",null);
+  if(answersError)return json({error:"Não foi possível carregar as respostas para correção."},500);
   const answerRows=rows??[];
   if(!answerRows.length)return json({graded:0});
 
   const qids=answerRows.map((a:any)=>a.attempt_question_id);
-  const {data:aq}=await admin.from("exam_attempt_questions").select("id,question_id,position").in("id",qids).order("position");
-  const questionIds=(aq??[]).map((x:any)=>x.question_id);
-  const {data:questions}=await admin.from("exercise_questions").select("id,question_text,feedback_hint,difficulty_tag,exercise_id,exercises!inner(topic_id)").in("id",questionIds);
+  const {data:aq,error:aqError}=await admin.from("exam_attempt_questions").select("id,question_id,position,minimum_lines").in("id",qids).order("position");
+  if(aqError||!aq||aq.length!==answerRows.length)return json({error:"Não foi possível relacionar todas as respostas às questões."},500);
+  const questionIds=aq.map((x:any)=>x.question_id);
+  const {data:questions,error:questionsError}=await admin.from("exercise_questions").select("id,question_text,feedback_hint,difficulty_tag,exercise_id,exercises!inner(topic_id)").in("id",questionIds);
+  if(questionsError||!questions||questions.length!==questionIds.length)return json({error:"Não foi possível carregar todas as questões da prova."},500);
   const topicIds=[...new Set((questions??[]).map((q:any)=>q.exercises?.topic_id).filter(Boolean))];
   const {data:topics}=topicIds.length?await admin.from("topics").select("id,name,description").in("id",topicIds):{data:[]};
   const topicMap=new Map((topics??[]).map((t:any)=>[t.id,t]));
 
   const contextParts:string[]=[];
   for(const tid of topicIds){
-   const {data:m}=await admin.from("materials").select("title,introduction").eq("topic_id",tid).eq("status","published").maybeSingle();
-   if(m)contextParts.push("TÓPICO: "+topicMap.get(tid)?.name+"\n"+(topicMap.get(tid)?.description??"")+"\n"+m.title+"\n"+(m.introduction??""));
+   const {data:m}=await admin.from("materials").select("id,title,introduction").eq("topic_id",tid).eq("status","published").maybeSingle();
+   if(m){
+    const {data:sections,error:sectionsError}=await admin.from("material_sections").select("title,content,position").eq("material_id",m.id).order("position").limit(12);
+    if(sectionsError)return json({error:"Não foi possível carregar o material acadêmico completo para a correção."},500);
+    const sectionText=(sections??[]).map((s:any)=>String(s.title??"")+"\n"+String(s.content??"")).join("\n\n").slice(0,7000);
+    contextParts.push("TÓPICO: "+topicMap.get(tid)?.name+"\n"+(topicMap.get(tid)?.description??"")+"\nMATERIAL: "+m.title+"\n"+(m.introduction??"")+"\nSEÇÕES DO MATERIAL:\n"+sectionText);
+   }
   }
 
   const expectedLines=(question:string)=>{const q=question.toLowerCase();if(/\b(compare|diferenc|relacione|distinga|contraste)\b/.test(q))return 4;if(/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/.test(q))return 5;if(/\b(explique|descreva|como funciona|por que|por quê)\b/.test(q))return 3;return 2;};
@@ -48,8 +57,13 @@ Deno.serve(async(req)=>{
    const aqRow=(aq??[]).find((x:any)=>x.id===a.attempt_question_id);
    const q=(questions??[]).find((x:any)=>x.id===aqRow?.question_id);
    const tid=q?.exercises?.topic_id;
-   return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines:expectedLines(q?.question_text??"")};
-  }).filter((x:any)=>x.question&&x.response);
+   const minimum_lines=Number.isInteger(aqRow?.minimum_lines)&&aqRow.minimum_lines>=1&&aqRow.minimum_lines<=8?aqRow.minimum_lines:expectedLines(q?.question_text??""); const actual_lines=String(a.response_text??"").split(/\r?\n/).map((line:string)=>line.trim()).filter(Boolean).length; return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines,actual_lines};
+  });
+
+  if(items.length!==answerRows.length)return json({error:"Uma ou mais respostas não puderam ser relacionadas a questões discursivas válidas."},500);
+
+  const shortAnswers=items.filter((x:any)=>x.actual_lines<x.minimum_lines);
+  if(shortAnswers.length)return json({error:"MINIMUM_LINES_REQUIRED",message:"Uma ou mais respostas discursivas não atingem o mínimo de linhas exigido. Complete as respostas e tente novamente.",short_answers:shortAnswers.map((x:any)=>({question_id:x.question_id,answer_id:x.id,minimum_lines:x.minimum_lines,actual_lines:x.actual_lines}))},422);
 
   if(!key)return json({error:"A correção discursiva ainda não está configurada."},503);
 
@@ -77,7 +91,7 @@ MATERIAL:
 ${contextParts.join("\n\n").slice(0,12000)}
 
 RESPOSTAS:
-${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
+${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nLINHAS MÍNIMAS="+x.minimum_lines+"\nLINHAS ENVIADAS="+x.actual_lines+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
 
   const resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{
    method:"POST",
@@ -101,20 +115,30 @@ ${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\
   catch{return json({error:"A correção retornou um formato inválido."},503);}
 
   const grades=Array.isArray(parsed.grades)?parsed.grades:[];
-  if(grades.length<items.length)return json({error:"A IA não devolveu a correção de todas as respostas."},503);
+  if(grades.length!==items.length)return json({error:"A IA não devolveu exatamente uma correção para cada resposta."},503);
 
+  const validated:any[]=[];
+  const seen=new Set<string>();
   for(const g of grades){
    const id=String(g.id??"");
-   const score=Math.max(0,Math.min(10,Math.round(Number(g.score))));
+   const score=Number(g.score);
    const feedback=typeof g.feedback==="string"?g.feedback.trim():"";
-   const answer=items.find((x:any)=>x.id===id);
-   if(!answer||!Number.isFinite(score)||!feedback)continue;
-   await admin.from("exam_attempt_answers")
-    .update({rubric_score:score,is_correct:score===10,ai_feedback:feedback})
-    .eq("id",id).eq("attempt_id",attemptId);
+   if(!items.some((x:any)=>x.id===id)||seen.has(id)||!Number.isInteger(score)||score<0||score>10||!feedback){
+    return json({error:"A correção retornou dados incompletos ou inválidos; nenhuma nota foi gravada.",retryable:true},503);
+   }
+   seen.add(id);
+   validated.push({id,score,feedback});
+  }
+  if(seen.size!==items.length||items.some((x:any)=>!seen.has(x.id)))return json({error:"Faltou corrigir uma ou mais respostas; nenhuma nota foi gravada.",retryable:true},503);
+
+  for(const g of validated){
+   const {data:updated,error:updateError}=await admin.from("exam_attempt_answers")
+    .update({rubric_score:g.score,is_correct:g.score===10,ai_feedback:g.feedback})
+    .eq("id",g.id).eq("attempt_id",attemptId).select("id").maybeSingle();
+   if(updateError||!updated)return json({error:"A correção não pôde ser salva integralmente. Tente novamente.",retryable:true},500);
   }
 
-  return json({graded:items.length,full_credit_threshold:10,partial_credit_range:[1,9]});
+  return json({graded:validated.length,full_credit_threshold:10,partial_credit_range:[1,9]});
  }catch(e){
   console.error("[grade-exam]",e);
   return json({error:"Não foi possível corrigir as discursivas agora.",retryable:true},500);
