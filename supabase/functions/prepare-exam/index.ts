@@ -26,8 +26,8 @@ Deno.serve(async(req)=>{
   const recentIds=new Set((recent??[]).map((x:any)=>x.question_id));
   const {data:existing}=await sb.from("exercise_questions").select("id,question_text,question_type,difficulty_tag,exercises!inner(topic_id,exercise_type,published)").in("exercises.topic_id",[...allowed]).in("question_type",["multiple_choice","open_text"]);
   const pool=(existing??[]).filter((q:any)=>((q.exercises?.published===true)||(q.exercises?.exercise_type==="exam_generated"))&&!recentIds.has(q.id));
-  let obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
-  let essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
+  const obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
+  const essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
   const needObj=objectiveCount-obj.length,needEssay=essayCount-essay.length;
   let generated:Item[]=[];
   if(needObj+needEssay){
@@ -45,8 +45,8 @@ Deno.serve(async(req)=>{
    const p=await resp.json(); let parsed:any; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
    generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
    const uniq=new Set<string>(); generated=generated.filter(q=>{const n=norm(q.question_text);if(uniq.has(n))return false;uniq.add(n);return true;});
-   let generatedObj=generated.filter(q=>q.type==="multiple_choice");
-   let generatedEssay=generated.filter(q=>q.type==="open_text");
+   const generatedObj=generated.filter(q=>q.type==="multiple_choice");
+   const generatedEssay=generated.filter(q=>q.type==="open_text");
    // A composição híbrida é obrigatória. Se a primeira geração devolver objetivas demais,
    // fazemos uma chamada dedicada para discursivas em vez de iniciar uma prova sem elas.
    if(generatedEssay.length<needEssay){

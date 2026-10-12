@@ -73,42 +73,18 @@ Deno.serve(async (request) => {
     return jsonResponse(403, { message: "Chave inválida." });
   }
 
-  const { count: adminCount, error: countError } = await adminClient
-    .from("user_roles")
-    .select("id", { count: "exact", head: true })
-    .eq("role", "admin");
+  const { data: bootstrapped, error: bootstrapError } = await adminClient
+    .rpc("bootstrap_admin_once", { _user_id: user.id });
 
-  if (countError) {
-    return jsonResponse(503, {
-      message: "Não foi possível validar a ativação administrativa.",
-    });
-  }
-
-  if ((adminCount ?? 0) > 0) {
-    return jsonResponse(409, {
-      message: "A ativação administrativa inicial já foi concluída.",
-    });
-  }
-
-  const { error: insertError } = await adminClient.from("user_roles").insert({
-    user_id: user.id,
-    role: "admin",
-  });
-
-  if (insertError) {
-    const { count: currentAdminCount } = await adminClient
-      .from("user_roles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-
-    if ((currentAdminCount ?? 0) > 0) {
-      return jsonResponse(409, {
-        message: "A ativação administrativa inicial já foi concluída.",
-      });
-    }
-
+  if (bootstrapError) {
     return jsonResponse(503, {
       message: "Não foi possível concluir a ativação administrativa.",
+    });
+  }
+
+  if (bootstrapped !== true) {
+    return jsonResponse(409, {
+      message: "A ativação administrativa inicial já foi concluída.",
     });
   }
 
