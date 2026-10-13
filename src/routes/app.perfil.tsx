@@ -29,6 +29,7 @@ function Icon({name,className=""}:{name:"back"|"book"|"clock"|"plus"|"close"|"lo
 function ProfilePage(){
  const navigate=useNavigate();
  const [name,setName]=useState("Aluno"),[email,setEmail]=useState(""),[avatarUrl,setAvatarUrl]=useState<string|null>(null),[isOfficialOwner,setIsOfficialOwner]=useState(false),[profileFile,setProfileFile]=useState<File|null>(null);
+ const [photoPreviewUrl,setPhotoPreviewUrl]=useState<string|null>(null);
  const [profile,setProfile]=useState<ProfileData|null>(null),[courses,setCourses]=useState<CourseOption[]>([]),[disciplineOptions,setDisciplineOptions]=useState<DisciplineOption[]>([]),[studentDisciplines,setStudentDisciplines]=useState<StudentDiscipline[]>([]),[completedTopics,setCompletedTopics]=useState<CompletedTopic[]>([]),[newDiscipline,setNewDiscipline]=useState(""),[exams,setExams]=useState<StudentExam[]>([]),[newExamDiscipline,setNewExamDiscipline]=useState(""),[newExamType,setNewExamType]=useState("Prova"),[newExamDate,setNewExamDate]=useState(""),[loading,setLoading]=useState(true),[disciplineLoading,setDisciplineLoading]=useState(false),[saveState,setSaveState]=useState<SaveState>("idle"),[message,setMessage]=useState<string|null>(null),[pendingCourseRemoval,setPendingCourseRemoval]=useState(false),[logoutPending,setLogoutPending]=useState(false),[profileSaving,setProfileSaving]=useState(false);
 
  const loadProfileData=useCallback(async()=>{
@@ -73,6 +74,7 @@ function ProfilePage(){
  },[navigate]);
 
  useEffect(()=>{void loadProfileData()},[loadProfileData]);
+ useEffect(()=>{if(!profileFile){setPhotoPreviewUrl(null);return}const url=URL.createObjectURL(profileFile);setPhotoPreviewUrl(url);return()=>URL.revokeObjectURL(url)},[profileFile]);
  useEffect(()=>{const courseId=profile?.course_id;if(!courseId){setDisciplineOptions([]);return}let cancelled=false;void(async()=>{setDisciplineLoading(true);const {data}=await supabase.from("disciplines").select("id,name").eq("course_id",courseId).eq("published",true).order("name",{ascending:true});if(!cancelled){setDisciplineOptions((data??[]) as DisciplineOption[]);setDisciplineLoading(false)}})();return()=>{cancelled=true}},[profile?.course_id]);
 
  const courseName=courses.find(c=>c.id===profile?.course_id)?.name??"Nenhum curso selecionado";
@@ -104,7 +106,7 @@ function ProfilePage(){
    <p className="mt-7 text-sm font-semibold text-[#0242D7]">Conta e preferências</p><h1 id="profile-title" className="mt-2 text-[30px] font-bold tracking-[-0.045em] text-[#172334] sm:text-[40px]">Meu perfil</h1><p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">Ajuste seu percurso sempre que sua rotina ou semestre mudar.</p>
    <div className="mt-5 flex flex-wrap items-center gap-4">
     <div className="relative">
-     {avatarUrl?<img src={avatarUrl} alt={"Foto de perfil de "+name} className="h-16 w-16 rounded-full object-cover object-center border-2 border-[#DCE5F0]" decoding="sync" fetchPriority="high"/>:<div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0242D7] text-sm font-extrabold text-white">EM</div>}
+     {(photoPreviewUrl||avatarUrl)?<img src={photoPreviewUrl||avatarUrl||""} alt={"Prévia da foto de perfil de "+name} className="h-16 w-16 rounded-full object-cover object-center border-2 border-[#DCE5F0]" decoding="sync" fetchPriority="high"/>:<div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0242D7] text-sm font-extrabold text-white">EM</div>}
      <label htmlFor="profile-photo" className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#0242D7] text-white shadow" title="Adicionar foto" aria-label="Adicionar foto de perfil">+</label>
      <input id="profile-photo" type="file" accept="image/*" className="sr-only" onChange={e=>setProfileFile(e.target.files?.[0]??null)}/>
     </div>
