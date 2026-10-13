@@ -31,7 +31,7 @@ jobs:
         run: bun run build
       - name: Start production preview
         run: |
-          bunx nitro preview --host 0.0.0.0 --port 4173 > /tmp/ensina-me-vite.log 2>&1 &
+          HOST=0.0.0.0 PORT=4173 bun .output/server/index.mjs > /tmp/ensina-me-vite.log 2>&1 &
           echo $! > /tmp/ensina-me-vite.pid
       - name: Wait for app
         run: |
