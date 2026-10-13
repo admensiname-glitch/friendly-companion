@@ -23,11 +23,11 @@ Deno.serve(async(req)=>{
   const {data:topics,error:te}=await query; if(te||!topics?.length)return json({error:"Selecione ao menos um tópico válido."},400);
   const allowed=new Set(topics.map(t=>t.id));
   const {data:recent}=await sb.from("exam_attempt_questions").select("question_id,exam_attempts!inner(user_id)").eq("exam_attempts.user_id",u.user.id).order("created_at",{ascending:false}).limit(120);
-  const recentIds=new Set((recent??[]).map((x:any)=>x.question_id));
+  const recentIds=new Set((recent??[]).map((x)=>x.question_id));
   const {data:existing}=await sb.from("exercise_questions").select("id,question_text,question_type,difficulty_tag,exercises!inner(topic_id,exercise_type,published)").in("exercises.topic_id",[...allowed]).in("question_type",["multiple_choice","open_text"]);
-  const pool=(existing??[]).filter((q:any)=>q.exercises?.published===true&&!recentIds.has(q.id));
-  let obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
-  let essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
+  const pool=(existing??[]).filter((q)=>q.exercises?.published===true&&!recentIds.has(q.id));
+  const obj=pool.filter((q)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
+  const essay=pool.filter((q)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
   const needObj=objectiveCount-obj.length,needEssay=essayCount-essay.length;
   let generated:Item[]=[];
   if(needObj+needEssay){
@@ -36,17 +36,17 @@ Deno.serve(async(req)=>{
    for(const t of topics.slice(0,20)){
     const {data:m}=await sb.from("materials").select("title,introduction").eq("topic_id",t.id).eq("status","published").maybeSingle();
     const {data:s}=m?await sb.from("material_sections").select("title,content,position").eq("material_id", (await sb.from("materials").select("id").eq("topic_id",t.id).eq("status","published").maybeSingle()).data?.id).order("position").limit(12):{data:[]};
-    contexts.push("TOPIC_ID="+t.id+"\nTÓPICO="+t.name+"\n"+(t.description??"")+"\n"+(m?.title??"")+"\n"+(m?.introduction??"")+"\n"+(s??[]).map((x:any)=>x.title+"\n"+x.content).join("\n"));
+    contexts.push("TOPIC_ID="+t.id+"\nTÓPICO="+t.name+"\n"+(t.description??"")+"\n"+(m?.title??"")+"\n"+(m?.introduction??"")+"\n"+(s??[]).map((x)=>x.title+"\n"+x.content).join("\n"));
    }
-   const prompt=`Você é avaliador universitário do Ensina-me. Gere EXATAMENTE ${needObj} questões objetivas e EXATAMENTE ${needEssay} questões discursivas, nem mais nem menos. Use somente o material acadêmico fornecido; não invente fatos. Cada questão deve usar um topic_id que corresponda exatamente a um TOPIC_ID fornecido.\n\nFORMATO OBRIGATÓRIO: responda somente JSON válido neste formato: {"questions":[{"type":"multiple_choice","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado","options":["A","B","C","D"],"correct_option_index":0,"explanation":"justificativa acadêmica","difficulty":"intermediate","concept_tags":["conceito"],"rubric":[]},{"type":"open_text","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado discursivo","options":[],"correct_option_index":null,"explanation":"resposta esperada","difficulty":"intermediate","concept_tags":["conceito"],"rubric":["critério 1","critério 2","critério 3","critério 4","critério 5"],"minimum_lines":3}]}. Use type exatamente como escrito: "multiple_choice" ou "open_text", nunca "discursive", "essay" ou "question_type".\n\nCada objetiva deve ter exatamente 4 alternativas e uma única correta. Cada discursiva deve exigir construção autoral, incluir pelo menos 5 critérios de rubrica e minimum_lines: 2 para definição, 3 para explicação, 4 para comparação, 5 para análise/aplicação/justificativa. Varie compreensão, aplicação e análise. Não repita questões existentes. Confira a quantidade e o tipo de todas as questões antes de responder.\n\nMATERIAL:\n${contexts.join("\n\n").slice(0,14000)}\n\nQUESTÕES EXISTENTES A EVITAR:\n${pool.slice(0,100).map((q:any)=>q.question_text).join("\n").slice(0,7000)}`;
+   const prompt=`Você é avaliador universitário do Ensina-me. Gere EXATAMENTE ${needObj} questões objetivas e EXATAMENTE ${needEssay} questões discursivas, nem mais nem menos. Use somente o material acadêmico fornecido; não invente fatos. Cada questão deve usar um topic_id que corresponda exatamente a um TOPIC_ID fornecido.\n\nFORMATO OBRIGATÓRIO: responda somente JSON válido neste formato: {"questions":[{"type":"multiple_choice","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado","options":["A","B","C","D"],"correct_option_index":0,"explanation":"justificativa acadêmica","difficulty":"intermediate","concept_tags":["conceito"],"rubric":[]},{"type":"open_text","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado discursivo","options":[],"correct_option_index":null,"explanation":"resposta esperada","difficulty":"intermediate","concept_tags":["conceito"],"rubric":["critério 1","critério 2","critério 3","critério 4","critério 5"],"minimum_lines":3}]}. Use type exatamente como escrito: "multiple_choice" ou "open_text", nunca "discursive", "essay" ou "question_type".\n\nCada objetiva deve ter exatamente 4 alternativas e uma única correta. Cada discursiva deve exigir construção autoral, incluir pelo menos 5 critérios de rubrica e minimum_lines: 2 para definição, 3 para explicação, 4 para comparação, 5 para análise/aplicação/justificativa. Varie compreensão, aplicação e análise. Não repita questões existentes. Confira a quantidade e o tipo de todas as questões antes de responder.\n\nMATERIAL:\n${contexts.join("\n\n").slice(0,14000)}\n\nQUESTÕES EXISTENTES A EVITAR:\n${pool.slice(0,100).map((q)=>q.question_text).join("\n").slice(0,7000)}`;
    const resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:prompt},{role:"user",content:"Gere somente JSON válido."}],temperature:.25,reasoning_effort:"low",max_completion_tokens:5000,response_format:{type:"json_object"}})});
    if(resp.status===429)return json({error:"A IA está temporariamente no limite. Tente novamente em alguns instantes.",retryable:true},429);
    if(!resp.ok)return json({error:"Não foi possível preparar as questões complementares agora.",retryable:true},503);
-   const p=await resp.json(); let parsed:any; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
-   generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
+   const p=await resp.json(); let parsed; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
+   generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
    const uniq=new Set<string>(); generated=generated.filter(q=>{const n=norm(q.question_text);if(uniq.has(n))return false;uniq.add(n);return true;});
-   let generatedObj=generated.filter(q=>q.type==="multiple_choice");
-   let generatedEssay=generated.filter(q=>q.type==="open_text");
+   const generatedObj=generated.filter(q=>q.type==="multiple_choice");
+   const generatedEssay=generated.filter(q=>q.type==="open_text");
    // A composição híbrida é obrigatória. Se a primeira geração devolver objetivas demais,
    // fazemos uma chamada dedicada para discursivas em vez de iniciar uma prova sem elas.
    if(generatedEssay.length<needEssay){
@@ -57,8 +57,8 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     const essayResp=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:essayPrompt},{role:"user",content:"Gere somente JSON válido, contendo exclusivamente questões discursivas."}],temperature:.2,reasoning_effort:"low",max_completion_tokens:3500,response_format:{type:"json_object"}})});
     if(essayResp.status===429)return json({error:"A IA está temporariamente no limite. Tente novamente em alguns instantes.",retryable:true},429);
     if(!essayResp.ok)return json({error:"Não foi possível gerar as questões discursivas da prova agora.",retryable:true},503);
-    const ep=await essayResp.json(); let parsedEssay:any; try{parsedEssay=JSON.parse(ep?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração das questões discursivas retornou um formato inválido. Tente novamente."},503);}
-    const extraEssay=(Array.isArray(parsedEssay.questions)?parsedEssay.questions:[]).filter((q:any)=>allowed.has(q.topic_id)&&q.type==="open_text"&&typeof q.question_text==="string"&&q.question_text.trim()&&Array.isArray(q.rubric)&&q.rubric.length>=3);
+    const ep=await essayResp.json(); let parsedEssay; try{parsedEssay=JSON.parse(ep?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração das questões discursivas retornou um formato inválido. Tente novamente."},503);}
+    const extraEssay=(Array.isArray(parsedEssay.questions)?parsedEssay.questions:[]).filter((q)=>allowed.has(q.topic_id)&&q.type==="open_text"&&typeof q.question_text==="string"&&q.question_text.trim()&&Array.isArray(q.rubric)&&q.rubric.length>=3);
     const existingTexts=new Set(generated.map(q=>norm(q.question_text)));
     for(const q of extraEssay){if(generatedEssay.length>=needEssay)break;const n=norm(q.question_text);if(existingTexts.has(n))continue;existingTexts.add(n);generatedEssay.push(q);}
     generated=[...generatedObj,...generatedEssay];
@@ -68,7 +68,7 @@ ${contexts.join("\n\n").slice(0,14000)}`;
   const admin=createClient(url,service);
   const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
   if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
-  const all:any[]=[...obj,...essay];
+  const all =[...obj,...essay];
   const generatedExercises=new Map<string,string>();
   for(const g of generated){
    let exId=generatedExercises.get(g.topic_id);
@@ -88,11 +88,11 @@ ${contexts.join("\n\n").slice(0,14000)}`;
    }
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
-  if(chosen.filter((q:any)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q:any)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
-  const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q:any,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1}))).select("id,question_id,position");
+  if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
+  const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1}))).select("id,question_id,position");
   if(ie||!inserted){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a prova."},500);}
-  const ids=chosen.map((q:any)=>q.id); const {data:opts}=await admin.from("exercise_options").select("id,question_id,content").in("question_id",ids).order("position");
-  const questions=chosen.map((q:any)=>{const row=inserted.find((x:any)=>x.question_id===q.id);const text=String(q.question_text??"");const minimum_lines=Number.isInteger(q.minimum_lines)&&q.minimum_lines>=1&&q.minimum_lines<=8?q.minimum_lines:/\\b(compare|diferenc|relacione|distinga|contraste)\\b/i.test(text)?4:/\\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\\b/i.test(text)?5:/\\b(explique|descreva|como funciona|por que|por quê)\\b/i.test(text)?3:2;return{id:q.id,attempt_question_id:row.id,position:row.position,question_text:text,question_type:q.question_type??q.type,minimum_lines:q.question_type==="open_text"||q.type==="open_text"?minimum_lines:undefined,options:(opts??[]).filter((o:any)=>o.question_id===q.id)};});
+  const ids=chosen.map((q)=>q.id); const {data:opts}=await admin.from("exercise_options").select("id,question_id,content").in("question_id",ids).order("position");
+  const questions=chosen.map((q)=>{const row=inserted.find((x)=>x.question_id===q.id);const text=String(q.question_text??"");const minimum_lines=Number.isInteger(q.minimum_lines)&&q.minimum_lines>=1&&q.minimum_lines<=8?q.minimum_lines:/\\b(compare|diferenc|relacione|distinga|contraste)\\b/i.test(text)?4:/\\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\\b/i.test(text)?5:/\\b(explique|descreva|como funciona|por que|por quê)\\b/i.test(text)?3:2;return{id:q.id,attempt_question_id:row.id,position:row.position,question_text:text,question_type:q.question_type??q.type,minimum_lines:q.question_type==="open_text"||q.type==="open_text"?minimum_lines:undefined,options:(opts??[]).filter((o)=>o.question_id===q.id)};});
   return json({attempt_id:attempt.id,total_questions:count,objective_questions:objectiveCount,discursive_questions:essayCount,questions});
  }catch(e){console.error("[prepare-exam]",e);return json({error:"Não foi possível preparar a prova agora.",retryable:true},500);}
 });
