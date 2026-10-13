@@ -33,10 +33,26 @@ Deno.serve(async(req)=>{
   if(needObj+needEssay){
    if(!key)return json({error:"A geração complementar ainda não está configurada."},503);
    const contexts:string[]=[];
-   for(const t of topics.slice(0,20)){
-    const {data:m}=await sb.from("materials").select("title,introduction").eq("topic_id",t.id).eq("status","published").maybeSingle();
-    const {data:s}=m?await sb.from("material_sections").select("title,content,position").eq("material_id", (await sb.from("materials").select("id").eq("topic_id",t.id).eq("status","published").maybeSingle()).data?.id).order("position").limit(12):{data:[]};
-    contexts.push("TOPIC_ID="+t.id+"\nTÓPICO="+t.name+"\n"+(t.description??"")+"\n"+(m?.title??"")+"\n"+(m?.introduction??"")+"\n"+(s??[]).map((x)=>x.title+"\n"+x.content).join("\n"));
+   // Carrega materiais e seções em lote: evita 2–3 round-trips sequenciais por tópico.
+   const contextTopics=topics.slice(0,20);
+   const contextTopicIds=contextTopics.map((topic)=>topic.id);
+   const {data:materials}=await sb.from("materials").select("id,topic_id,title,introduction").in("topic_id",contextTopicIds).eq("status","published");
+   const materialRows=materials??[];
+   const materialIds=materialRows.map((material)=>material.id);
+   const {data:sections}=materialIds.length
+    ? await sb.from("material_sections").select("material_id,title,content,position").in("material_id",materialIds).order("position").limit(240)
+    : {data:[]};
+   const sectionsByMaterial=new Map<string,Array<{title:string;content:string;position:number}>>();
+   for(const section of sections??[]){
+    const group=sectionsByMaterial.get(section.material_id)??[];
+    if(group.length<12)group.push(section);
+    sectionsByMaterial.set(section.material_id,group);
+   }
+   const materialByTopic=new Map(materialRows.map((material)=>[material.topic_id,material]));
+   for(const topic of contextTopics){
+    const material=materialByTopic.get(topic.id);
+    const topicSections=material?sectionsByMaterial.get(material.id)??[]:[];
+    contexts.push("TOPIC_ID="+topic.id+"\nTÓPICO="+topic.name+"\n"+(topic.description??"")+"\n"+(material?.title??"")+"\n"+(material?.introduction??"")+"\n"+topicSections.map((section)=>section.title+"\n"+section.content).join("\n"));
    }
    const prompt=`Você é avaliador universitário do Ensina-me. Gere EXATAMENTE ${needObj} questões objetivas e EXATAMENTE ${needEssay} questões discursivas, nem mais nem menos. Use somente o material acadêmico fornecido; não invente fatos. Cada questão deve usar um topic_id que corresponda exatamente a um TOPIC_ID fornecido.\n\nFORMATO OBRIGATÓRIO: responda somente JSON válido neste formato: {"questions":[{"type":"multiple_choice","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado","options":["A","B","C","D"],"correct_option_index":0,"explanation":"justificativa acadêmica","difficulty":"intermediate","concept_tags":["conceito"],"rubric":[]},{"type":"open_text","topic_id":"ID_REAL_DO_TÓPICO","question_text":"enunciado discursivo","options":[],"correct_option_index":null,"explanation":"resposta esperada","difficulty":"intermediate","concept_tags":["conceito"],"rubric":["critério 1","critério 2","critério 3","critério 4","critério 5"],"minimum_lines":3}]}. Use type exatamente como escrito: "multiple_choice" ou "open_text", nunca "discursive", "essay" ou "question_type".\n\nCada objetiva deve ter exatamente 4 alternativas e uma única correta. Cada discursiva deve exigir construção autoral, incluir pelo menos 5 critérios de rubrica e minimum_lines: 2 para definição, 3 para explicação, 4 para comparação, 5 para análise/aplicação/justificativa. Varie compreensão, aplicação e análise. Não repita questões existentes. Confira a quantidade e o tipo de todas as questões antes de responder.\n\nMATERIAL:\n${contexts.join("\n\n").slice(0,14000)}\n\nQUESTÕES EXISTENTES A EVITAR:\n${pool.slice(0,100).map((q)=>q.question_text).join("\n").slice(0,7000)}`;
    const resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:prompt},{role:"user",content:"Gere somente JSON válido."}],temperature:.25,reasoning_effort:"low",max_completion_tokens:5000,response_format:{type:"json_object"}})});
