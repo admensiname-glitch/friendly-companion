@@ -15,6 +15,18 @@ const isNearDuplicate=(a:string,b:string)=>{
  return intersection/Math.min(A.size,B.size)>=0.88;
 };
 const addIfNovel=(seen:string[],candidate:string)=>!seen.some((text)=>isNearDuplicate(text,candidate));
+type AuditItem={question_text:string;type:string;options?:string[];correct_option_index?:number|null;explanation?:string;rubric?:string[];concept_tags?:string[]};
+const auditExamSemantics=async(items:AuditItem[],key:string):Promise<{ok:boolean;reason?:string}>=>{
+ if(items.length<2)return {ok:true};
+ const payload=items.map((q,i)=>({index:i,question:q.question_text,type:q.type,options:q.options??[],correct_answer:q.correct_option_index==null?null:(q.options??[])[q.correct_option_index]??null,explanation:q.explanation??"",rubric:q.rubric??[],concept_tags:q.concept_tags??[]}));
+ const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:"Compare every pair of academic questions. duplicate=true when they assess essentially the same objective and require the same answer/reasoning, including paraphrases and changed scenarios. Topic similarity alone is not enough. If unsure, uncertain=true. Return only JSON: {\"pairs\":[{\"a\":0,\"b\":1,\"duplicate\":false,\"uncertain\":false,\"reason\":\"...\"}]}."},{role:"user",content:JSON.stringify(payload)}],temperature:0,max_completion_tokens:3000,response_format:{type:"json_object"}})});
+ if(!response.ok)return {ok:false,reason:"semantic_audit_unavailable"};
+ let data;try{data=await response.json()}catch{return {ok:false,reason:"semantic_audit_invalid_response"}}
+ let parsed;try{parsed=JSON.parse(data?.choices?.[0]?.message?.content??"{}")}catch{return {ok:false,reason:"semantic_audit_invalid_json"}}
+ if(!Array.isArray(parsed.pairs))return {ok:false,reason:"semantic_audit_missing_pairs"};
+ for(const pair of parsed.pairs){if(!Number.isInteger(pair.a)||!Number.isInteger(pair.b)||pair.a<0||pair.b<0||pair.a>=items.length||pair.b>=items.length||pair.a===pair.b)return {ok:false,reason:"semantic_audit_invalid_pair"};if(pair.duplicate===true||pair.uncertain===true)return {ok:false,reason:pair.duplicate===true?"semantic_duplicate_detected":"semantic_audit_inconclusive"}}
+ return {ok:true};
+};
 const json=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...corsHeaders,"Content-Type":"application/json"}});
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
@@ -102,8 +114,6 @@ ${contexts.join("\n\n").slice(0,14000)}`;
    if(generatedObj.length<needObj||generatedEssay.length<needEssay)return json({error:"Não foi possível completar a composição híbrida da prova. As questões discursivas são obrigatórias para esta quantidade.",retryable:true},503);
   }
   const admin=createClient(url,service);
-  const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
-  if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
   const all =[...obj,...essay];
   const generatedExercises=new Map<string,string>();
   for(const g of generated){
@@ -112,19 +122,23 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     const t=topics.find(x=>x.id===g.topic_id);
     const exerciseDifficulty = g.difficulty === "introductory" ? "easy" : g.difficulty === "advanced" ? "hard" : "medium";
     const {data:ex,error:ee}=await admin.from("exercises").insert({topic_id:g.topic_id,title:"Questões complementares — Modo Prova",exercise_type:"evaluation",content:"Questões geradas a partir do material acadêmico publicado do tópico.",difficulty:exerciseDifficulty,position:999,published:false}).select("id").single();
-    if(ee||!ex){console.error("[prepare-exam] Falha ao criar exercício complementar:",ee?.code,ee?.message,ee?.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar o exercício complementar. Tente novamente."},500);}
+    if(ee||!ex){console.error("[prepare-exam] Falha ao criar exercício complementar:",ee?.code,ee?.message,ee?.details);return json({error:"Não foi possível salvar o exercício complementar. Tente novamente."},500);}
     exId=ex.id;generatedExercises.set(g.topic_id,exId);
    }
    const {data:q,error:qe}=await admin.from("exercise_questions").insert({exercise_id:exId,question_text:g.question_text,question_type:g.type,position:Math.floor(Math.random()*100000),feedback_hint:g.type==="open_text"?g.rubric.join(" | "):g.explanation,difficulty_tag:g.concept_tags}).select("id").single();
-   if(qe||!q){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar uma questão complementar."},500);}
+   if(qe||!q){return json({error:"Não foi possível salvar uma questão complementar."},500);}
    all.push({...g,id:q.id});
    if(g.type==="multiple_choice"){
     const {error:oe}=await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
-    if(oe){console.error("[prepare-exam] Falha ao salvar alternativas:",oe.code,oe.message,oe.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar as alternativas de uma questão."},500);}
+    if(oe){console.error("[prepare-exam] Falha ao salvar alternativas:",oe.code,oe.message,oe.details);return json({error:"Não foi possível salvar as alternativas de uma questão."},500);}
    }
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
-  if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
+  if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount)return json({error:"Não foi possível montar a composição híbrida da prova."},503);
+  const semanticAudit=await auditExamSemantics(chosen.map((q)=>({question_text:q.question_text,type:q.question_type??q.type,options:(q as any).options??[],correct_option_index:(q as any).correct_option_index??null,explanation:(q as any).explanation??"",rubric:(q as any).rubric??[],concept_tags:(q as any).concept_tags??[]})),key??"");
+  if(!semanticAudit.ok)return json({error:"A prova não foi liberada porque a verificação semântica de duplicidade falhou ou ficou inconclusiva. Nenhuma prova foi iniciada. Tente novamente.",retryable:true,reason:semanticAudit.reason},503);
+  const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
+  if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
   const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1}))).select("id,question_id,position");
   if(ie||!inserted){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a prova."},500);}
   const ids=chosen.map((q)=>q.id); const {data:opts}=await admin.from("exercise_options").select("id,question_id,content").in("question_id",ids).order("position");
