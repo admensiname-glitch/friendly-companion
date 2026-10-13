@@ -102,9 +102,21 @@ function ExamPage() {
     });
     const payload = data as { attempt_id?: string; questions?: ExamQuestion[] } | null;
     if (rpcError || !payload?.attempt_id || !Array.isArray(payload.questions)) {
-      setError(rpcError?.message?.includes("NOT_ENOUGH_QUESTIONS")
+      let detail = payload && typeof (payload as any).error === "string" ? (payload as any).error : "";
+      if (!detail && rpcError) {
+        try {
+          const context = (rpcError as any).context;
+          if (context && typeof context.clone === "function") {
+            const body = await context.clone().json();
+            if (typeof body?.error === "string") detail = body.error;
+          }
+        } catch {
+          // Mantém a mensagem segura se a resposta da função não puder ser lida.
+        }
+      }
+      setError(detail || (rpcError?.message?.includes("NOT_ENOUGH_QUESTIONS")
         ? "Não há questões suficientes para esta configuração. Reduza a quantidade ou amplie os tópicos."
-        : "Não foi possível preparar a prova. Tente novamente.");
+        : "Não foi possível preparar a prova. Confira a conexão e tente novamente."));
       setLoading(false);
       return;
     }
