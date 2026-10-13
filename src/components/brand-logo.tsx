@@ -13,7 +13,7 @@ export function BrandMark({ tone = "blue", className = "h-9 w-10" }: { tone?: "b
       aria-hidden="true"
       viewBox="0 0 48 40"
       fill="none"
-      className={`${className} shrink-0`}
+      className={`brand-mark ${className} shrink-0`}
     >
       <path d="M4 13.4 24 4l20 9.4-20 9.4L4 13.4Z" fill={foreground} />
       <path d="M11 17.3v9.3c0 1.8 1.2 3.4 2.9 4.1l7.1 2.8c1.9.7 4 .7 5.9 0l7.1-2.8c1.7-.7 2.9-2.3 2.9-4.1v-9.3L24 23.2 11 17.3Z" fill={foreground} />
