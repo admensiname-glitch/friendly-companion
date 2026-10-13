@@ -6,7 +6,7 @@ type BrandLogoProps = {
 
 export function BrandMark({ tone = "blue", className = "h-9 w-10" }: { tone?: "blue" | "light"; className?: string }) {
   const foreground = tone === "light" ? "#FFFFFF" : "#0242D7";
-  const secondary = tone === "light" ? "#DCE9FF" : "#7AA9F7";
+  const secondary = tone === "light" ? "#FFFFFF" : "#7AA9F7";
 
   return (
     <svg
