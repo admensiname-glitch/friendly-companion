@@ -240,7 +240,7 @@ function ExamPage() {
         <h1 id="exam-result" className="mt-2 text-3xl font-bold text-[#172334] sm:text-4xl">Prova concluída</h1>
         <div className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-6 sm:p-8">
           <p className="text-sm font-semibold text-[#687688]">Seu resultado</p>
-          <div className="flex flex-wrap items-end gap-6"><p className="text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A8796]">Pontuação</p><p className="mt-1 text-2xl font-black text-[#172334]">{Math.round(result.score * 10)} pts</p></div></div>
+          <div className="flex flex-wrap items-end gap-4"><p className="text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p></div>
           <p className="mt-2 text-sm text-[#687688]">{result.correct_answers} de {result.total_questions} corretas · {result.answered_questions} respondidas</p>
           {!!result.topic_breakdown?.length && (
             <div className="mt-7">
