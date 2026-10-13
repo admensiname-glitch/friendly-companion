@@ -32,7 +32,7 @@ try {
     console.log("PASS: onboarding");
   }
 
-  await page.getByRole("heading", { name: /seu espaço de aprendizagem/i }).waitFor();
+  await page.getByText(/^(Bom dia|Boa tarde|Boa noite)(, .+)?$/i).first().waitFor();
   console.log("PASS: dashboard");
 
   await page.goto(`${baseURL}/app/disciplinas`, { waitUntil: "networkidle" });
