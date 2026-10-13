@@ -351,24 +351,12 @@ function AppDashboard() {
     [profile?.display_name, user],
   );
 
-  const [greeting, setGreeting] = useState(() => `Olá, ${firstName}`);
-  useEffect(() => {
-    const hour = new Date().getHours();
-    const period = hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 18 ? "afternoon" : "night";
-    const greetings = {
-      morning: [
-        `Bom dia, ${firstName}`,
-      ],
-      afternoon: [
-        `Boa tarde, ${firstName}`,
-      ],
-      night: [
-        `Boa noite, ${firstName}`,
-      ],
-    } as const;
-    const options = greetings[period];
-    setGreeting(options[Math.floor(Date.now() / 86400000) % options.length]);
-  }, [firstName]);
+  const hour = new Date().getHours();
+  const greeting = hour >= 5 && hour < 12
+    ? `Bom dia, ${firstName}`
+    : hour >= 12 && hour < 18
+      ? `Boa tarde, ${firstName}`
+      : `Boa noite, ${firstName}`;
 
   const focusedTopics = focusedDisciplineIds.length
     ? topicsProgress.filter((topic) => focusedDisciplineIds.includes(topic.discipline_id))
