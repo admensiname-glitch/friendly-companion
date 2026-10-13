@@ -405,6 +405,9 @@ function AppDashboard() {
   const activeTopics = focusedTopics.filter(
     (topic) => topic.review_count > 0 || topic.status !== "completed" || topic.progress < 100,
   );
+  const fallbackTopic = topicsProgress.find(
+    (topic) => topic.review_count > 0 || (topic.status !== "completed" && topic.progress < 100),
+  ) ?? topicsProgress[0] ?? null;
 
   const focusedResumeTopics = useMemo(
     () =>
@@ -508,10 +511,10 @@ function AppDashboard() {
             </div>
 
             <h2 id="next-study-title" className="mt-3 max-w-3xl text-[23px] font-black leading-7 tracking-[-0.035em] text-white sm:mt-5 sm:text-[34px] sm:leading-9 lg:text-[40px] lg:leading-[1.08]">
-              {focusedRecommendation?.topic_name ?? activeTopics[0]?.topic_name ?? "Seu próximo passo começa aqui"}
+              {loading ? "Carregando seu próximo passo…" : focusedRecommendation?.topic_name ?? activeTopics[0]?.topic_name ?? fallbackTopic?.topic_name ?? "Escolha uma disciplina para começar"}
             </h2>
             <p className="mt-1 text-sm font-bold text-white/80 sm:mt-2 sm:text-base lg:text-lg">
-              {focusedRecommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? "Escolha uma disciplina para começar."}
+              {loading ? "Preparando seu percurso de aprendizagem." : focusedRecommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? fallbackTopic?.discipline_name ?? "Explore o catálogo e escolha por onde começar."}
             </p>
             <p className="mt-2 max-w-3xl text-sm leading-5 text-white/80 sm:mt-4 sm:text-base sm:leading-7 lg:text-[17px] lg:leading-7">
               {focusedRecommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
