@@ -352,7 +352,10 @@ function AppDashboard() {
 
     };
 
-    void loadData();
+    void loadData().catch((error) => {
+      console.error("Não foi possível carregar o início:", error);
+      setLoading(false);
+    });
   }, []);
 
   const firstName = useMemo(() => {
