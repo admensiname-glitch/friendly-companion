@@ -1409,3 +1409,14 @@
 .dark .app-shell [aria-label*="capelo" i] img {
   filter: grayscale(1) brightness(0) invert(1) !important;
 }
+
+
+/* The capelo is an inline SVG, not an image: recolor its vector shapes directly. */
+.dark .app-shell .brand-mark path {
+  fill: #FFFFFF !important;
+}
+.dark .app-shell .brand-mark line,
+.dark .app-shell .brand-mark circle {
+  stroke: #FFFFFF !important;
+  fill: #FFFFFF !important;
+}
