@@ -176,8 +176,7 @@ function CommunityPage() {
 
   async function saveProfile() {
     if (!currentUserId) return;
-    const name = profileNameDraft.trim();
-    if (name.length < 2 || name.length > 60) { setError("O nome precisa ter entre 2 e 60 caracteres."); return; }
+    const name = profileName.trim();
     setProfileSaving(true); setError(null);
     try {
       let nextAvatar = avatarUrl;
@@ -190,11 +189,9 @@ function CommunityPage() {
         if (upload.error) throw upload.error;
         nextAvatar = supabase.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
       }
-      const { error: updateError } = await supabase.from("student_profiles").update({ display_name: name, avatar_url: nextAvatar }).eq("user_id", currentUserId);
+      const { error: updateError } = await supabase.from("student_profiles").update({ avatar_url: nextAvatar }).eq("user_id", currentUserId);
       if (updateError) throw updateError;
-      setProfileName(name);
       setAvatarUrl(nextAvatar);
-      setProfileNameDraft(name);
       setAvatarFile(null);
       setProfileEditing(false);
       setComments((current) => Object.fromEntries(
@@ -208,7 +205,7 @@ function CommunityPage() {
         ]),
       ));
       window.dispatchEvent(new CustomEvent("ensina-me-profile-updated", {
-        detail: { displayName: name, avatarUrl: nextAvatar },
+        detail: { displayName: profileName, avatarUrl: nextAvatar },
       }));
     } catch (e) { setError(e instanceof Error && e.message === "AVATAR" ? "A foto precisa ser uma imagem de até 5 MB." : "Não foi possível salvar seu perfil agora."); }
     finally { setProfileSaving(false); }
@@ -373,7 +370,7 @@ function CommunityPage() {
             <div className="flex items-start gap-3">
               <button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#0242D7] text-xs font-black text-white" aria-label="Editar perfil">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : "EM"}</button>
               <div className="min-w-0 flex-1">
-                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button>{currentUserId === "bcebd090-39ae-4b5f-a641-3b0ac648c1d9" && <span title="Conta oficial do Ensina-me" aria-label="Conta oficial verificada" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#1877F2] text-[10px] font-black text-white">✓</span>}<button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Editar perfil</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><details className="mt-2 relative"><summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm font-bold text-[#475569]">😊 Emoji</summary><div className="mt-2 flex max-w-[420px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-lg">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); const next = body + item; setBody(next); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
+                <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button>{currentUserId === "bcebd090-39ae-4b5f-a641-3b0ac648c1d9" && <span title="Conta oficial do Ensina-me" aria-label="Conta oficial verificada" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#1877F2] text-[10px] font-black text-white">✓</span>}<button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Alterar foto</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><details className="mt-2 relative"><summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm font-bold text-[#475569]">😊 Emoji</summary><div className="mt-2 flex max-w-[420px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-lg">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); const next = body + item; setBody(next); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <select value={selectedCourse} onChange={(event) => setSelectedCourse(event.target.value)} className="rounded-xl border border-[#DCE5F0] bg-white px-3 py-2.5 text-sm text-[#334155]">
                     <option value="">Curso (opcional)</option>
@@ -460,7 +457,7 @@ function CommunityPage() {
           </div>
         </aside>
       </div>
-      {profileEditing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[#DCE5F0] bg-white p-6 shadow-2xl"><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0242D7]">Seu perfil</p><h2 className="mt-2 text-2xl font-black text-[#172334]">Personalize como você aparece na comunidade.</h2><label className="mt-5 block text-sm font-bold text-[#334155]">Nome<input value={profileNameDraft} onChange={(e) => setProfileNameDraft(e.target.value)} maxLength={60} className="mt-2 h-11 w-full rounded-lg border border-[#D3DEEA] px-3 outline-none focus:border-[#0242D7]" /></label><label className="mt-4 block text-sm font-bold text-[#334155]">Foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" /></label><p className="mt-2 text-xs text-[#64748B]">JPG, PNG ou WebP · até 5 MB.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProfileEditing(false)} className="rounded-lg border border-[#D3DEEA] px-4 py-2 text-sm font-bold text-[#56667A]">Cancelar</button><button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{profileSaving ? "Salvando…" : "Salvar perfil"}</button></div></div></div>}
+      {profileEditing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[#DCE5F0] bg-white p-6 shadow-2xl"><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0242D7]">Seu perfil</p><h2 className="mt-2 text-2xl font-black text-[#172334]">Atualize sua foto de perfil.</h2><label className="mt-5 block text-sm font-bold text-[#334155]">Foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" /></label><p className="mt-2 text-xs text-[#64748B]">JPG, PNG ou WebP · até 5 MB.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProfileEditing(false)} className="rounded-lg border border-[#D3DEEA] px-4 py-2 text-sm font-bold text-[#56667A]">Cancelar</button><button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{profileSaving ? "Salvando…" : "Salvar perfil"}</button></div></div></div>}
     </section>
   );
 }
