@@ -62,6 +62,7 @@ function ExamPage() {
   const [remaining, setRemaining] = useState(0);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [grading, setGrading] = useState(false);
   const [error, setError] = useState("");
@@ -88,6 +89,7 @@ function ExamPage() {
 
   async function startExam() {
     setError("");
+    setGenerating(true);
     setLoading(true);
     const { data, error: rpcError } = await supabase.functions.invoke("prepare-exam", {
       body: {
@@ -115,6 +117,7 @@ function ExamPage() {
         ? "Não há questões suficientes para esta configuração. Reduza a quantidade ou amplie os tópicos."
         : "Não foi possível preparar a prova. Confira a conexão e tente novamente."));
       setLoading(false);
+      setGenerating(false);
       return;
     }
     setAttemptId(String(payload.attempt_id));
@@ -126,6 +129,7 @@ function ExamPage() {
     setRemaining(duration * 60);
     setResult(null);
     setLoading(false);
+    setGenerating(false);
   }
 
   async function selectAnswer(optionId: string) {
@@ -261,7 +265,31 @@ function ExamPage() {
     `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   if (loading && !questions.length && !result) {
-    return <section className="app-native-screen max-w-4xl"><div className="h-24 animate-pulse rounded-xl bg-[#F1F5F9]" /></section>;
+    return (
+      <section className="app-native-screen mx-auto flex min-h-[62vh] max-w-3xl items-center justify-center px-4 py-12" aria-live="polite" aria-busy="true">
+        <div className="w-full max-w-md rounded-3xl border border-[#DCE5F0] bg-white px-6 py-10 text-center shadow-[0_16px_48px_rgba(23,35,52,0.06)] sm:px-10">
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-[#E7EEFF]" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#0242D7] motion-reduce:animate-none" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EFF5FF] text-[#0242D7]">
+              <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+                <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+                <path d="M14 3.75v4h4M8.5 12h7M8.5 15.5h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <p className="mt-7 text-xs font-bold uppercase tracking-[0.18em] text-[#0242D7]">Modo Prova</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#172334]">{generating ? "Estamos preparando sua prova" : "Carregando o Modo Prova"}</h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#687688]">{generating ? "Estamos selecionando as questões e organizando a combinação de perguntas objetivas e discursivas. Isso pode levar alguns instantes." : "Estamos carregando suas disciplinas e tópicos para você começar."}</p>
+          <div className="mx-auto mt-7 flex max-w-[220px] items-center justify-center gap-2" aria-hidden="true">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#0242D7] [animation-delay:-0.24s] motion-reduce:animate-none"/>
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#4D7EF0] [animation-delay:-0.12s] motion-reduce:animate-none"/>
+            <span className="h-2 w-2 animate-bounce rounded-full bg-[#9BB8FA] motion-reduce:animate-none"/>
+          </div>
+          <p className="mt-5 text-xs text-[#8792A0]">Não feche esta tela enquanto a preparação estiver em andamento.</p>
+        </div>
+      </section>
+    );
   }
 
   if (result) {
