@@ -1443,3 +1443,26 @@
 .dark .app-shell .app-tab-active {
   color: #FFFFFF !important;
 }
+
+
+/* FINAL GLOBAL DARK THEME: no blue/cyan typography anywhere in the app. */
+.dark,
+.dark body,
+.dark #root,
+.dark #root *,
+.dark [data-radix-popper-content-wrapper],
+.dark [role="dialog"],
+.dark [role="dialog"] * {
+  color: #FFFFFF !important;
+}
+.dark svg.brand-mark path,
+.dark svg.brand-mark circle {
+  fill: #FFFFFF !important;
+}
+.dark svg.brand-mark line,
+.dark svg.brand-mark path[stroke] {
+  stroke: #FFFFFF !important;
+}
+.dark svg.brand-mark * {
+  color: #FFFFFF !important;
+}
