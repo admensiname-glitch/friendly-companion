@@ -1466,3 +1466,53 @@
 .dark svg.brand-mark * {
   color: #FFFFFF !important;
 }
+
+
+/* Absolute final override for dark mode: every text node and text-bearing control is white.
+   Blue is reserved for non-text accents/backgrounds only. */
+html.dark,
+html.dark body,
+html.dark #root,
+html.dark #root *,
+html.dark #root *::before,
+html.dark #root *::after,
+html.dark [data-radix-popper-content-wrapper],
+html.dark [data-radix-popper-content-wrapper] *,
+html.dark [role="dialog"],
+html.dark [role="dialog"] *,
+html.dark [role="menu"],
+html.dark [role="menu"] *,
+html.dark [role="listbox"],
+html.dark [role="listbox"] *,
+html.dark input,
+html.dark textarea,
+html.dark select,
+html.dark option,
+html.dark button,
+html.dark a,
+html.dark label,
+html.dark p,
+html.dark span,
+html.dark small,
+html.dark strong,
+html.dark em,
+html.dark li,
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  opacity: 0.75 !important;
+}
+html.dark svg text,
+html.dark svg tspan {
+  fill: #FFFFFF !important;
+}
