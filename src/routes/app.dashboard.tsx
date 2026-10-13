@@ -146,6 +146,11 @@ function AppDashboard() {
         router.preloadRoute({ to: "/app/tutor" }),
         router.preloadRoute({ to: "/app/comunidade" }),
         router.preloadRoute({ to: "/app/estude-agora" }),
+        router.preloadRoute({ to: "/app/revisao" }),
+        router.preloadRoute({ to: "/app/desempenho" }),
+        router.preloadRoute({ to: "/app/disciplinas" }),
+        router.preloadRoute({ to: "/app/prova" }),
+        router.preloadRoute({ to: "/app/perfil" }),
       ]).catch(() => undefined);
     };
     const idleWindow = window as Window & {
