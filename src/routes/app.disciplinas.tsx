@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -193,7 +193,7 @@ function DisciplinesPage() {
     return () => { cancelled = true; };
   }, [selectedCourse]);
 
-  const searchAllDisciplines = async (event: React.FormEvent<HTMLFormElement>) => {
+  const searchAllDisciplines = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const term = globalSearchTerm.trim();
     if (term.length < 2) {
