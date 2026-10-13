@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -135,6 +135,36 @@ function ProgressRing({ value, size = 76 }: { value: number; size?: number }) {
 }
 
 function AppDashboard() {
+  const router = useRouter();
+
+  // Warm up the most-used destinations after the dashboard mounts.
+  useEffect(() => {
+    let cancelled = false;
+    const warmRoutes = () => {
+      if (cancelled) return;
+      void Promise.all([
+        router.preloadRoute({ to: "/app/tutor" }),
+        router.preloadRoute({ to: "/app/comunidade" }),
+        router.preloadRoute({ to: "/app/estude-agora" }),
+      ]).catch(() => undefined);
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const idleId = idleWindow.requestIdleCallback
+      ? idleWindow.requestIdleCallback(warmRoutes, { timeout: 1200 })
+      : window.setTimeout(warmRoutes, 500);
+    return () => {
+      cancelled = true;
+      if (idleWindow.cancelIdleCallback && idleWindow.requestIdleCallback) {
+        idleWindow.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+    };
+  }, [router]);
+
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
