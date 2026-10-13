@@ -215,14 +215,14 @@ function renderParagraphs(text: string | null | undefined): React.ReactNode[] {
 
       if (lines.length === 1) {
         return (
-          <p key={`${pi}-0`} className={pi > 0 ? "mt-3" : ""}>
+          <p key={`${pi}-0`} className={pi > 0 ? "mt-6" : ""}>
             {lines[0]}
           </p>
         );
       }
 
       return (
-        <p key={`${pi}-0`} className={pi > 0 ? "mt-3" : ""}>
+        <p key={`${pi}-0`} className={pi > 0 ? "mt-6" : ""}>
           {lines.map((line, li) => (
             <span key={li}>
               {line}
@@ -375,7 +375,7 @@ function MaterialSectionItem({
           </p>
           <h3
             id={`section-${section.id}`}
-            className="mt-2 text-[22px] font-bold leading-tight tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[26px]"
+            className="mt-3 text-[22px] font-bold leading-snug tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[26px]"
           >
             {section.title}
           </h3>
@@ -386,7 +386,7 @@ function MaterialSectionItem({
         </div>
       </div>
 
-      <div className="mt-5 max-w-3xl space-y-4 text-[15px] leading-7 text-[#465468] dark:text-[#C1CCDA]">
+      <div className="mt-7 max-w-3xl space-y-6 text-[16px] leading-8 text-[#465468] dark:text-[#C1CCDA]">
         {renderParagraphs(section.content)}
       </div>
 
@@ -3474,7 +3474,7 @@ function TopicDetailPage() {
                       Estudo guiado
                     </h2>
                     {material.introduction && (
-                      <div className="mt-3 max-w-3xl text-base leading-7 text-[#526174] dark:text-[#B3C0CF]">
+                      <div className="mt-5 max-w-3xl space-y-5 text-base leading-8 text-[#526174] dark:text-[#B3C0CF]">
                         {renderParagraphs(material.introduction)}
                       </div>
                     )}
