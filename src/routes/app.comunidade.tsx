@@ -64,11 +64,6 @@ function CommunityPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
     setCurrentUserId(userId ?? null);
-    if (userId) {
-      const { data: profile } = await supabase.from("student_profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle();
-      setProfileName(profile?.display_name?.trim() || "Estudante Ensina-me");
-      setAvatarUrl(profile?.avatar_url ?? null);
-    }
     if (!userId) {
       setError("Sua sessão expirou. Entre novamente.");
       setLoading(false);
@@ -76,7 +71,8 @@ function CommunityPage() {
     }
 
     const nowIso = new Date().toISOString();
-    const [postResult, officialResult, likeResult, saveResult, courseResult] = await Promise.all([
+    const [profileResult, postResult, officialResult, likeResult, saveResult, courseResult] = await Promise.all([
+      supabase.from("student_profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle(),
       supabase
         .from("community_posts")
         .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
@@ -112,7 +108,11 @@ function CommunityPage() {
     setLiked(new Set((likeResult.data ?? []).map((item) => item.post_id)));
     setSaved(new Set((saveResult.data ?? []).map((item) => item.post_id)));
     setCourses((courseResult.data ?? []) as Course[]);
+    setProfileName(profileResult.data?.display_name?.trim() || "Estudante Ensina-me");
+    setAvatarUrl(profileResult.data?.avatar_url ?? null);
 
+    // Show the feed as soon as the posts and personal state are ready.
+    setLoading(false);
     if (nextPosts.length) {
       const ids = nextPosts.map((post) => post.id);
       const { data: likes } = await supabase.from("community_likes").select("post_id").in("post_id", ids);
@@ -120,7 +120,6 @@ function CommunityPage() {
       for (const like of likes ?? []) counts[like.post_id] = (counts[like.post_id] ?? 0) + 1;
       setLikeCounts(counts);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
