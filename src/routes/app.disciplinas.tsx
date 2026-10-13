@@ -90,6 +90,7 @@ function DisciplinesPage() {
   const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
   const [focusSaving, setFocusSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -173,7 +174,6 @@ function DisciplinesPage() {
         .select("id, name, description")
         .eq("course_id", selectedCourse.id)
         .eq("published", true)
-        .order("curriculum_order", { ascending: true, nullsFirst: false })
         .order("name", { ascending: true });
       if (cancelled) return;
       if (fetchError) setError("Não foi possível carregar as disciplinas deste curso.");
@@ -182,6 +182,12 @@ function DisciplinesPage() {
     })();
     return () => { cancelled = true; };
   }, [selectedCourse]);
+
+  const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+  const visibleCourses = courses.filter((course) => course.name.toLocaleLowerCase("pt-BR").includes(normalizedSearch));
+  const visibleDisciplines = courseDisciplines.filter((discipline) =>
+    `${discipline.name} ${discipline.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch),
+  );
 
   if (hasChildRoute) return <Outlet />;
 
@@ -204,6 +210,14 @@ function DisciplinesPage() {
             Escolha as disciplinas que você está cursando. Você pode marcar <strong>quantas quiser como foco de estudo</strong>; a tela Início usará todas elas para conduzir seus próximos passos.
           </p>
         </header>
+        <div className="mt-5">
+          <label htmlFor="discipline-search" className="mb-2 block text-sm font-bold text-[#334155] dark:text-[#DCE5EE]">Buscar disciplina</label>
+          <div className="relative">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8190A3]"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+            <input id="discipline-search" type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Ex.: História da Educação" className="min-h-12 w-full rounded-xl border border-[#D8E1EC] bg-white py-3 pl-12 pr-4 text-base text-[#172334] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15 dark:border-[#344A63] dark:bg-[#111B2A] dark:text-[#E7EDF5]" />
+          </div>
+          <p className="mt-2 text-xs text-[#7A8796] dark:text-[#91A1B2]">As disciplinas estão organizadas em ordem alfabética.</p>
+        </div>
         {disciplinesLoading ? (
           <div className="mt-5 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-20 animate-pulse" />)}
@@ -212,9 +226,11 @@ function DisciplinesPage() {
           <div className="mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-5 text-sm text-[#991B1B]" role="alert">{error}</div>
         ) : courseDisciplines.length === 0 ? (
           <div className="mt-8 py-8 text-sm text-[#7A8796]">Este curso ainda não possui disciplinas publicadas.</div>
+        ) : visibleDisciplines.length === 0 ? (
+          <div className="mt-5 rounded-xl border border-[#DCE5F0] p-5 text-sm text-[#718093] dark:border-[#2B3A4F] dark:text-[#AAB7C7]">Nenhuma disciplina encontrada para “{searchTerm}”. Tente outro termo.</div>
         ) : (
           <div className="mt-5 border-y border-[#E4EAF1] dark:border-[#2B3A4F]">
-            {courseDisciplines.map((discipline, index) => {
+            {visibleDisciplines.map((discipline, index) => {
               const focused = focusedDisciplineIds.includes(discipline.id);
               return (
                 <div key={discipline.id} className="grid gap-3 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[44px_minmax(0,1fr)_auto] sm:items-center">
@@ -265,6 +281,13 @@ function DisciplinesPage() {
           <Link to="/app/catalogo" className="text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]">Explorar catálogo</Link>
         </div>
       </header>
+      <div className="mt-5">
+        <label htmlFor="course-search" className="mb-2 block text-sm font-bold text-[#334155] dark:text-[#DCE5EE]">Buscar curso</label>
+        <div className="relative">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8190A3]"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
+          <input id="course-search" type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Digite o nome do curso" className="min-h-12 w-full rounded-xl border border-[#D8E1EC] bg-white py-3 pl-12 pr-4 text-base text-[#172334] outline-none transition focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15 dark:border-[#344A63] dark:bg-[#111B2A] dark:text-[#E7EDF5]" />
+        </div>
+      </div>
       {loading ? (
         <div className="mt-5 divide-y divide-[#E4EAF1] border-y border-[#E4EAF1] dark:divide-[#2B3A4F] dark:border-[#2B3A4F]">{[1,2,3].map(item => <div key={item} className="h-24 animate-pulse" />)}</div>
       ) : error ? (
@@ -275,10 +298,12 @@ function DisciplinesPage() {
           <p className="mt-1 max-w-lg text-sm leading-6 text-[#7A8796] dark:text-[#96A6B8]">Explore o catálogo, escolha um curso e adicione-o ao seu perfil. Você pode ter mais de um curso no seu percurso.</p>
           <Link to="/app/catalogo" className="mt-4 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Explorar cursos</Link>
         </div>
+      ) : visibleCourses.length === 0 ? (
+        <div className="app-card mt-5 p-5 text-sm text-[#718093] dark:text-[#AAB7C7]">Nenhum curso encontrado para “{searchTerm}”. Tente outro termo.</div>
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {courses.map(course => (
-            <CourseRow key={course.id} course={course} onSelect={() => setSelectedCourse(course)} />
+          {visibleCourses.map(course => (
+            <CourseRow key={course.id} course={course} onSelect={() => { setSearchTerm(""); setSelectedCourse(course); }} />
           ))}
         </div>
       )}
