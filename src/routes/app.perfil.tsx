@@ -83,10 +83,9 @@ function ProfilePage(){
  async function saveProfile(next:Partial<ProfileData>){if(!profile)return;setSaveState("saving");setMessage(null);const {data:sessionData}=await supabase.auth.getSession();if(!sessionData.session){setSaveState("error");setMessage("Sua sessão expirou. Faça login novamente.");return}const nextProfile={...profile,...next};const {error}=await supabase.from("student_profiles").upsert({user_id:sessionData.session.user.id,course_id:nextProfile.course_id,institution:nextProfile.institution||null,semester:nextProfile.semester,daily_study_minutes:nextProfile.daily_study_minutes??60,difficulties:nextProfile.difficulties?.length?nextProfile.difficulties:null,onboarding_completed:true,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(error){setSaveState("error");setMessage("Não foi possível salvar as alterações.");return}setProfile(nextProfile);setSaveState("saved");window.setTimeout(()=>setSaveState("idle"),1800)}
 
  async function saveIdentity(){const {data:s}=await supabase.auth.getSession();if(!s.session)return;setProfileSaving(true);setMessage(null);const userId=s.session.user.id;let nextAvatar=avatarUrl;if(profileFile){if(!profileFile.type.startsWith("image/")){setProfileSaving(false);setMessage("Escolha uma imagem válida.");return}if(profileFile.size>20*1024*1024){setProfileSaving(false);setMessage("A foto deve ter no máximo 20 MB.");return}const ext=(profileFile.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";const path=userId+"/avatar-"+crypto.randomUUID()+"."+ext;const {error}=await supabase.storage.from("profile-media").upload(path,profileFile,{upsert:false,contentType:profileFile.type,cacheControl:"31536000"});if(error){setProfileSaving(false);setMessage("Não foi possível enviar a foto.");return}const {data:publicData}=supabase.storage.from("profile-media").getPublicUrl(path);nextAvatar=publicData.publicUrl}
- const cleanName=name.trim();if(cleanName.length<2||cleanName.length>60){setProfileSaving(false);setMessage("O nome deve ter entre 2 e 60 caracteres.");return}
- const {error}=await supabase.from("student_profiles").upsert({user_id:userId,display_name:cleanName,avatar_url:nextAvatar},{onConflict:"user_id"});if(error){setProfileSaving(false);setMessage("Não foi possível salvar o perfil.");return}
- setName(cleanName);setAvatarUrl(nextAvatar);setProfileFile(null);setProfileSaving(false);
- window.dispatchEvent(new CustomEvent("ensina-me-profile-updated",{detail:{displayName:cleanName,avatarUrl:nextAvatar}}));
+ const {error}=await supabase.from("student_profiles").upsert({user_id:userId,display_name:name.trim()||s.session.user.user_metadata?.full_name?.trim()?.split(/\\s+/)[0]||"Aluno",avatar_url:nextAvatar},{onConflict:"user_id"});if(error){setProfileSaving(false);setMessage("Não foi possível salvar o perfil.");return}
+ setAvatarUrl(nextAvatar);setProfileFile(null);setProfileSaving(false);
+ window.dispatchEvent(new CustomEvent("ensina-me-profile-updated",{detail:{displayName:name,avatarUrl:nextAvatar}}));
  setMessage("Perfil atualizado.");window.setTimeout(()=>setMessage(null),1800);
  }
 
@@ -115,10 +114,7 @@ function ProfilePage(){
       <button type="button" onClick={()=>void saveIdentity()} disabled={profileSaving||!profileFile} className="min-h-10 rounded-lg bg-[#0242D7] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{profileSaving?"Salvando...":"Salvar foto"}</button>
     </div>
    </div>
-   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-    <input value={name} onChange={e=>setName(e.target.value)} maxLength={60} aria-label="Nome de exibição" className="h-11 flex-1 rounded-lg border border-[#D3DEEA] bg-[#F8FAFC] px-3 text-sm text-[#273547] outline-none focus:border-[#0242D7]"/>
-    <button type="button" onClick={()=>void saveIdentity()} disabled={profileSaving} className="min-h-11 rounded-lg border border-[#D3DEEA] px-4 text-sm font-bold text-[#273547] hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-50">{profileSaving?"Salvando...":"Salvar nome"}</button>
-   </div>
+   <p className="mt-4 text-sm font-semibold text-[#273547]">Nome do perfil: {name}</p><p className="mt-1 text-xs text-[#7A8796]">O nome é definido pela conta e não pode ser alterado nesta página.</p>
   </header>
   {message&&<div className={saveState==="error"?"mt-5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]":"mt-5 rounded-xl border border-[#CDE6DA] bg-[#F3FAF6] px-4 py-3 text-sm text-[#176B4D]"} role="status">{message}</div>}
   <section className="mt-7" aria-labelledby="academic-heading"><div className="mb-4"><p className="text-sm font-semibold text-[#0242D7]">Seu contexto acadêmico</p><h2 id="academic-heading" className="mt-1 text-xl font-bold text-[#172334]">Curso e instituição</h2></div>
