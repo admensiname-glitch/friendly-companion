@@ -3,6 +3,32 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 type Item={type:"multiple_choice"|"open_text";topic_id:string;question_text:string;options:string[];correct_option_index:number|null;explanation:string;difficulty:"introductory"|"intermediate"|"advanced";concept_tags:string[];rubric:string[];minimum_lines?:number};
 const norm=(s:string)=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+const questionKey=(s:string)=>norm(s).replace(/[¿?¡!.,;:()[\]{}"'“”‘’]/g,"").replace(/\s+/g," ").trim();
+const tokenSet=(s:string)=>new Set(questionKey(s).split(/\W+/).filter((w)=>w.length>2));
+const isNearDuplicate=(a:string,b:string)=>{
+ const ka=questionKey(a),kb=questionKey(b);
+ if(!ka||!kb)return false;
+ if(ka===kb)return true;
+ const A=tokenSet(ka),B=tokenSet(kb);
+ if(!A.size||!B.size)return false;
+ let intersection=0;for(const token of A)if(B.has(token))intersection++;
+ return intersection/Math.min(A.size,B.size)>=0.88;
+};
+const addIfNovel=(seen:string[],candidate:string)=>!seen.some((text)=>isNearDuplicate(text,candidate));
+type AuditItem={question_text:string;type:string;options?:string[];correct_option_index?:number|null;explanation?:string;rubric?:string[];concept_tags?:string[]};
+const auditExamSemantics=async(items:AuditItem[],key:string):Promise<{ok:boolean;reason?:string}>=>{
+ if(items.length<2)return {ok:true};
+ const payload=items.map((q,i)=>({index:i,question:q.question_text,type:q.type,options:q.options??[],correct_answer:q.correct_option_index==null?null:(q.options??[])[q.correct_option_index]??null,explanation:q.explanation??"",rubric:q.rubric??[],concept_tags:q.concept_tags??[]}));
+ const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify({model:"openai/gpt-oss-20b",messages:[{role:"system",content:"Compare every pair of academic questions. duplicate=true when they assess essentially the same objective and require the same answer/reasoning, including paraphrases and changed scenarios. Topic similarity alone is not enough. If unsure, uncertain=true. Return only JSON: {\"pairs\":[{\"a\":0,\"b\":1,\"duplicate\":false,\"uncertain\":false,\"reason\":\"...\"}]}."},{role:"user",content:JSON.stringify(payload)}],temperature:0,max_completion_tokens:3000,response_format:{type:"json_object"}})});
+ if(!response.ok)return {ok:false,reason:"semantic_audit_unavailable"};
+ let data;try{data=await response.json()}catch{return {ok:false,reason:"semantic_audit_invalid_response"}}
+ let parsed;try{parsed=JSON.parse(data?.choices?.[0]?.message?.content??"{}")}catch{return {ok:false,reason:"semantic_audit_invalid_json"}}
+ if(!Array.isArray(parsed.pairs))return {ok:false,reason:"semantic_audit_missing_pairs"};
+ const expectedPairs=items.length*(items.length-1)/2;const seenPairs=new Set<string>();
+ for(const pair of parsed.pairs){if(!Number.isInteger(pair.a)||!Number.isInteger(pair.b)||pair.a<0||pair.b<0||pair.a>=items.length||pair.b>=items.length||pair.a===pair.b)return {ok:false,reason:"semantic_audit_invalid_pair"};const pairKey=[pair.a,pair.b].sort((a:number,b:number)=>a-b).join(":");if(seenPairs.has(pairKey))return {ok:false,reason:"semantic_audit_duplicate_pair"};seenPairs.add(pairKey);if(pair.duplicate===true||pair.uncertain===true)return {ok:false,reason:pair.duplicate===true?"semantic_duplicate_detected":"semantic_audit_inconclusive"}}
+ if(seenPairs.size!==expectedPairs)return {ok:false,reason:"semantic_audit_incomplete"};
+ return {ok:true};
+};
 const json=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...corsHeaders,"Content-Type":"application/json"}});
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
@@ -25,7 +51,14 @@ Deno.serve(async(req)=>{
   const {data:recent}=await sb.from("exam_attempt_questions").select("question_id,exam_attempts!inner(user_id)").eq("exam_attempts.user_id",u.user.id).order("created_at",{ascending:false}).limit(120);
   const recentIds=new Set((recent??[]).map((x)=>x.question_id));
   const {data:existing}=await sb.from("exercise_questions").select("id,question_text,question_type,difficulty_tag,exercises!inner(topic_id,exercise_type,published)").in("exercises.topic_id",[...allowed]).in("question_type",["multiple_choice","open_text"]);
-  const pool=(existing??[]).filter((q)=>q.exercises?.published===true&&!recentIds.has(q.id));
+  const pool:(typeof existing extends (infer T)[]|null ? T[] : never)=[];
+  const seenPoolTexts:string[]=[];
+  for(const q of existing??[]){
+   if(q.exercises?.published!==true||recentIds.has(q.id)||!q.question_text?.trim())continue;
+   if(!addIfNovel(seenPoolTexts,q.question_text))continue;
+   seenPoolTexts.push(q.question_text);
+   pool.push(q);
+  }
   const obj=pool.filter((q)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
   const essay=pool.filter((q)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
   const needObj=objectiveCount-obj.length,needEssay=essayCount-essay.length;
@@ -60,7 +93,8 @@ Deno.serve(async(req)=>{
    if(!resp.ok)return json({error:"Não foi possível preparar as questões complementares agora.",retryable:true},503);
    const p=await resp.json(); let parsed; try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração retornou um formato inválido. Tente novamente."},503);}
    generated=(Array.isArray(parsed.questions)?parsed.questions:[]).filter((q)=>allowed.has(q.topic_id)&&typeof q.question_text==="string"&&q.question_text.trim()&&((q.type==="multiple_choice"&&Array.isArray(q.options)&&q.options.length===4&&Number.isInteger(q.correct_option_index)&&q.correct_option_index>=0&&q.correct_option_index<4)||(q.type==="open_text"&&(!q.options||q.options.length===0)&&Array.isArray(q.rubric)&&q.rubric.length>=3)));
-   const uniq=new Set<string>(); generated=generated.filter(q=>{const n=norm(q.question_text);if(uniq.has(n))return false;uniq.add(n);return true;});
+   const seenQuestionTexts:string[]=pool.map((q)=>q.question_text);
+   generated=generated.filter((q)=>addIfNovel(seenQuestionTexts,q.question_text)&&Boolean(seenQuestionTexts.push(q.question_text)));
    const generatedObj=generated.filter(q=>q.type==="multiple_choice");
    const generatedEssay=generated.filter(q=>q.type==="open_text");
    // A composição híbrida é obrigatória. Se a primeira geração devolver objetivas demais,
@@ -75,15 +109,13 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     if(!essayResp.ok)return json({error:"Não foi possível gerar as questões discursivas da prova agora.",retryable:true},503);
     const ep=await essayResp.json(); let parsedEssay; try{parsedEssay=JSON.parse(ep?.choices?.[0]?.message?.content??"{}");}catch{return json({error:"A geração das questões discursivas retornou um formato inválido. Tente novamente."},503);}
     const extraEssay=(Array.isArray(parsedEssay.questions)?parsedEssay.questions:[]).filter((q)=>allowed.has(q.topic_id)&&q.type==="open_text"&&typeof q.question_text==="string"&&q.question_text.trim()&&Array.isArray(q.rubric)&&q.rubric.length>=3);
-    const existingTexts=new Set(generated.map(q=>norm(q.question_text)));
-    for(const q of extraEssay){if(generatedEssay.length>=needEssay)break;const n=norm(q.question_text);if(existingTexts.has(n))continue;existingTexts.add(n);generatedEssay.push(q);}
+    const existingTexts:string[]=[...pool.map((q)=>q.question_text),...generated.map(q=>q.question_text)];
+    for(const q of extraEssay){if(generatedEssay.length>=needEssay)break;const n=q.question_text;if(!addIfNovel(existingTexts,n))continue;existingTexts.push(n);generatedEssay.push(q);}
     generated=[...generatedObj,...generatedEssay];
    }
    if(generatedObj.length<needObj||generatedEssay.length<needEssay)return json({error:"Não foi possível completar a composição híbrida da prova. As questões discursivas são obrigatórias para esta quantidade.",retryable:true},503);
   }
   const admin=createClient(url,service);
-  const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
-  if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
   const all =[...obj,...essay];
   const generatedExercises=new Map<string,string>();
   for(const g of generated){
@@ -92,19 +124,23 @@ ${contexts.join("\n\n").slice(0,14000)}`;
     const t=topics.find(x=>x.id===g.topic_id);
     const exerciseDifficulty = g.difficulty === "introductory" ? "easy" : g.difficulty === "advanced" ? "hard" : "medium";
     const {data:ex,error:ee}=await admin.from("exercises").insert({topic_id:g.topic_id,title:"Questões complementares — Modo Prova",exercise_type:"evaluation",content:"Questões geradas a partir do material acadêmico publicado do tópico.",difficulty:exerciseDifficulty,position:999,published:false}).select("id").single();
-    if(ee||!ex){console.error("[prepare-exam] Falha ao criar exercício complementar:",ee?.code,ee?.message,ee?.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar o exercício complementar. Tente novamente."},500);}
+    if(ee||!ex){console.error("[prepare-exam] Falha ao criar exercício complementar:",ee?.code,ee?.message,ee?.details);return json({error:"Não foi possível salvar o exercício complementar. Tente novamente."},500);}
     exId=ex.id;generatedExercises.set(g.topic_id,exId);
    }
    const {data:q,error:qe}=await admin.from("exercise_questions").insert({exercise_id:exId,question_text:g.question_text,question_type:g.type,position:Math.floor(Math.random()*100000),feedback_hint:g.type==="open_text"?g.rubric.join(" | "):g.explanation,difficulty_tag:g.concept_tags}).select("id").single();
-   if(qe||!q){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar uma questão complementar."},500);}
+   if(qe||!q){return json({error:"Não foi possível salvar uma questão complementar."},500);}
    all.push({...g,id:q.id});
    if(g.type==="multiple_choice"){
     const {error:oe}=await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
-    if(oe){console.error("[prepare-exam] Falha ao salvar alternativas:",oe.code,oe.message,oe.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar as alternativas de uma questão."},500);}
+    if(oe){console.error("[prepare-exam] Falha ao salvar alternativas:",oe.code,oe.message,oe.details);return json({error:"Não foi possível salvar as alternativas de uma questão."},500);}
    }
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
-  if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
+  if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount)return json({error:"Não foi possível montar a composição híbrida da prova."},503);
+  const semanticAudit=await auditExamSemantics(chosen.map((q)=>{const detail=q as unknown as {options?:string[];correct_option_index?:number|null;explanation?:string;rubric?:string[];concept_tags?:string[]};return {question_text:q.question_text,type:q.question_type??q.type,options:detail.options??[],correct_option_index:detail.correct_option_index??null,explanation:detail.explanation??"",rubric:detail.rubric??[],concept_tags:detail.concept_tags??[]}}),key??"");
+  if(!semanticAudit.ok)return json({error:"A prova não foi liberada porque a verificação semântica de duplicidade falhou ou ficou inconclusiva. Nenhuma prova foi iniciada. Tente novamente.",retryable:true,reason:semanticAudit.reason},503);
+  const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
+  if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
   const {data:inserted,error:ie}=await admin.from("exam_attempt_questions").insert(chosen.map((q,i)=>({attempt_id:attempt.id,question_id:q.id,position:i+1}))).select("id,question_id,position");
   if(ie||!inserted){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a prova."},500);}
   const ids=chosen.map((q)=>q.id); const {data:opts}=await admin.from("exercise_options").select("id,question_id,content").in("question_id",ids).order("position");
