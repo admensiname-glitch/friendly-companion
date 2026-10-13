@@ -109,6 +109,8 @@ function CommunityPage() {
     setSaved(new Set((saveResult.data ?? []).map((item) => item.post_id)));
     setCourses((courseResult.data ?? []) as Course[]);
     const urlParams = new URLSearchParams(window.location.search);
+    setSelectedCourse(urlParams.get("course_id") || profileResult.data?.course_id || "");
+    const urlParams = new URLSearchParams(window.location.search);
     const sharedCourseId = urlParams.get("course_id");
     const profileCourseId = profileResult.data?.course_id ?? "";
     setSelectedCourse(sharedCourseId || profileCourseId);
