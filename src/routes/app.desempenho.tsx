@@ -34,7 +34,6 @@ function PerformancePage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [topics, setTopics] = useState<TopicProgress[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void (async () => {
@@ -54,7 +53,6 @@ function PerformancePage() {
         setTopics((topicsResult.data ?? []) as TopicProgress[]);
       }
 
-      setLoading(false);
     })();
   }, []);
 
