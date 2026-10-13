@@ -47,7 +47,7 @@ type Message = {
     video?: TopicVideo | null;
   } | null;
   microAssessment?: MicroAssessment | null;
-  learningNextStep?: any;
+  learningNextStep?: unknown;
 };
 
 type TopicVideo = {
