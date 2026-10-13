@@ -355,10 +355,11 @@ function AppDashboard() {
     void loadData();
   }, []);
 
-  const firstName = useMemo(
-    () => profile?.display_name?.trim()?.split(/\\s+/)[0] || "Aluno",
-    [profile?.display_name],
-  );
+  const firstName = useMemo(() => {
+    const profileName = profile?.display_name?.trim();
+    const authName = user?.user_metadata?.full_name?.trim() || user?.user_metadata?.name?.trim();
+    return (profileName || authName || "").split(/\s+/)[0] || null;
+  }, [profile?.display_name, user?.user_metadata?.full_name, user?.user_metadata?.name]);
 
   const hour = new Date().getHours();
   const greeting = hour >= 5 && hour < 12
@@ -491,7 +492,7 @@ function AppDashboard() {
     <section className="w-full" aria-labelledby="app-dashboard-title">
       <section className="mb-3 px-1 pt-1 sm:mb-5 sm:pt-2" aria-labelledby="dashboard-greeting">
         <h1 id="dashboard-greeting" className="text-[23px] font-black leading-tight tracking-[-0.035em] text-[#172334] dark:text-[#E7EDF5] sm:text-[32px]">
-          {greeting}
+          {!loading && firstName ? greeting.replace(/Aluno/g, firstName) : !loading ? "Boa noite" : ""}
         </h1>
       </section>
 
