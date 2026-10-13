@@ -1221,3 +1221,83 @@
   .app-route-stage { animation: none !important; }
   .app-shell main a.app-card { transition: none !important; }
 }
+
+
+/* Ensina-me — design system unificado inspirado no dashboard premium.
+   Escopo restrito à área autenticada; mantém os fluxos e componentes existentes. */
+.app-shell {
+  --app-blue: #145bd7;
+  --app-blue-hover: #104bb6;
+  --app-blue-soft: #edf4ff;
+  --app-ink: #14243a;
+  --app-muted: #46566b;
+  --app-line: #e3eaf3;
+  --app-canvas: #f6f8fc;
+}
+.app-shell main {
+  color: var(--app-ink);
+}
+.app-shell main h1,
+.app-shell main h2,
+.app-shell main h3 {
+  color: #14243a;
+  letter-spacing: -.03em;
+}
+.dark .app-shell main h1,
+.dark .app-shell main h2,
+.dark .app-shell main h3 {
+  color: #e8eef7;
+}
+.app-shell main .app-card,
+.app-shell main .surface-card,
+.app-shell main [data-card="true"] {
+  border: 1px solid #e3eaf3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 20px rgba(20, 45, 82, .045);
+}
+.dark .app-shell main .app-card,
+.dark .app-shell main .surface-card,
+.dark .app-shell main [data-card="true"] {
+  border-color: #2b3b51;
+  background: #111d2d;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .12);
+}
+.app-shell main input:not([type="checkbox"]):not([type="radio"]),
+.app-shell main textarea,
+.app-shell main select {
+  border-color: #d6e0ed;
+  border-radius: 12px;
+  color: #172334;
+  background-color: #fff;
+}
+.dark .app-shell main input:not([type="checkbox"]):not([type="radio"]),
+.dark .app-shell main textarea,
+.dark .app-shell main select {
+  border-color: #35465c;
+  color: #e7edf5;
+  background-color: #111d2d;
+}
+.app-shell main input:focus-visible,
+.app-shell main textarea:focus-visible,
+.app-shell main select:focus-visible,
+.app-shell main button:focus-visible,
+.app-shell main a:focus-visible {
+  outline: 3px solid rgba(20, 91, 215, .32);
+  outline-offset: 2px;
+}
+.app-shell main button[class*="bg-[#0242D7]"],
+.app-shell main a[class*="bg-[#0242D7]"] {
+  box-shadow: 0 5px 14px rgba(20, 91, 215, .14);
+}
+@media (min-width: 1024px) {
+  .app-shell main > .app-route-stage,
+  .app-shell main .app-content {
+    color: var(--app-ink);
+  }
+  .app-shell main .app-card:hover,
+  .app-shell main .surface-card:hover {
+    border-color: #cad9ee;
+    box-shadow: 0 8px 26px rgba(20, 45, 82, .065);
+  }
+}
