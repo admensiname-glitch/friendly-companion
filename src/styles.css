@@ -1420,3 +1420,26 @@
   stroke: #FFFFFF !important;
   fill: #FFFFFF !important;
 }
+
+
+/* Final dark-mode override: every interface label is white; logo SVG is uniformly white. */
+.dark .app-shell,
+.dark .app-shell * {
+  --app-ink: #FFFFFF;
+  --app-muted: #FFFFFF;
+}
+.dark .app-shell,
+.dark .app-shell *:not(button[class*="bg-[#0242D7]"]):not(a[class*="bg-[#0242D7]"]) {
+  color: #FFFFFF !important;
+}
+.dark .app-shell .brand-mark path,
+.dark .app-shell .brand-mark circle {
+  fill: #FFFFFF !important;
+}
+.dark .app-shell .brand-mark line {
+  stroke: #FFFFFF !important;
+}
+.dark .app-shell .app-sidebar-item-active,
+.dark .app-shell .app-tab-active {
+  color: #FFFFFF !important;
+}
