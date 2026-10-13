@@ -505,6 +505,10 @@ function AppDashboard() {
                   <Icon name="arrow" className="h-4 w-4" />
                 </Link>
               )}
+              <Link to="/app/disciplinas" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white/12 px-5 py-3 text-sm font-extrabold text-white ring-1 ring-inset ring-white/30">
+                Escolher outra matéria
+                <Icon name="arrow" className="h-4 w-4" />
+              </Link>
               <Link to="/app/prova" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white/12 px-5 py-3 text-sm font-extrabold text-white ring-1 ring-inset ring-white/30">
                 Praticar questões
               </Link>
@@ -564,7 +568,7 @@ function AppDashboard() {
             <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
             <h2 id="continue-heading" className="mt-1 text-[21px] font-black tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">Continuar de onde você parou</h2>
           </div>
-          <Link to="/app/disciplinas" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Ver disciplinas</Link>
+          <Link to="/app/disciplinas" className="text-xs font-black text-[#0242D7] dark:text-[#78A9FF]">Pesquisar qualquer disciplina</Link>
         </div>
         <div className="mt-4 space-y-3">
           {focusedResumeTopics.length > 0 ? (
