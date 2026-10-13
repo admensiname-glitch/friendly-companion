@@ -347,8 +347,8 @@ function AppDashboard() {
   }, []);
 
   const firstName = useMemo(
-    () => profile?.display_name?.trim()?.split(/\\s+/)[0] || user?.user_metadata?.full_name?.split(" ")[0] || user?.user_metadata?.name?.split(" ")[0] || "Aluno",
-    [profile?.display_name, user],
+    () => profile?.display_name?.trim()?.split(/\\s+/)[0] || "Aluno",
+    [profile?.display_name],
   );
 
   const hour = new Date().getHours();
