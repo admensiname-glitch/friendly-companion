@@ -99,7 +99,7 @@ function ExamPage() {
     });
     const payload = data as { attempt_id?: string; questions?: ExamQuestion[] } | null;
     if (rpcError || !payload?.attempt_id || !Array.isArray(payload.questions)) {
-      let detail = payload && typeof (payload as any).error === "string" ? (payload as any).error : "";
+      let detail = payload && typeof (payload as { error?: unknown }).error === "string" ? (payload as { error: string }).error : "";
       if (!detail && rpcError) {
         try {
           const context = (rpcError as any).context;
