@@ -172,7 +172,8 @@ function AppDashboard() {
       const userId = sessionData.session.user.id;
       setUser(sessionData.session.user as User);
 
-      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, focusResult, learningSignalsResult, resumeProgressResult] =
+      const today = new Date().toISOString().slice(0, 10);
+      const [profileResult, disciplinesResult, topicsResult, recommendationResult, todayResult, focusResult, learningSignalsResult, resumeProgressResult, examsResult] =
         await Promise.all([
           supabase.from("student_profiles").select("display_name, institution, semester, daily_study_minutes, difficulties").eq("user_id", userId).maybeSingle(),
           supabase.from("student_disciplines").select("id, discipline_name, course").eq("user_id", userId),
@@ -194,6 +195,13 @@ function AppDashboard() {
             .not("last_learning_activity_at", "is", null)
             .order("last_learning_activity_at", { ascending: false })
             .limit(8),
+          supabase
+            .from("student_exams")
+            .select("id, discipline, exam_type, exam_date")
+            .eq("user_id", userId)
+            .gte("exam_date", today)
+            .order("exam_date", { ascending: true })
+            .limit(1),
         ]);
 
       if (profileResult.data) setProfile(profileResult.data as Profile);
@@ -293,16 +301,10 @@ function AppDashboard() {
         }
       }
 
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: exams } = await supabase
-        .from("student_exams")
-        .select("id, discipline, exam_type, exam_date")
-        .eq("user_id", userId)
-        .gte("exam_date", today)
-        .order("exam_date", { ascending: true })
-        .limit(1);
+      if (examsResult.data?.[0]) setNextExam(examsResult.data[0] as StudentExam);
 
-      if (exams?.[0]) setNextExam(exams[0] as StudentExam);
+      // Render the primary dashboard as soon as the first batch of requests completes.
+      // Resume-position enrichment continues below without holding the whole screen in loading state.
       setLoading(false);
     };
 
