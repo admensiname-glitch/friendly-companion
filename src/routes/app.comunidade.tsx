@@ -50,7 +50,7 @@ function CommunityPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [profileName, setProfileName] = useState("Estudante Ensina-me");
+  const [profileName, setProfileName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileNameDraft, setProfileNameDraft] = useState("");
@@ -112,7 +112,9 @@ function CommunityPage() {
     const sharedCourseId = urlParams.get("course_id");
     const profileCourseId = profileResult.data?.course_id ?? "";
     setSelectedCourse(sharedCourseId || profileCourseId);
-    setProfileName(profileResult.data?.display_name?.trim() || "Estudante Ensina-me");
+    const sessionUser = sessionData.session?.user;
+    const authName = sessionUser?.user_metadata?.full_name?.trim() || sessionUser?.user_metadata?.name?.trim();
+    setProfileName(profileResult.data?.display_name?.trim() || authName || "Seu perfil");
     setAvatarUrl(profileResult.data?.avatar_url ?? null);
 
     // Show the feed as soon as the posts and personal state are ready.
@@ -317,7 +319,7 @@ function CommunityPage() {
       (profiles ?? []).map((profile) => [
         profile.user_id,
         {
-          name: profile.display_name?.trim() || "Estudante Ensina-me",
+          name: profile.display_name?.trim() || "Estudante",
           avatar: profile.avatar_url ?? null,
         },
       ]),
