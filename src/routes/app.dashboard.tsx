@@ -224,6 +224,11 @@ function AppDashboard() {
         setLearningSignals(learningSignalsResult.data as LearningSignal[]);
       }
 
+      if (examsResult.data?.[0]) setNextExam(examsResult.data[0] as StudentExam);
+
+      // The main dashboard can render while resume-position details finish loading.
+      setLoading(false);
+
       if (!resumeProgressResult.error && resumeProgressResult.data) {
         const progressRows = resumeProgressResult.data as Array<{
           topic_id: string;
@@ -301,11 +306,6 @@ function AppDashboard() {
         }
       }
 
-      if (examsResult.data?.[0]) setNextExam(examsResult.data[0] as StudentExam);
-
-      // Render the primary dashboard as soon as the first batch of requests completes.
-      // Resume-position enrichment continues below without holding the whole screen in loading state.
-      setLoading(false);
     };
 
     void loadData();
