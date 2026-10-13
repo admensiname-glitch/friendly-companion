@@ -10,10 +10,312 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
+      agent_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json
+          id: string
+          run_id: string | null
+          task_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json
+          id?: string
+          run_id?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          run_id?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_actions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_actions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_approvals: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          id: string
+          requested_action: Json
+          run_id: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          requested_action?: Json
+          run_id: string
+          status?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          requested_action?: Json
+          run_id?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_approvals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_approvals_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_findings: {
+        Row: {
+          created_at: string
+          details: string
+          evidence: Json
+          id: string
+          recommendation: string | null
+          run_id: string
+          severity: string
+          status: string
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          details: string
+          evidence?: Json
+          id?: string
+          recommendation?: string | null
+          run_id: string
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          details?: string
+          evidence?: Json
+          id?: string
+          recommendation?: string | null
+          run_id?: string
+          severity?: string
+          status?: string
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_findings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_memory: {
+        Row: {
+          id: string
+          memory_key: string
+          memory_value: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          memory_key: string
+          memory_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          memory_key?: string
+          memory_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agent_runs: {
+        Row: {
+          created_at: string
+          id: string
+          mission: string
+          requested_by: string
+          risk_level: string
+          scope: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mission: string
+          requested_by: string
+          risk_level?: string
+          scope?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mission?: string
+          requested_by?: string
+          risk_level?: string
+          scope?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agent_tasks: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          risk_level: string
+          run_id: string
+          status: string
+          task_key: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          risk_level?: string
+          run_id: string
+          status?: string
+          task_key: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          risk_level?: string
+          run_id?: string
+          status?: string
+          task_key?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_tool_requests: {
+        Row: {
+          arguments: Json
+          created_at: string
+          evidence: Json
+          id: string
+          purpose: string
+          requested_by: string
+          result: Json | null
+          risk_level: string
+          run_id: string
+          status: string
+          task_id: string | null
+          tool_name: string
+          updated_at: string
+        }
+        Insert: {
+          arguments?: Json
+          created_at?: string
+          evidence?: Json
+          id?: string
+          purpose: string
+          requested_by: string
+          result?: Json | null
+          risk_level?: string
+          run_id: string
+          status?: string
+          task_id?: string | null
+          tool_name: string
+          updated_at?: string
+        }
+        Update: {
+          arguments?: Json
+          created_at?: string
+          evidence?: Json
+          id?: string
+          purpose?: string
+          requested_by?: string
+          result?: Json | null
+          risk_level?: string
+          run_id?: string
+          status?: string
+          task_id?: string | null
+          tool_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tool_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tool_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_conversations: {
         Row: {
           created_at: string
@@ -231,7 +533,10 @@ export type Database = {
       }
       community_posts: {
         Row: {
+          author_avatar_url: string | null
+          author_display_name: string | null
           author_id: string
+          author_is_verified: boolean
           body: string
           course_id: string | null
           created_at: string
@@ -239,11 +544,16 @@ export type Database = {
           id: string
           image_path: string | null
           image_url: string | null
+          is_official: boolean
+          official_until: string | null
           topic_id: string | null
           updated_at: string
         }
         Insert: {
+          author_avatar_url?: string | null
+          author_display_name?: string | null
           author_id: string
+          author_is_verified?: boolean
           body: string
           course_id?: string | null
           created_at?: string
@@ -251,11 +561,16 @@ export type Database = {
           id?: string
           image_path?: string | null
           image_url?: string | null
+          is_official?: boolean
+          official_until?: string | null
           topic_id?: string | null
           updated_at?: string
         }
         Update: {
+          author_avatar_url?: string | null
+          author_display_name?: string | null
           author_id?: string
+          author_is_verified?: boolean
           body?: string
           course_id?: string | null
           created_at?: string
@@ -263,6 +578,8 @@ export type Database = {
           id?: string
           image_path?: string | null
           image_url?: string | null
+          is_official?: boolean
+          official_until?: string | null
           topic_id?: string | null
           updated_at?: string
         }
@@ -496,27 +813,36 @@ export type Database = {
       }
       exam_attempt_answers: {
         Row: {
+          ai_feedback: string | null
           answered_at: string
           attempt_id: string
           attempt_question_id: string
           id: string
           is_correct: boolean
+          response_text: string | null
+          rubric_score: number | null
           selected_option_id: string | null
         }
         Insert: {
+          ai_feedback?: string | null
           answered_at?: string
           attempt_id: string
           attempt_question_id: string
           id?: string
           is_correct: boolean
+          response_text?: string | null
+          rubric_score?: number | null
           selected_option_id?: string | null
         }
         Update: {
+          ai_feedback?: string | null
           answered_at?: string
           attempt_id?: string
           attempt_question_id?: string
           id?: string
           is_correct?: boolean
+          response_text?: string | null
+          rubric_score?: number | null
           selected_option_id?: string | null
         }
         Relationships: [
@@ -548,6 +874,7 @@ export type Database = {
           attempt_id: string
           created_at: string
           id: string
+          minimum_lines: number | null
           position: number
           question_id: string
         }
@@ -555,6 +882,7 @@ export type Database = {
           attempt_id: string
           created_at?: string
           id?: string
+          minimum_lines?: number | null
           position: number
           question_id: string
         }
@@ -562,6 +890,7 @@ export type Database = {
           attempt_id?: string
           created_at?: string
           id?: string
+          minimum_lines?: number | null
           position?: number
           question_id?: string
         }
@@ -1208,6 +1537,135 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          announcements: boolean
+          learning_recommendations: boolean
+          push_enabled: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string
+          quiet_hours_start: string
+          review_reminders: boolean
+          study_reminders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          announcements?: boolean
+          learning_recommendations?: boolean
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          review_reminders?: boolean
+          study_reminders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          announcements?: boolean
+          learning_recommendations?: boolean
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          review_reminders?: boolean
+          study_reminders?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      professor_audit_findings: {
+        Row: {
+          audit_kind: string
+          auditor_version: string
+          created_at: string
+          evidence: Json
+          findings: Json
+          id: string
+          model_name: string
+          recommendation: string | null
+          score: number | null
+          status: string
+          target_id: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          audit_kind: string
+          auditor_version: string
+          created_at?: string
+          evidence?: Json
+          findings?: Json
+          id?: string
+          model_name: string
+          recommendation?: string | null
+          score?: number | null
+          status?: string
+          target_id: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audit_kind?: string
+          auditor_version?: string
+          created_at?: string
+          evidence?: Json
+          findings?: Json
+          id?: string
+          model_name?: string
+          recommendation?: string | null
+          score?: number | null
+          status?: string
+          target_id?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          active: boolean
+          auth_key: string | null
+          channel: string
+          created_at: string
+          endpoint: string | null
+          fcm_token: string | null
+          id: string
+          p256dh: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          auth_key?: string | null
+          channel: string
+          created_at?: string
+          endpoint?: string | null
+          fcm_token?: string | null
+          id?: string
+          p256dh?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          auth_key?: string | null
+          channel?: string
+          created_at?: string
+          endpoint?: string | null
+          fcm_token?: string | null
+          id?: string
+          p256dh?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       source_chunks: {
         Row: {
           chunk_index: number
@@ -1547,6 +2005,35 @@ export type Database = {
         }
         Relationships: []
       }
+      student_courses: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_disciplines: {
         Row: {
           course: string
@@ -1598,6 +2085,124 @@ export type Database = {
         }
         Relationships: []
       }
+      student_focus_discipline: {
+        Row: {
+          discipline_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          discipline_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          discipline_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_focus_discipline_discipline_id_fkey"
+            columns: ["discipline_id"]
+            isOneToOne: false
+            referencedRelation: "disciplines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_focus_disciplines: {
+        Row: {
+          created_at: string
+          discipline_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discipline_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discipline_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_focus_disciplines_discipline_id_fkey"
+            columns: ["discipline_id"]
+            isOneToOne: false
+            referencedRelation: "disciplines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_learning_signals: {
+        Row: {
+          concept: string
+          correct_count: number
+          discipline_id: string
+          evidence: string | null
+          first_seen: string
+          id: string
+          last_seen: string
+          occurrences: number
+          severity: number
+          signal_type: string
+          status: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          concept: string
+          correct_count?: number
+          discipline_id: string
+          evidence?: string | null
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          occurrences?: number
+          severity?: number
+          signal_type: string
+          status?: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          concept?: string
+          correct_count?: number
+          discipline_id?: string
+          evidence?: string | null
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          occurrences?: number
+          severity?: number
+          signal_type?: string
+          status?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_learning_signals_discipline_id_fkey"
+            columns: ["discipline_id"]
+            isOneToOne: false
+            referencedRelation: "disciplines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_learning_signals_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_material_section_progress: {
         Row: {
           completed_at: string
@@ -1630,12 +2235,56 @@ export type Database = {
           },
         ]
       }
+      student_notifications: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          delivery_status: string
+          id: string
+          push_sent_at: string | null
+          read_at: string | null
+          target_url: string | null
+          title: string
+          topic: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          delivery_status?: string
+          id?: string
+          push_sent_at?: string | null
+          read_at?: string | null
+          target_url?: string | null
+          title: string
+          topic?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          delivery_status?: string
+          id?: string
+          push_sent_at?: string | null
+          read_at?: string | null
+          target_url?: string | null
+          title?: string
+          topic?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_profiles: {
         Row: {
+          avatar_url: string | null
           course_id: string | null
           created_at: string
           daily_study_minutes: number | null
           difficulties: string[] | null
+          display_name: string | null
           id: string
           institution: string | null
           onboarding_completed: boolean
@@ -1646,10 +2295,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           course_id?: string | null
           created_at?: string
           daily_study_minutes?: number | null
           difficulties?: string[] | null
+          display_name?: string | null
           id?: string
           institution?: string | null
           onboarding_completed?: boolean
@@ -1660,10 +2311,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           course_id?: string | null
           created_at?: string
           daily_study_minutes?: number | null
           difficulties?: string[] | null
+          display_name?: string | null
           id?: string
           institution?: string | null
           onboarding_completed?: boolean
@@ -1832,6 +2485,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_owners: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       topic_sources: {
         Row: {
@@ -2118,6 +2786,8 @@ export type Database = {
           topic_name: string
         }[]
       }
+      get_student_focus_discipline: { Args: never; Returns: Json }
+      get_student_focus_disciplines: { Args: never; Returns: Json }
       get_student_performance_summary: { Args: never; Returns: Json }
       get_student_recent_evaluations: {
         Args: { _limit?: number }
@@ -2164,6 +2834,17 @@ export type Database = {
           total_sections: number
         }[]
       }
+      record_learning_signal: {
+        Args: {
+          _concept: string
+          _correct?: boolean
+          _evidence?: string
+          _severity?: number
+          _signal_type: string
+          _topic_id: string
+        }
+        Returns: undefined
+      }
       record_micro_assessment_answer: {
         Args: { _assessment_id: string; _selected_option_index: number }
         Returns: Json
@@ -2180,8 +2861,24 @@ export type Database = {
         }
         Returns: string
       }
+      remove_student_focus_discipline: {
+        Args: { _discipline_id: string }
+        Returns: Json
+      }
       save_exam_answer: {
         Args: { _attempt_question_id: string; _selected_option_id: string }
+        Returns: Json
+      }
+      save_exam_text_answer: {
+        Args: { _attempt_question_id: string; _response_text: string }
+        Returns: Json
+      }
+      save_student_topic_position: {
+        Args: { _position: number; _topic_id: string }
+        Returns: Json
+      }
+      set_student_focus_discipline: {
+        Args: { _discipline_id: string }
         Returns: Json
       }
       start_exam: {
