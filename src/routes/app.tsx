@@ -63,7 +63,6 @@ const navigation = [
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
-  { to: "/app/catalogo" as const, label: "Busca acadêmica", icon: "library" as const },
 ];
 
 function AppLayout() {
@@ -207,7 +206,6 @@ function AppLayout() {
     if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
     if (pathname === "/app/revisao") return { title: "Revisão", back: false };
     if (pathname === "/app/desempenho") return { title: "Desempenho", back: false };
-    if (pathname === "/app/catalogo" || pathname === "/app/catalogo/") return { title: "Busca acadêmica", back: false };
     if (pathname === "/app/perfil") return { title: "Meu perfil", back: true };
     if (pathname.includes("/app/disciplinas/")) return { title: "Tópico", back: true };
     if (pathname.includes("/app/estudo/")) return { title: "Estudo", back: true };
