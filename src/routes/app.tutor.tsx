@@ -295,6 +295,9 @@ function TutorPage() {
         return;
       }
 
+      // Render the Tutor shell immediately; personalize its context as data arrives.
+      setLoading(false);
+
       // Recommendation and course membership do not depend on each other.
       const [recommendationData, membershipResult] = await Promise.all([
         LearningEngine.getRecommendation().catch(() => null),
