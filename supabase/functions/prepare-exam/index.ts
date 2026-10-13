@@ -24,7 +24,9 @@ const auditExamSemantics=async(items:AuditItem[],key:string):Promise<{ok:boolean
  let data;try{data=await response.json()}catch{return {ok:false,reason:"semantic_audit_invalid_response"}}
  let parsed;try{parsed=JSON.parse(data?.choices?.[0]?.message?.content??"{}")}catch{return {ok:false,reason:"semantic_audit_invalid_json"}}
  if(!Array.isArray(parsed.pairs))return {ok:false,reason:"semantic_audit_missing_pairs"};
- for(const pair of parsed.pairs){if(!Number.isInteger(pair.a)||!Number.isInteger(pair.b)||pair.a<0||pair.b<0||pair.a>=items.length||pair.b>=items.length||pair.a===pair.b)return {ok:false,reason:"semantic_audit_invalid_pair"};if(pair.duplicate===true||pair.uncertain===true)return {ok:false,reason:pair.duplicate===true?"semantic_duplicate_detected":"semantic_audit_inconclusive"}}
+ const expectedPairs=items.length*(items.length-1)/2;const seenPairs=new Set<string>();
+ for(const pair of parsed.pairs){if(!Number.isInteger(pair.a)||!Number.isInteger(pair.b)||pair.a<0||pair.b<0||pair.a>=items.length||pair.b>=items.length||pair.a===pair.b)return {ok:false,reason:"semantic_audit_invalid_pair"};const pairKey=[pair.a,pair.b].sort((a:number,b:number)=>a-b).join(":");if(seenPairs.has(pairKey))return {ok:false,reason:"semantic_audit_duplicate_pair"};seenPairs.add(pairKey);if(pair.duplicate===true||pair.uncertain===true)return {ok:false,reason:pair.duplicate===true?"semantic_duplicate_detected":"semantic_audit_inconclusive"}}
+ if(seenPairs.size!==expectedPairs)return {ok:false,reason:"semantic_audit_incomplete"};
  return {ok:true};
 };
 const json=(x:unknown,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...corsHeaders,"Content-Type":"application/json"}});
