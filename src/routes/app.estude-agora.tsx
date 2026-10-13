@@ -94,7 +94,7 @@ function StudyNowPage() {
       {loading ? (
         <div className="mt-8 h-72 animate-pulse rounded-[20px] border border-[#E4EAF1] bg-white dark:border-[#2B3A4F] dark:bg-[#111B2A]" />
       ) : error ? (
-        <div className="mt-8 rounded-[20px] border border-[#FECACA] bg-[#FEF2F2] p-6 text-sm text-[#991B1B]" role="alert">
+        <div className="mt-8 rounded-[20px] border border-[#FECACA] bg-[#FEF2F2] p-6 text-sm text-[#991B1B] dark:border-[#71333A] dark:bg-[#321A1F] dark:text-[#FCA5A5]" role="alert">
           Não foi possível calcular seu próximo passo agora. Você pode continuar pelas disciplinas ou tentar novamente.
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/app/disciplinas" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Ver disciplinas</Link>
@@ -152,9 +152,9 @@ function StudyNowPage() {
 
           <div className="border-t border-[#D5E1F2] bg-white/55 px-6 py-5 dark:border-[#2E4563] dark:bg-[#111C2E]/45 sm:px-8">
             <div className="mb-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">15 min</p><p className="mt-1 text-xs text-[#7A8796]">Sessão rápida: conteúdo + prática</p></div>
-              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">30 min</p><p className="mt-1 text-xs text-[#7A8796]">Sessão completa: estudar + praticar + revisar</p></div>
-              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3"><p className="text-xs font-bold text-[#0242D7]">Meta de hoje</p><p className="mt-1 text-xs text-[#7A8796]">Acumule minutos e acompanhe seu ritmo</p></div>
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3 dark:border-[#2B3A4F] dark:bg-[#172033]"><p className="text-xs font-bold text-[#0242D7] dark:text-[#78A9FF]">15 min</p><p className="mt-1 text-xs text-[#7A8796] dark:text-[#AAB7C7]">Sessão rápida: conteúdo + prática</p></div>
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3 dark:border-[#2B3A4F] dark:bg-[#172033]"><p className="text-xs font-bold text-[#0242D7] dark:text-[#78A9FF]">30 min</p><p className="mt-1 text-xs text-[#7A8796] dark:text-[#AAB7C7]">Sessão completa: estudar + praticar + revisar</p></div>
+              <div className="rounded-xl border border-[#DCE5F0] bg-white p-3 dark:border-[#2B3A4F] dark:bg-[#172033]"><p className="text-xs font-bold text-[#0242D7] dark:text-[#78A9FF]">Meta de hoje</p><p className="mt-1 text-xs text-[#7A8796] dark:text-[#AAB7C7]">Acumule minutos e acompanhe seu ritmo</p></div>
             </div>
             <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3">
               <div>
