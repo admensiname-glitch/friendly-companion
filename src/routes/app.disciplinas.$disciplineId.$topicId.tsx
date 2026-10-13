@@ -754,17 +754,30 @@ function TutorMicroAssessmentCard({
     setSubmitting(true);
     setAnswerError(null);
 
-    const { data, error } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "answer_microassessment",
-        micro_assessment_id: assessment.id,
-        selected_option_index: selected,
-      },
-    });
+    let data: Record<string, unknown> | null = null;
+    let requestFailed = false;
 
-    setSubmitting(false);
+    try {
+      const response = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "answer_microassessment",
+          micro_assessment_id: assessment.id,
+          selected_option_index: selected,
+        },
+      });
 
-    if (error || !data?.explanation) {
+      if (response.error || !response.data?.explanation) {
+        requestFailed = true;
+      } else {
+        data = response.data as Record<string, unknown>;
+      }
+    } catch {
+      requestFailed = true;
+    } finally {
+      setSubmitting(false);
+    }
+
+    if (requestFailed || !data?.explanation) {
       setAnswerError("Não foi possível corrigir esta microavaliação agora. Sua resposta não foi confirmada; tente novamente.");
       return;
     }
