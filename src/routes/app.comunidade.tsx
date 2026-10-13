@@ -72,7 +72,7 @@ function CommunityPage() {
 
     const nowIso = new Date().toISOString();
     const [profileResult, postResult, officialResult, likeResult, saveResult, courseResult] = await Promise.all([
-      supabase.from("student_profiles").select("display_name,avatar_url").eq("user_id", userId).maybeSingle(),
+      supabase.from("student_profiles").select("course_id,display_name,avatar_url").eq("user_id", userId).maybeSingle(),
       supabase
         .from("community_posts")
         .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
@@ -108,6 +108,10 @@ function CommunityPage() {
     setLiked(new Set((likeResult.data ?? []).map((item) => item.post_id)));
     setSaved(new Set((saveResult.data ?? []).map((item) => item.post_id)));
     setCourses((courseResult.data ?? []) as Course[]);
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedCourseId = urlParams.get("course_id");
+    const profileCourseId = profileResult.data?.course_id ?? "";
+    setSelectedCourse(sharedCourseId || profileCourseId);
     setProfileName(profileResult.data?.display_name?.trim() || "Estudante Ensina-me");
     setAvatarUrl(profileResult.data?.avatar_url ?? null);
 
