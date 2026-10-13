@@ -15,6 +15,11 @@ interface CourseDiscipline {
   description: string | null;
 }
 
+interface GlobalDisciplineResult extends CourseDiscipline {
+  course_id: string;
+  course_name: string;
+}
+
 export const Route = createFileRoute("/app/disciplinas")({
   component: DisciplinesPage,
 });
@@ -91,6 +96,11 @@ function DisciplinesPage() {
   const [focusSaving, setFocusSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+  const [globalResults, setGlobalResults] = useState<GlobalDisciplineResult[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+  const [globalSearchDone, setGlobalSearchDone] = useState(false);
+  const [globalSearchError, setGlobalSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +192,47 @@ function DisciplinesPage() {
     })();
     return () => { cancelled = true; };
   }, [selectedCourse]);
+
+  const searchAllDisciplines = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const term = globalSearchTerm.trim();
+    if (term.length < 2) {
+      setGlobalSearchError("Digite pelo menos 2 caracteres para pesquisar.");
+      setGlobalResults([]);
+      setGlobalSearchDone(false);
+      return;
+    }
+    if (courses.length === 0) {
+      setGlobalResults([]);
+      setGlobalSearchDone(true);
+      return;
+    }
+
+    setGlobalSearchLoading(true);
+    setGlobalSearchError(null);
+    setGlobalSearchDone(false);
+    const { data, error: searchError } = await supabase
+      .from("disciplines")
+      .select("id, name, description, course_id")
+      .in("course_id", courses.map((course) => course.id))
+      .eq("published", true)
+      .order("name", { ascending: true });
+
+    if (searchError) {
+      setGlobalSearchError("Não foi possível pesquisar as disciplinas agora. Tente novamente.");
+      setGlobalResults([]);
+    } else {
+      const courseNames = new Map(courses.map((course) => [course.id, course.name]));
+      const normalizedTerm = term.toLocaleLowerCase("pt-BR");
+      const matches = ((data ?? []) as Array<CourseDiscipline & { course_id: string }>)
+        .filter((discipline) => `${discipline.name} ${discipline.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(normalizedTerm))
+        .map((discipline) => ({ ...discipline, course_name: courseNames.get(discipline.course_id) ?? "Seu curso" }))
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      setGlobalResults(matches);
+    }
+    setGlobalSearchDone(true);
+    setGlobalSearchLoading(false);
+  };
 
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
   const visibleCourses = courses.filter((course) => course.name.toLocaleLowerCase("pt-BR").includes(normalizedSearch));
