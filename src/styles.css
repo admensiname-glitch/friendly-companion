@@ -238,14 +238,14 @@
 }
 
 .dark [class~="bg-white"] {
-  background-color: #172033 !important;
+  background-color: #25282E !important;
 }
 
 .dark [class*="bg-[#F0F5FF]"],
 .dark [class*="bg-[#EFF6FF]"],
 .dark [class*="bg-[#F8FAFC]"],
 .dark [class*="bg-[#F8FBFF]"] {
-  background-color: #152237 !important;
+  background-color: #292D34 !important;
 }
 
 .dark [class*="bg-[#F1F4F8]"],
@@ -257,7 +257,7 @@
 .dark [class*="bg-[#E9EEF5]"],
 .dark [class*="bg-[#E6EBF2]"],
 .dark [class*="bg-[#E2E8F0]"] {
-  background-color: #1B2638 !important;
+  background-color: #2B3038 !important;
 }
 
 .dark [class*="bg-[#FEF2F2]"] {
@@ -937,9 +937,9 @@
 }
 
 .dark .app-card {
-  border-color: #2B3B51;
-  background: #172437;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .12);
+  border-color: #393E47;
+  background: #22252B;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
 }
 
 @media (max-width: 639px) {
@@ -1234,6 +1234,12 @@
   --app-line: #e3eaf3;
   --app-canvas: #f6f8fc;
 }
+.dark .app-shell {
+  --app-ink: #F2F3F5;
+  --app-muted: #B7BDC7;
+  --app-line: #393E47;
+  --app-canvas: #191B20;
+}
 .app-shell main {
   color: var(--app-ink);
 }
@@ -1253,9 +1259,9 @@
 .dark .app-shell main .app-card,
 .dark .app-shell main .surface-card,
 .dark .app-shell main [data-card="true"] {
-  border-color: #2b3b51;
-  background: #111d2d;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, .12);
+  border-color: #393E47;
+  background: #22252B;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
 }
 .app-shell main input:not([type="checkbox"]):not([type="radio"]),
 .app-shell main textarea,
