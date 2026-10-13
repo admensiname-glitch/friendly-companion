@@ -58,9 +58,6 @@ function ExamPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<string[]>([]);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [points, setPoints] = useState(0);
   const [current, setCurrent] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [result, setResult] = useState<ExamResult | null>(null);
@@ -125,9 +122,6 @@ function ExamPage() {
     setAnswers({});
     setTextAnswers({});
     setFlagged([]);
-    setStreak(0);
-    setBestStreak(0);
-    setPoints(0);
     setCurrent(0);
     setRemaining(duration * 60);
     setResult(null);
@@ -151,17 +145,6 @@ function ExamPage() {
         .select("is_correct")
         .eq("attempt_question_id", question.attempt_question_id)
         .maybeSingle();
-      if (savedAnswer?.is_correct) {
-        setStreak((value) => {
-          const next = value + 1;
-          setBestStreak((best) => Math.max(best, next));
-          return next;
-        });
-        setPoints((value) => value + 100);
-      } else {
-        setStreak(0);
-        setPoints((value) => Math.max(0, value - 25));
-      }
     }
     setSaving(false);
   }
@@ -325,7 +308,7 @@ function ExamPage() {
             {duration > 0 && <span className="rounded-full bg-[#F1F5F9] px-3 py-1.5 text-sm font-bold tabular-nums">{formatTime(remaining)}</span>}
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E8EDF3]"><div className="h-full bg-[#0242D7]" style={{width:`${((current+1)/questions.length)*100}%`}} /></div>
-          <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-[#7A8796]"><span>Questão {current+1} de {questions.length} · {answeredCount} respondidas</span><span className="font-bold text-[#0242D7]">⚡ {points} pts</span><span className="font-bold text-[#187A59]">🔥 sequência {streak}</span>{flagged.length > 0 && <span>{flagged.length} marcada(s)</span>}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-[#7A8796]"><span>Questão {current+1} de {questions.length} · {answeredCount} respondidas</span>{flagged.length > 0 && <span>{flagged.length} marcada(s)</span>}</div>
         </header>
 
         <article className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-8">
