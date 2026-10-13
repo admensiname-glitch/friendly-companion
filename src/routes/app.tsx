@@ -75,11 +75,26 @@ function AppLayout() {
   const [profileName, setProfileName] = useState("Meu perfil");
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const logoutPending = useRef(false);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("ensina-me-theme");
+    const shouldUseDark = savedTheme === "dark";
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+    setIsDarkMode(shouldUseDark);
+  }, []);
+
+  function toggleTheme() {
+    const nextIsDark = !isDarkMode;
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    window.localStorage.setItem("ensina-me-theme", nextIsDark ? "dark" : "light");
+    setIsDarkMode(nextIsDark);
+  }
 
   useEffect(() => {
     let active = true;
@@ -373,6 +388,10 @@ function AppLayout() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#8DB8FF]"><Icon name="user" className="h-[18px] w-[18px]" /></span>
                 Meu perfil e configurações
               </Link>
+              <button type="button" onClick={toggleTheme} className="mt-1 flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-[#405064] dark:text-[#D1DCE8]" aria-label={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#8DB8FF]"><Icon name={isDarkMode ? "sun" : "moon"} className="h-[18px] w-[18px]" /></span>
+                {isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}
+              </button>
               <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="mt-1 flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold text-[#B42318] disabled:opacity-50">
                 <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#FEF0EF]"><Icon name="logout" className="h-[18px] w-[18px]" /></span>
                 {isLoggingOut ? "Saindo..." : "Sair da conta"}
@@ -389,6 +408,10 @@ function AppLayout() {
             <p className="mt-1 text-lg font-extrabold text-[#243245] dark:text-[#E7EDF5]">Aprenda hoje. Conquiste amanhã.</p>
           </div>
           <div className="flex items-center gap-2">
+            <button type="button" onClick={toggleTheme} className="app-top-action inline-flex h-10 items-center gap-2 px-3" aria-label={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"} title={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
+              <Icon name={isDarkMode ? "sun" : "moon"} className="h-4 w-4" />
+              <span>{isDarkMode ? "Modo claro" : "Modo escuro"}</span>
+            </button>
             <Link to="/app/revisao" className="app-top-action gap-2 px-3">
               <Icon name="review" className="h-4 w-4" />
               <span>Revisão</span>
