@@ -174,8 +174,37 @@ function ExamPage() {
 
   async function finishExam() {
     if (!attemptId) return;
-    if (answeredCount < questions.length) {
-      const ok = window.confirm("Ainda há questões sem resposta. Deseja entregar a prova mesmo assim?");
+    // Confere as respostas persistidas no banco antes de avisar que há questões em branco.
+    // O estado local pode ficar momentaneamente atrasado em relação ao salvamento via RPC.
+    const { data: persistedAnswers, error: persistedAnswersError } = await supabase
+      .from("exam_attempt_answers")
+      .select("attempt_question_id,selected_option_id,response_text")
+      .eq("attempt_id", attemptId);
+    if (persistedAnswersError) {
+      setError("Não foi possível confirmar quais respostas foram registradas. Confira a conexão e tente entregar novamente.");
+      return;
+    }
+    const persistedByQuestion = new Map(
+      (persistedAnswers ?? []).map((answer) => [answer.attempt_question_id, answer]),
+    );
+    const persistedAnsweredCount = questions.filter((q) => {
+      const answer = persistedByQuestion.get(q.attempt_question_id);
+      return Boolean(answer?.selected_option_id || answer?.response_text?.trim());
+    }).length;
+    if (persistedAnsweredCount !== answeredCount) {
+      setAnswers((old) => {
+        const next = { ...old };
+        for (const q of questions) {
+          const answer = persistedByQuestion.get(q.attempt_question_id);
+          if (answer?.selected_option_id) next[q.id] = answer.selected_option_id;
+          else if (answer?.response_text?.trim()) next[q.id] = answer.response_text;
+          else delete next[q.id];
+        }
+        return next;
+      });
+    }
+    if (persistedAnsweredCount < questions.length) {
+      const ok = window.confirm(`O sistema confirmou ${persistedAnsweredCount} de ${questions.length} respostas salvas. Deseja entregar a prova mesmo assim?`);
       if (!ok) return;
     }
     setSaving(true);
