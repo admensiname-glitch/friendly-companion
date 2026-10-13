@@ -1240,13 +1240,7 @@
 .app-shell main h1,
 .app-shell main h2,
 .app-shell main h3 {
-  color: #14243a;
   letter-spacing: -.03em;
-}
-.dark .app-shell main h1,
-.dark .app-shell main h2,
-.dark .app-shell main h3 {
-  color: #e8eef7;
 }
 .app-shell main .app-card,
 .app-shell main .surface-card,
