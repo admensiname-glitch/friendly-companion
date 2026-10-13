@@ -746,11 +746,13 @@ function TutorMicroAssessmentCard({
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<TutorMicroResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [answerError, setAnswerError] = useState<string | null>(null);
 
   async function answer() {
     if (selected === null || submitting || result) return;
 
     setSubmitting(true);
+    setAnswerError(null);
 
     const { data, error } = await supabase.functions.invoke("ai-tutor", {
       body: {
@@ -763,6 +765,7 @@ function TutorMicroAssessmentCard({
     setSubmitting(false);
 
     if (error || !data?.explanation) {
+      setAnswerError("Não foi possível corrigir esta microavaliação agora. Sua resposta não foi confirmada; tente novamente.");
       return;
     }
 
@@ -873,6 +876,12 @@ function TutorMicroAssessmentCard({
           );
         })}
       </div>
+
+      {!result && answerError && (
+        <p className="mt-3 rounded-lg border border-[#FED7AA] bg-[#FFF7ED] p-3 text-sm leading-6 text-[#9A3412]" role="alert">
+          {answerError}
+        </p>
+      )}
 
       {!result && (
         <button
