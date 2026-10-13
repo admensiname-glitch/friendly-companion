@@ -137,7 +137,7 @@ ${contexts.join("\n\n").slice(0,14000)}`;
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
   if(chosen.filter((q)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount)return json({error:"Não foi possível montar a composição híbrida da prova."},503);
-  const semanticAudit=await auditExamSemantics(chosen.map((q)=>({question_text:q.question_text,type:q.question_type??q.type,options:(q as any).options??[],correct_option_index:(q as any).correct_option_index??null,explanation:(q as any).explanation??"",rubric:(q as any).rubric??[],concept_tags:(q as any).concept_tags??[]})),key??"");
+  const semanticAudit=await auditExamSemantics(chosen.map((q)=>{const detail=q as unknown as {options?:string[];correct_option_index?:number|null;explanation?:string;rubric?:string[];concept_tags?:string[]};return {question_text:q.question_text,type:q.question_type??q.type,options:detail.options??[],correct_option_index:detail.correct_option_index??null,explanation:detail.explanation??"",rubric:detail.rubric??[],concept_tags:detail.concept_tags??[]}}),key??"");
   if(!semanticAudit.ok)return json({error:"A prova não foi liberada porque a verificação semântica de duplicidade falhou ou ficou inconclusiva. Nenhuma prova foi iniciada. Tente novamente.",retryable:true,reason:semanticAudit.reason},503);
   const {data:attempt,error:ae}=await admin.from("exam_attempts").insert({user_id:u.user.id,discipline_id:disciplineId,total_questions:count,duration_seconds:duration||null}).select("id").single();
   if(ae||!attempt)return json({error:"Não foi possível iniciar a prova."},500);
