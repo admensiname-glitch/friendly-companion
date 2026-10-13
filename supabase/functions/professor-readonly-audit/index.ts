@@ -16,7 +16,7 @@ const corsHeaders = {
 const out = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { ...corsHeaders, "content-type": "application/json", "cache-control": "no-store" }
 });
-const isObj = (x: unknown): x is Record<string, any> => !!x && typeof x === "object" && !Array.isArray(x);
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
 
 async function getUser(req: Request) {
   const auth = req.headers.get("authorization");
@@ -53,7 +53,7 @@ async function askGroq(system: string, payload: unknown) {
       }
       parsed.score = Math.max(0, Math.min(100, Math.round(parsed.score)));
       if (!["needs_review", "confirmed_issue", "no_issue_detected", "human_review"].includes(parsed.status)) parsed.status = "human_review";
-      parsed.findings = parsed.findings.slice(0, 12).map((f: any) => ({
+      parsed.findings = parsed.findings.slice(0, 12).map((f) => ({
         severity: ["critical", "high", "medium", "low", "info"].includes(f?.severity) ? f.severity : "medium",
         dimension: String(f?.dimension ?? "general").slice(0, 80),
         issue: String(f?.issue ?? "Achado sem descrição").slice(0, 1200),
@@ -102,10 +102,10 @@ async function auditQuestion(id: string) {
   const payload = {
     target: { question_id: q.id, question_text: q.question_text, question_type: q.question_type, feedback_hint: q.feedback_hint },
     exercise: { title: exercise.title, type: exercise.exercise_type, difficulty: exercise.difficulty, published: exercise.published },
-    options: (options ?? []).map((o: any) => ({ position: o.position, content: o.content, is_correct: o.is_correct, feedback_correct: o.feedback_correct, feedback_incorrect: o.feedback_incorrect })),
+    options: (options ?? []).map((o) => ({ position: o.position, content: o.content, is_correct: o.is_correct, feedback_correct: o.feedback_correct, feedback_incorrect: o.feedback_incorrect })),
     topic: topic ? { name: topic.name, description: topic.description } : null,
-    material: material ? { title: material.title, introduction: material.introduction, sections: (material.material_sections ?? []).map((s: any) => ({ title: s.title, content: String(s.content ?? "").slice(0, 3500), position: s.position })) } : null,
-    sources: (links ?? []).map((x: any) => ({ role: x.role, status: x.status, source: x.sources }))
+    material: material ? { title: material.title, introduction: material.introduction, sections: (material.material_sections ?? []).map((s) => ({ title: s.title, content: String(s.content ?? "").slice(0, 3500), position: s.position })) } : null,
+    sources: (links ?? []).map((x) => ({ role: x.role, status: x.status, source: x.sources }))
   };
   const result = await askGroq(rubric, payload);
   const { error: saveError } = await db.from("professor_audit_findings").upsert({
@@ -130,9 +130,9 @@ async function auditTopic(id: string) {
   const payload = {
     topic: { name: topic.name, description: topic.description, published: topic.published },
     discipline: discipline?.name ?? null,
-    materials: (materials ?? []).map((m: any) => ({ title: m.title, introduction: m.introduction, sections: (m.material_sections ?? []).map((s: any) => ({ title: s.title, content: String(s.content ?? "").slice(0, 2200), position: s.position })) })),
-    exercises: (exercises ?? []).map((e: any) => ({ title: e.title, type: e.exercise_type, difficulty: e.difficulty, questions: (e.exercise_questions ?? []).map((q: any) => ({ text: q.question_text, type: q.question_type, feedback: q.feedback_hint, options: q.exercise_options })) })),
-    sources: (links ?? []).map((x: any) => ({ role: x.role, status: x.status, source: x.sources }))
+    materials: (materials ?? []).map((m) => ({ title: m.title, introduction: m.introduction, sections: (m.material_sections ?? []).map((s) => ({ title: s.title, content: String(s.content ?? "").slice(0, 2200), position: s.position })) })),
+    exercises: (exercises ?? []).map((e) => ({ title: e.title, type: e.exercise_type, difficulty: e.difficulty, questions: (e.exercise_questions ?? []).map((q) => ({ text: q.question_text, type: q.question_type, feedback: q.feedback_hint, options: q.exercise_options })) })),
+    sources: (links ?? []).map((x) => ({ role: x.role, status: x.status, source: x.sources }))
   };
   const result = await askGroq(rubric, payload);
   const { error: saveError } = await db.from("professor_audit_findings").upsert({
@@ -151,35 +151,35 @@ Deno.serve(async req => {
   if (!user) return out({ error: "Valid authenticated user required" }, 401);
   const ownerId = Deno.env.get("ENSINA_AGENT_OWNER_USER_ID");
   if (!ownerId || user.id !== ownerId) return out({ error: "Owner authorization required" }, 403);
-  let body: any;
+  let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return out({ error: "Invalid JSON" }, 400); }
   const kind = body.kind;
   const limit = Math.min(Math.max(Number(body.limit ?? 1), 1), kind === "question" ? 5 : 2);
   if (!["question", "topic"].includes(kind)) return out({ error: "kind must be question or topic" }, 400);
   try {
-    let ids: string[] = Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, limit) : [];
+    const ids: string[] = Array.isArray(body.ids) ? body.ids.filter((x: unknown) => typeof x === "string").slice(0, limit) : [];
     if (ids.length === 0) {
       const { data: existing, error: existingErr } = await db.from("professor_audit_findings").select("target_id").eq("audit_kind", kind).eq("auditor_version", VERSION);
       if (existingErr) throw existingErr;
-      const audited = new Set((existing ?? []).map((x: any) => x.target_id));
+      const audited = new Set((existing ?? []).map((x) => x.target_id));
       // Select only published targets. Questions are filtered through their parent exercises.
       for (let offset = 0; offset < 10000 && ids.length < limit; offset += 100) {
         if (kind === "topic") {
           const { data, error } = await db.from("topics").select("id").eq("published", true).order("id").range(offset, offset + 99);
           if (error) throw error;
           const page = data ?? [];
-          ids.push(...page.map((x: any) => x.id).filter((x: string) => !audited.has(x)).slice(0, limit - ids.length));
+          ids.push(...page.map((x) => x.id).filter((x: string) => !audited.has(x)).slice(0, limit - ids.length));
           if (page.length < 100) break;
         } else {
           const { data, error } = await db.from("exercise_questions").select("id,exercise_id").order("id").range(offset, offset + 99);
           if (error) throw error;
           const page = data ?? [];
           if (page.length === 0) break;
-          const exerciseIds = [...new Set(page.map((x: any) => x.exercise_id).filter(Boolean))];
+          const exerciseIds = [...new Set(page.map((x) => x.exercise_id).filter(Boolean))];
           const { data: publishedExercises, error: pubErr } = await db.from("exercises").select("id").in("id", exerciseIds).eq("published", true);
           if (pubErr) throw pubErr;
-          const publishedSet = new Set((publishedExercises ?? []).map((x: any) => x.id));
-          ids.push(...page.filter((x: any) => publishedSet.has(x.exercise_id) && !audited.has(x.id)).map((x: any) => x.id).slice(0, limit - ids.length));
+          const publishedSet = new Set((publishedExercises ?? []).map((x) => x.id));
+          ids.push(...page.filter((x) => publishedSet.has(x.exercise_id) && !audited.has(x.id)).map((x) => x.id).slice(0, limit - ids.length));
           if (page.length < 100) break;
         }
       }

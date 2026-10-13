@@ -29,13 +29,13 @@ Deno.serve(async(req)=>{
   const answerRows=rows??[];
   if(!answerRows.length)return json({graded:0});
 
-  const qids=answerRows.map((a:any)=>a.attempt_question_id);
+  const qids=answerRows.map((a)=>a.attempt_question_id);
   const {data:aq}=await admin.from("exam_attempt_questions").select("id,question_id,position").in("id",qids).order("position");
-  const questionIds=(aq??[]).map((x:any)=>x.question_id);
+  const questionIds=(aq??[]).map((x)=>x.question_id);
   const {data:questions}=await admin.from("exercise_questions").select("id,question_text,feedback_hint,difficulty_tag,exercise_id,exercises!inner(topic_id)").in("id",questionIds);
-  const topicIds=[...new Set((questions??[]).map((q:any)=>q.exercises?.topic_id).filter(Boolean))];
+  const topicIds=[...new Set((questions??[]).map((q)=>q.exercises?.topic_id).filter(Boolean))];
   const {data:topics}=topicIds.length?await admin.from("topics").select("id,name,description").in("id",topicIds):{data:[]};
-  const topicMap=new Map((topics??[]).map((t:any)=>[t.id,t]));
+  const topicMap=new Map((topics??[]).map((t)=>[t.id,t]));
 
   const contextParts:string[]=[];
   for(const tid of topicIds){
@@ -44,12 +44,12 @@ Deno.serve(async(req)=>{
   }
 
   const expectedLines=(question:string)=>{const q=question.toLowerCase();if(/\b(compare|diferenc|relacione|distinga|contraste)\b/.test(q))return 4;if(/\b(analise|analisar|avalie|discuta|justifique|aplique|proponha|exemplifique)\b/.test(q))return 5;if(/\b(explique|descreva|como funciona|por que|por quê)\b/.test(q))return 3;return 2;};
-  const items=answerRows.map((a:any)=>{
-   const aqRow=(aq??[]).find((x:any)=>x.id===a.attempt_question_id);
-   const q=(questions??[]).find((x:any)=>x.id===aqRow?.question_id);
+  const items=answerRows.map((a)=>{
+   const aqRow=(aq??[]).find((x)=>x.id===a.attempt_question_id);
+   const q=(questions??[]).find((x)=>x.id===aqRow?.question_id);
    const tid=q?.exercises?.topic_id;
    return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines:expectedLines(q?.question_text??"")};
-  }).filter((x:any)=>x.question&&x.response);
+  }).filter((x)=>x.question&&x.response);
 
   if(!key)return json({error:"A correção discursiva ainda não está configurada."},503);
 
@@ -77,7 +77,7 @@ MATERIAL:
 ${contextParts.join("\n\n").slice(0,12000)}
 
 RESPOSTAS:
-${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
+${items.map((x)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nRUBRICA="+x.rubric+"\nRESPOSTA="+x.response).join("\n\n").slice(0,14000)}`;
 
   const resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{
    method:"POST",
@@ -96,7 +96,7 @@ ${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\
   if(!resp.ok)return json({error:"Não foi possível corrigir as respostas discursivas agora.",retryable:true},503);
 
   const p=await resp.json();
-  let parsed:any;
+  let parsed: Record<string, unknown>;
   try{parsed=JSON.parse(p?.choices?.[0]?.message?.content??"{}");}
   catch{return json({error:"A correção retornou um formato inválido."},503);}
 
@@ -107,7 +107,7 @@ ${items.map((x:any)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\
    const id=String(g.id??"");
    const score=Math.max(0,Math.min(10,Math.round(Number(g.score))));
    const feedback=typeof g.feedback==="string"?g.feedback.trim():"";
-   const answer=items.find((x:any)=>x.id===id);
+   const answer=items.find((x)=>x.id===id);
    if(!answer||!Number.isFinite(score)||!feedback)continue;
    await admin.from("exam_attempt_answers")
     .update({rubric_score:score,is_correct:score===10,ai_feedback:feedback})

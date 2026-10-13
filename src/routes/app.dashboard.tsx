@@ -464,7 +464,7 @@ function AppDashboard() {
       })
       .filter((item): item is BrainTopic => item !== null)
       .sort((a, b) => b.severity - a.severity || b.occurrences - a.occurrences);
-  }, [learningSignals, topicsProgress]);
+  }, [focusedSignals, topicsProgress]);
 
   const brainCounts = useMemo(() => ({
     mastered: focusedTopics.filter((topic) => topic.progress >= 80).length,

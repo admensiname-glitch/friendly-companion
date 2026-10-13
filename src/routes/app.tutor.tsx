@@ -47,7 +47,7 @@ type Message = {
     video?: TopicVideo | null;
   } | null;
   microAssessment?: MicroAssessment | null;
-  learningNextStep?: any;
+  learningNextStep?: unknown;
 };
 
 type TopicVideo = {
@@ -349,7 +349,7 @@ function TutorPage() {
       : courseNames.length
         ? `Seu percurso: ${courseNames.join(" · ")}. Escolha uma disciplina para aprofundar.`
         : "Adicione um curso ao seu perfil para começar a personalizar o Tutor.",
-    [recommendation],
+    [courseNames, recommendation],
   );
 
   async function answerMicroAssessment(
