@@ -1399,3 +1399,13 @@
     background-color: #101010 !important;
   }
 }
+
+
+/* In dark mode, render the Ensina-me graduation-cap logo in pure white. */
+.dark .app-shell img[alt*="logo" i],
+.dark .app-shell img[alt*="capelo" i],
+.dark .app-shell img[alt*="ensina-me" i],
+.dark .app-shell [aria-label*="logo" i] img,
+.dark .app-shell [aria-label*="capelo" i] img {
+  filter: grayscale(1) brightness(0) invert(1) !important;
+}
