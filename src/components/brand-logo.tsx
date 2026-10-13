@@ -4,7 +4,7 @@ type BrandLogoProps = {
   className?: string;
 };
 
-export function BrandMark({ tone = "blue", className = "h-7 w-8" }: { tone?: "blue" | "light"; className?: string }) {
+export function BrandMark({ tone = "blue", className = "h-9 w-10" }: { tone?: "blue" | "light"; className?: string }) {
   const foreground = tone === "light" ? "#FFFFFF" : "#0242D7";
   const secondary = tone === "light" ? "#DCE9FF" : "#7AA9F7";
 
@@ -15,10 +15,11 @@ export function BrandMark({ tone = "blue", className = "h-7 w-8" }: { tone?: "bl
       fill="none"
       className={`${className} shrink-0`}
     >
-      <path d="M4 13.4 24 4l20 9.4-20 9.4L4 13.4Z" fill={foreground} />
-      <path d="M11 17.3v9.3c0 1.8 1.2 3.4 2.9 4.1l7.1 2.8c1.9.7 4 .7 5.9 0l7.1-2.8c1.7-.7 2.9-2.3 2.9-4.1v-9.3L24 23.2 11 17.3Z" fill={foreground} />
-      <path d="M42 14v14.7" stroke={foreground} strokeWidth="2.6" strokeLinecap="round" />
-      <circle cx="42" cy="31.4" r="2.3" fill={secondary} />
+      <path d="M3.5 12.5 15 7.5c5.6-2.4 12.4-2.4 18 0l11.5 5-20.5 9-20.5-9Z" fill={foreground} opacity=".12" />
+      <path d="M4 13.5 22.5 5.7c1-.4 2-.4 3 0L44 13.5 25.5 21c-1 .4-2 .4-3 0L4 13.5Z" fill={foreground} />
+      <path d="M7 17.5v10.2c0 1.2.7 2.3 1.8 2.8l12.3 5.2c1.8.8 3.9.8 5.7 0l12.4-5.2c1.1-.5 1.8-1.6 1.8-2.8V17.5L25.5 24c-1 .4-2 .4-3 0L7 17.5Z" fill={foreground} />
+      <path d="M13 19.8v7.1l9.5 4c1.1.5 2.4.5 3.5 0l9.5-4v-7.1l-10 4.3c-.8.3-1.7.3-2.5 0L13 19.8Z" fill={secondary} />
+      <path d="m38.5 4 .9 2.8 2.8.9-2.8.9-.9 2.8-.9-2.8-2.8-.9 2.8-.9.9-2.8Z" fill={secondary} />
     </svg>
   );
 }
@@ -40,8 +41,8 @@ export function BrandLogo({
       ].join(" ")}
       style={{ fontFamily: '"Nunito", ui-sans-serif, system-ui, sans-serif' }}
     >
-      <BrandMark tone={tone} className="h-8 w-10" />
-      <span className={compact ? "text-[19px] leading-none" : "text-[22px] leading-none"}>
+      <BrandMark tone={tone} className={compact ? "h-8 w-9" : "h-10 w-12"} />
+      <span className={compact ? "text-[19px] leading-none" : "text-[25px] leading-none"}>
         ensina-me
       </span>
     </span>
