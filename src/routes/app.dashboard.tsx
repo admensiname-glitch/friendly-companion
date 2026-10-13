@@ -543,25 +543,6 @@ function AppDashboard() {
         )}
       </section>
 
-      <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4" aria-label="Resumo do seu aprendizado">
-        {[
-          { label: "Progresso", value: `${overallProgress}%`, icon: "target" as const },
-          { label: "Hoje", value: `${todayStudy?.minutes ?? 0} min`, icon: "clock" as const },
-          { label: "Revisões", value: topicsProgress.reduce((sum, topic) => sum + topic.review_count, 0).toString(), icon: "review" as const },
-          { label: "Melhor nota", value: bestScore === null ? "—" : `${bestScore}%`, icon: "chart" as const },
-        ].map((item) => (
-          <div key={item.label} className="app-card flex min-h-[118px] flex-col justify-between p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]">
-                <Icon name={item.icon} className="h-3.5 w-3.5" />
-              </span>
-              <span className="text-xs font-extrabold text-[#9AA5B3] dark:text-[#8091A5]">{item.label}</span>
-            </div>
-            <p className="mt-3 text-[28px] font-black tracking-[-0.04em] text-[#172334] dark:text-[#E7EDF5] sm:text-[25px]">{item.value}</p>
-          </div>
-        ))}
-      </section>
-
       <section className="mt-6 sm:mt-10" aria-labelledby="continue-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -592,43 +573,6 @@ function AppDashboard() {
           )}
         </div>
       </section>
-      <section className="mt-6 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4" aria-label="Resumo diário">
-        <div className="app-card flex items-center gap-4 p-4">
-          <ProgressRing value={todayPercent} size={70} />
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-[#8A96A5] dark:text-[#8B9CAE]">Meta de hoje</p>
-            <p className="mt-1 text-lg font-black text-[#172334] dark:text-[#E7EDF5]">
-              {todayStudy?.minutes ?? 0} de {profile?.daily_study_minutes ?? "—"} min
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-[#7A8796] dark:text-[#91A1B2]">
-              {todayPercent >= 100 ? "Meta concluída. Muito bem!" : "Um pouco por dia faz diferença."}
-            </p>
-          </div>
-        </div>
-
-        <div className="app-card flex items-center gap-4 p-4">
-          <span className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-full bg-[#FFF5E8] text-[#B86B13] dark:bg-[#302516] dark:text-[#E8B66C]">
-            <Icon name="target" className="h-7 w-7" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-[0.1em] text-[#8A96A5] dark:text-[#8B9CAE]">Próxima avaliação</p>
-            {nextExam?.exam_date ? (
-              <>
-                <p className="mt-1 truncate text-lg font-black text-[#172334] dark:text-[#E7EDF5]">{nextExam.discipline}</p>
-                <p className="mt-0.5 text-xs font-semibold text-[#7A8796] dark:text-[#91A1B2]">
-                  {nextExam.exam_type} · {new Date(nextExam.exam_date + "T12:00:00").toLocaleDateString("pt-BR")}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="mt-1 text-lg font-black text-[#172334] dark:text-[#E7EDF5]">Nenhuma cadastrada</p>
-                <p className="mt-0.5 text-xs font-semibold text-[#7A8796] dark:text-[#91A1B2]">Você pode estudar no seu ritmo.</p>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
       <section className="mt-10" aria-labelledby="disciplines-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
