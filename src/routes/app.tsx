@@ -402,7 +402,6 @@ function AppLayout() {
       <header className="app-desktop-header fixed inset-x-0 top-0 z-30 hidden lg:block lg:ml-[252px]">
         <div className="mx-auto flex h-[58px] max-w-[1280px] items-center justify-between px-8">
           <div>
-            <p className="text-sm font-semibold text-[#8B97A7] dark:text-[#91A1B2]">Seu espaço de aprendizagem</p>
             <p className="mt-1 text-lg font-extrabold text-[#243245] dark:text-[#E7EDF5]">Aprenda hoje. Conquiste amanhã.</p>
           </div>
           <div className="flex items-center gap-2">
