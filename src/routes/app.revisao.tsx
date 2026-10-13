@@ -493,16 +493,7 @@ function ReviewPage() {
         </section>
       )}
 
-      {loading ? (
-        <div className="mt-8 space-y-3" aria-label="Carregando revisões">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="h-20 animate-pulse border-b border-[#E7ECF3] dark:border-[#2B3A4F]"
-            />
-          ))}
-        </div>
-      ) : grouped.length === 0 ? (
+      {!loading && grouped.length === 0 ? (
         <div className="mt-10 py-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F0F5FF] text-[#0242D7] dark:bg-[#1B2638] dark:text-[#7DB0FF]">
             <Icon name="spark" className="h-5 w-5" />
@@ -514,7 +505,7 @@ function ReviewPage() {
             Siga pelo seu percurso. Quando o histórico mostrar um conceito que merece atenção, ele aparecerá aqui.
           </p>
         </div>
-      ) : (
+      ) : !loading ? (
         <section className="mt-10" aria-labelledby="fragile-heading">
           <p className="text-sm font-semibold text-[#0242D7] dark:text-[#7DB0FF]">
             Pontos para retomar
@@ -587,7 +578,7 @@ function ReviewPage() {
             })}
           </div>
         </section>
-      )}
+      ) : null}
     </section>
   );
 }
