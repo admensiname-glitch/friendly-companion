@@ -25,7 +25,7 @@ Deno.serve(async(req)=>{
   const {data:recent}=await sb.from("exam_attempt_questions").select("question_id,exam_attempts!inner(user_id)").eq("exam_attempts.user_id",u.user.id).order("created_at",{ascending:false}).limit(120);
   const recentIds=new Set((recent??[]).map((x:any)=>x.question_id));
   const {data:existing}=await sb.from("exercise_questions").select("id,question_text,question_type,difficulty_tag,exercises!inner(topic_id,exercise_type,published)").in("exercises.topic_id",[...allowed]).in("question_type",["multiple_choice","open_text"]);
-  const pool=(existing??[]).filter((q:any)=>((q.exercises?.published===true)||(q.exercises?.exercise_type==="exam_generated"))&&!recentIds.has(q.id));
+  const pool=(existing??[]).filter((q:any)=>q.exercises?.published===true&&!recentIds.has(q.id));
   let obj=pool.filter((q:any)=>q.question_type==="multiple_choice").sort(()=>Math.random()-.5).slice(0,objectiveCount);
   let essay=pool.filter((q:any)=>q.question_type==="open_text").sort(()=>Math.random()-.5).slice(0,essayCount);
   const needObj=objectiveCount-obj.length,needEssay=essayCount-essay.length;
@@ -74,14 +74,18 @@ ${contexts.join("\n\n").slice(0,14000)}`;
    let exId=generatedExercises.get(g.topic_id);
    if(!exId){
     const t=topics.find(x=>x.id===g.topic_id);
-    const {data:ex,error:ee}=await admin.from("exercises").insert({topic_id:g.topic_id,title:"Questões complementares — Modo Prova",exercise_type:"exam_generated",content:"Questões geradas a partir do material acadêmico publicado do tópico.",difficulty:g.difficulty,position:999,published:false}).select("id").single();
-    if(ee||!ex){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível preparar as questões complementares."},500);}
+    const exerciseDifficulty = g.difficulty === "introductory" ? "easy" : g.difficulty === "advanced" ? "hard" : "medium";
+    const {data:ex,error:ee}=await admin.from("exercises").insert({topic_id:g.topic_id,title:"Questões complementares — Modo Prova",exercise_type:"evaluation",content:"Questões geradas a partir do material acadêmico publicado do tópico.",difficulty:exerciseDifficulty,position:999,published:false}).select("id").single();
+    if(ee||!ex){console.error("[prepare-exam] Falha ao criar exercício complementar:",ee?.code,ee?.message,ee?.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar o exercício complementar. Tente novamente."},500);}
     exId=ex.id;generatedExercises.set(g.topic_id,exId);
    }
    const {data:q,error:qe}=await admin.from("exercise_questions").insert({exercise_id:exId,question_text:g.question_text,question_type:g.type,position:Math.floor(Math.random()*100000),feedback_hint:g.type==="open_text"?g.rubric.join(" | "):g.explanation,difficulty_tag:g.concept_tags}).select("id").single();
    if(qe||!q){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar uma questão complementar."},500);}
    all.push({...g,id:q.id});
-   if(g.type==="multiple_choice")await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
+   if(g.type==="multiple_choice"){
+    const {error:oe}=await admin.from("exercise_options").insert(g.options.map((content,i)=>({question_id:q.id,content,is_correct:i===g.correct_option_index,feedback_correct:i===g.correct_option_index?g.explanation:null,position:i})));
+    if(oe){console.error("[prepare-exam] Falha ao salvar alternativas:",oe.code,oe.message,oe.details);await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível salvar as alternativas de uma questão."},500);}
+   }
   }
   const chosen=all.sort(()=>Math.random()-.5).slice(0,count);
   if(chosen.filter((q:any)=>q.question_type==="multiple_choice"||q.type==="multiple_choice").length!==objectiveCount||chosen.filter((q:any)=>q.question_type==="open_text"||q.type==="open_text").length!==essayCount){await admin.from("exam_attempts").delete().eq("id",attempt.id);return json({error:"Não foi possível montar a composição híbrida da prova."},503);}
