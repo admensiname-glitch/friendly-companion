@@ -102,7 +102,7 @@ function ExamPage() {
       let detail = payload && typeof (payload as { error?: unknown }).error === "string" ? (payload as { error: string }).error : "";
       if (!detail && rpcError) {
         try {
-          const context = (rpcError as any).context;
+          const context = (rpcError as { context?: Response }).context;
           if (context && typeof context.clone === "function") {
             const body = await context.clone().json();
             if (typeof body?.error === "string") detail = body.error;
@@ -253,6 +253,8 @@ function ExamPage() {
       });
     }, 1000);
     return () => window.clearInterval(timer);
+  // The countdown intentionally restarts as the remaining time changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptId, remaining > 0]);
 
   const formatTime = (seconds: number) =>
