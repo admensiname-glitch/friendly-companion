@@ -261,6 +261,15 @@ function AppDashboard() {
 
       if (examsResult.data?.[0]) setNextExam(examsResult.data[0] as StudentExam);
 
+      // Reconfirm the profile immediately before revealing the dashboard. This prevents
+      // an older initial read from briefly replacing a profile update made moments earlier.
+      const { data: latestProfile } = await supabase
+        .from("student_profiles")
+        .select("display_name, institution, semester, daily_study_minutes, difficulties")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (latestProfile) setProfile(latestProfile as Profile);
+
       // The main dashboard can render while resume-position details finish loading.
       setLoading(false);
 
