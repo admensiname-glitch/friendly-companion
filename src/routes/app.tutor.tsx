@@ -290,35 +290,34 @@ function TutorPage() {
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) return;
-      const recommendationData = await LearningEngine.getRecommendation().catch(() => null);
+      if (!data.session) {
+        setLoading(false);
+        return;
+      }
+
+      // Recommendation and course membership do not depend on each other.
+      const [recommendationData, membershipResult] = await Promise.all([
+        LearningEngine.getRecommendation().catch(() => null),
+        supabase.from("student_courses").select("course_id").order("created_at", { ascending: true }),
+      ]);
       setRecommendation(recommendationData);
 
-      const { data: memberships } = await supabase
-        .from("student_courses")
-        .select("course_id")
-        .order("created_at", { ascending: true });
-
-      const courseIds = (memberships ?? []).map((item) => item.course_id).filter(Boolean);
+      const courseIds = (membershipResult.data ?? []).map((item) => item.course_id).filter(Boolean);
       if (courseIds.length > 0) {
-        const { data: courses } = await supabase
-          .from("courses")
-          .select("id, name")
-          .in("id", courseIds)
-          .eq("published", true)
-          .order("name", { ascending: true });
-        setCourseNames((courses ?? []).map((course) => course.name));
+        const [courseResult, firstDisciplineResult] = await Promise.all([
+          supabase.from("courses").select("id, name").in("id", courseIds).eq("published", true).order("name", { ascending: true }),
+          !recommendationData?.topic_id
+            ? supabase.from("disciplines").select("id").in("course_id", courseIds).eq("published", true).order("curriculum_order", { ascending: true, nullsFirst: false }).limit(1)
+            : Promise.resolve({ data: [] as Array<{ id: string }>, error: null }),
+        ]);
+        setCourseNames((courseResult.data ?? []).map((course) => course.name));
 
-        if (!recommendationData?.topic_id) {
-          const { data: disciplines } = await supabase
-            .from("disciplines")
-            .select("id")
-            .in("course_id", courseIds)
-            .eq("published", true)
-            .order("curriculum_order", { ascending: true, nullsFirst: false })
-            .limit(1);
-
-          const disciplineId = disciplines?.[0]?.id;
+        if (recommendationData?.topic_id) {
+          setTopicId(recommendationData.topic_id);
+        } else {
+          const disciplineId = firstDisciplineResult.data?.[0]?.id;
+          // Let the Tutor shell become interactive before resolving optional fallback context.
+          setLoading(false);
           if (disciplineId) {
             const { data: topics } = await supabase
               .from("topics")
@@ -331,8 +330,6 @@ function TutorPage() {
           } else {
             setTopicId(null);
           }
-        } else {
-          setTopicId(recommendationData.topic_id);
         }
       } else {
         setCourseNames([]);
