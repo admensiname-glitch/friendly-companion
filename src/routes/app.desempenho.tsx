@@ -82,10 +82,7 @@ function PerformancePage() {
         </p>
       </header>
 
-      {loading ? (
-        <div className="mt-6 h-28 animate-pulse border-y border-[#E4EAF1] dark:border-[#2B3A4F]" />
-      ) : (
-        <>
+      <>
           <div className="mt-6 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-5">
             {[
               ["Tópicos concluídos", summary?.topics_completed ?? 0],
@@ -286,8 +283,7 @@ function PerformancePage() {
               </div>
             )}
           </section>
-        </>
-      )}
+      </>
     </section>
   );
 }
