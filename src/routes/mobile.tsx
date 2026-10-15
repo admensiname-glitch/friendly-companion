@@ -19,6 +19,9 @@ type Recommendation = {
   message?: string | null;
 };
 type Discipline = { id: string; name: string; description: string | null };
+type Topic = { id: string; name: string; description: string | null; position: number };
+type LessonSection = { id: string; title: string; content: string; position: number; section_type: string | null };
+type PracticeQuestion = { id: string; question_text: string; question_type: string; position: number; feedback_hint: string | null; options: { id: string; content: string; is_correct: boolean; feedback_correct: string | null; feedback_incorrect: string | null }[] };
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "inicio", label: "Início", icon: "⌂" },
@@ -46,6 +49,14 @@ function MobileApp() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [disciplinesLoading, setDisciplinesLoading] = useState(false);
+  const [selectedDiscipline, setSelectedDiscipline] = useState<Discipline | null>(null);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [studyTopic, setStudyTopic] = useState<Topic | null>(null);
+  const [lessonSections, setLessonSections] = useState<LessonSection[]>([]);
+  const [practiceQuestions, setPracticeQuestions] = useState<PracticeQuestion[]>([]);
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -108,6 +119,74 @@ function MobileApp() {
       });
     return () => { active = false; };
   }, [selectedCourse]);
+
+  useEffect(() => {
+    if (!selectedDiscipline) {
+      setTopics([]);
+      return;
+    }
+    let active = true;
+    setTopicsLoading(true);
+    void supabase.from("topics").select("id,name,description,position").eq("discipline_id", selectedDiscipline.id).eq("published", true).order("position").order("name")
+      .then(({ data, error: queryError }) => {
+        if (!active) return;
+        if (!queryError) setTopics((data ?? []) as Topic[]);
+        setTopicsLoading(false);
+      });
+    return () => { active = false; };
+  }, [selectedDiscipline]);
+
+  useEffect(() => {
+    if (!studyTopic) {
+      setLessonSections([]);
+      setPracticeQuestions([]);
+      return;
+    }
+    let active = true;
+    setLessonLoading(true);
+    setSelectedAnswers({});
+    void (async () => {
+      const [materialResult, exerciseResult] = await Promise.all([
+        supabase.from("materials").select("id").eq("topic_id", studyTopic.id).eq("status", "published").limit(1).maybeSingle(),
+        supabase.from("exercises").select("id").eq("topic_id", studyTopic.id).eq("published", true).order("position"),
+      ]);
+      if (!active) return;
+      let sections: LessonSection[] = [];
+      if (materialResult.data?.id) {
+        const sectionResult = await supabase.from("material_sections").select("id,title,content,position,section_type").eq("material_id", materialResult.data.id).order("position");
+        if (!active) return;
+        if (!sectionResult.error) sections = (sectionResult.data ?? []) as LessonSection[];
+      }
+      let questions: PracticeQuestion[] = [];
+      const exerciseIds = (exerciseResult.data ?? []).map((exercise) => exercise.id);
+      if (exerciseIds.length) {
+        const questionResult = await supabase.from("exercise_questions").select("id,exercise_id,question_text,question_type,position,feedback_hint").in("exercise_id", exerciseIds).order("position");
+        if (!active) return;
+        if (!questionResult.error && questionResult.data?.length) {
+          const optionResult = await supabase.from("exercise_options").select("id,question_id,content,is_correct,feedback_correct,feedback_incorrect,position").in("question_id", questionResult.data.map((question) => question.id)).order("position");
+          if (!active) return;
+          const optionsByQuestion = new Map<string, PracticeQuestion["options"]>();
+          for (const option of optionResult.data ?? []) {
+            const list = optionsByQuestion.get(option.question_id) ?? [];
+            list.push(option);
+            optionsByQuestion.set(option.question_id, list);
+          }
+          questions = questionResult.data.map((question) => ({
+            id: question.id,
+            question_text: question.question_text,
+            question_type: question.question_type,
+            position: question.position,
+            feedback_hint: question.feedback_hint,
+            options: optionsByQuestion.get(question.id) ?? [],
+          })) as PracticeQuestion[];
+        }
+      }
+      setLessonSections(sections);
+      setPracticeQuestions(questions);
+      setLessonLoading(false);
+    })();
+    return () => { active = false; };
+  }, [studyTopic]);
 
   const filteredCourses = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("pt-BR");
@@ -274,18 +353,33 @@ function MobileApp() {
                 </label>
                 {selectedCourse ? (
                   <div className="mt-5">
-                    <button type="button" onClick={() => setSelectedCourse(null)} className="mb-4 text-sm font-bold text-[#0242D7]">← Todos os cursos</button>
-                    <h2 className="text-xl font-extrabold">{selectedCourse.name}</h2>
-                    {selectedCourse.description && <p className="mt-2 text-sm leading-6 text-[#68778C]">{selectedCourse.description}</p>}
-                    {disciplinesLoading ? <div className="mt-4 h-24 animate-pulse rounded-2xl bg-[#E7EDF7]" /> : disciplines.length ? (
-                      <div className="mt-4 space-y-2">
-                        {disciplines.map((discipline) => <div key={discipline.id} className="rounded-2xl border border-[#E3EAF4] bg-white p-4"><p className="font-bold">{discipline.name}</p>{discipline.description && <p className="mt-1 text-xs leading-5 text-[#728096]">{discipline.description}</p>}</div>)}
-                      </div>
-                    ) : <p className="mt-4 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-sm text-[#68778C]">Ainda não há disciplinas publicadas neste curso.</p>}
+                    {selectedDiscipline ? (
+                      <>
+                        <button type="button" onClick={() => { setSelectedDiscipline(null); setStudyTopic(null); }} className="mb-4 text-sm font-bold text-[#0242D7]">← Todas as disciplinas</button>
+                        <h2 className="text-xl font-extrabold">{selectedDiscipline.name}</h2>
+                        {selectedDiscipline.description && <p className="mt-2 text-sm leading-6 text-[#68778C]">{selectedDiscipline.description}</p>}
+                        {topicsLoading ? <div className="mt-4 h-24 animate-pulse rounded-2xl bg-[#E7EDF7]" /> : topics.length ? (
+                          <div className="mt-4 space-y-2">
+                            {topics.map((topic) => <button key={topic.id} type="button" onClick={() => { setStudyTopic(topic); setTab("estudar"); }} className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-left"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] font-bold text-[#0242D7]">{topic.position || "•"}</span><span className="min-w-0 flex-1"><span className="block font-bold">{topic.name}</span>{topic.description && <span className="mt-1 block text-xs leading-5 text-[#728096]">{topic.description}</span>}</span><span className="text-[#0242D7]">›</span></button>)}
+                          </div>
+                        ) : <p className="mt-4 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-sm text-[#68778C]">Ainda não há tópicos publicados nesta disciplina.</p>}
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => setSelectedCourse(null)} className="mb-4 text-sm font-bold text-[#0242D7]">← Todos os cursos</button>
+                        <h2 className="text-xl font-extrabold">{selectedCourse.name}</h2>
+                        {selectedCourse.description && <p className="mt-2 text-sm leading-6 text-[#68778C]">{selectedCourse.description}</p>}
+                        {disciplinesLoading ? <div className="mt-4 h-24 animate-pulse rounded-2xl bg-[#E7EDF7]" /> : disciplines.length ? (
+                          <div className="mt-4 space-y-2">
+                            {disciplines.map((discipline) => <button key={discipline.id} type="button" onClick={() => setSelectedDiscipline(discipline)} className="flex w-full items-center gap-3 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7]">▤</span><span className="min-w-0 flex-1"><span className="block font-bold">{discipline.name}</span>{discipline.description && <span className="mt-1 block text-xs leading-5 text-[#728096]">{discipline.description}</span>}</span><span className="text-[#0242D7]">›</span></button>)}
+                          </div>
+                        ) : <p className="mt-4 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-sm text-[#68778C]">Ainda não há disciplinas publicadas neste curso.</p>}
+                      </>
+                    )}
                   </div>
                 ) : filteredCourses.length ? (
                   <div className="mt-5 space-y-3">
-                    {filteredCourses.map((course) => <button key={course.id} type="button" onClick={() => setSelectedCourse(course)} className="flex min-h-[94px] w-full items-center gap-4 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-left active:scale-[.99]"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EEF4FF] text-xl text-[#0242D7]" aria-hidden="true">▤</span><span className="min-w-0 flex-1"><span className="block font-extrabold">{course.name}</span><span className="mt-1 block text-xs leading-5 text-[#728096]">{course.description || "Toque para ver as disciplinas disponíveis."}</span></span><span className="text-lg text-[#0242D7]" aria-hidden="true">›</span></button>)}
+                    {filteredCourses.map((course) => <button key={course.id} type="button" onClick={() => { setSelectedCourse(course); setSelectedDiscipline(null); setStudyTopic(null); }} className="flex min-h-[94px] w-full items-center gap-4 rounded-2xl border border-[#E3EAF4] bg-white p-4 text-left active:scale-[.99]"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EEF4FF] text-xl text-[#0242D7]" aria-hidden="true">▤</span><span className="min-w-0 flex-1"><span className="block font-extrabold">{course.name}</span><span className="mt-1 block text-xs leading-5 text-[#728096]">{course.description || "Toque para ver as disciplinas disponíveis."}</span></span><span className="text-lg text-[#0242D7]" aria-hidden="true">›</span></button>)}
                   </div>
                 ) : <div className="mt-5 rounded-2xl border border-dashed border-[#CDD9EA] bg-white p-6 text-center"><p className="font-bold">Nenhum curso encontrado</p><p className="mt-2 text-sm text-[#728096]">Tente outra busca ou confira seu acesso aos cursos.</p></div>}
               </section>
@@ -296,13 +390,35 @@ function MobileApp() {
                 <p className="text-sm font-bold text-[#0242D7]">{recommendationReason}</p>
                 <h1 className="mt-1 text-[29px] font-extrabold tracking-[-.05em]">Estudar agora</h1>
                 <p className="mt-2 text-sm leading-6 text-[#68778C]">Uma sugestão baseada no seu percurso de aprendizagem.</p>
-                {recommendation?.topic_id ? (
+                {studyTopic ? (
+                  <div className="mt-5 space-y-4">
+                    <button type="button" onClick={() => { setStudyTopic(null); setTab("cursos"); }} className="text-sm font-bold text-[#0242D7]">← Voltar aos tópicos</button>
+                    <div className="rounded-[24px] border border-[#DCE6F5] bg-white p-5">
+                      <span className="inline-flex rounded-full bg-[#EEF4FF] px-3 py-1.5 text-xs font-bold text-[#0242D7]">Conteúdo de estudo</span>
+                      <h2 className="mt-3 text-xl font-extrabold leading-snug">{studyTopic.name}</h2>
+                      {studyTopic.description && <p className="mt-2 text-sm leading-6 text-[#68778C]">{studyTopic.description}</p>}
+                    </div>
+                    {lessonLoading ? <div className="space-y-3"><div className="h-28 animate-pulse rounded-2xl bg-[#E7EDF7]" /><div className="h-36 animate-pulse rounded-2xl bg-[#E7EDF7]" /></div> : lessonSections.length ? (
+                      <div className="space-y-3">
+                        {lessonSections.map((section, index) => <article key={section.id} className="rounded-2xl border border-[#E3EAF4] bg-white p-5"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0242D7]">Parte {index + 1}</p><h3 className="mt-2 text-base font-extrabold">{section.title}</h3><div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#42536A]">{section.content}</div></article>)}
+                      </div>
+                    ) : !lessonLoading ? <div className="rounded-2xl border border-[#E3EAF4] bg-white p-5"><p className="font-bold">Conteúdo ainda indisponível</p><p className="mt-2 text-sm leading-6 text-[#68778C]">Este tópico ainda não tem material publicado para leitura.</p></div> : null}
+                    <section className="space-y-3">
+                      <div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0242D7]">Prática</p><h2 className="mt-1 text-xl font-extrabold">Confira sua compreensão</h2><p className="mt-2 text-sm leading-6 text-[#68778C]">Responda e receba o feedback disponível para cada alternativa.</p></div>
+                      {!lessonLoading && practiceQuestions.length ? practiceQuestions.map((question, index) => {
+                        const selected = selectedAnswers[question.id];
+                        const chosen = question.options.find((option) => option.id === selected);
+                        return <article key={question.id} className="rounded-2xl border border-[#E3EAF4] bg-white p-5"><p className="text-xs font-bold text-[#0242D7]">Questão {index + 1}</p><h3 className="mt-2 font-bold leading-6">{question.question_text}</h3>{question.options.length ? <div className="mt-4 space-y-2">{question.options.map((option) => { const isChosen = selected === option.id; const revealed = Boolean(selected); return <button key={option.id} type="button" disabled={revealed} onClick={() => setSelectedAnswers((previous) => ({ ...previous, [question.id]: option.id }))} className={`w-full rounded-xl border p-3 text-left text-sm leading-6 transition-colors ${revealed && option.is_correct ? "border-emerald-300 bg-emerald-50 text-emerald-900" : isChosen ? "border-red-300 bg-red-50 text-red-900" : "border-[#E3EAF4] bg-white text-[#42536A]"}`}><span className="mr-2 font-extrabold">{String.fromCharCode(65 + question.options.indexOf(option))}.</span>{option.content}</button>})}</div> : <p className="mt-3 text-sm text-[#68778C]">Esta questão não tem alternativas disponíveis neste formato.</p>}{chosen && <div className={`mt-3 rounded-xl p-3 text-sm leading-6 ${chosen.is_correct ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-950"}`}><p className="font-extrabold">{chosen.is_correct ? "Resposta correta" : "Vamos revisar essa ideia"}</p><p className="mt-1">{(chosen.is_correct ? chosen.feedback_correct : chosen.feedback_incorrect)?.trim() || question.feedback_hint || (chosen.is_correct ? "Você identificou a alternativa correta." : "Releia o conteúdo e compare as alternativas antes de tentar novamente.")}</p></div>}</article>
+                      }) : !lessonLoading ? <div className="rounded-2xl border border-[#E3EAF4] bg-white p-5 text-sm leading-6 text-[#68778C]">Não há questões de prática publicadas para este tópico no momento.</div> : null}
+                    </section>
+                  </div>
+                ) : recommendation?.topic_id ? (
                   <div className="mt-5 rounded-[24px] border border-[#DCE6F5] bg-white p-5">
                     <span className="inline-flex rounded-full bg-[#EEF4FF] px-3 py-1.5 text-xs font-bold text-[#0242D7]">{recommendationReason}</span>
                     <h2 className="mt-4 text-xl font-extrabold leading-snug">{recommendation.topic_name || "Tópico recomendado"}</h2>
                     <p className="mt-2 text-sm text-[#68778C]">{recommendation.discipline_name || "Sua disciplina"}</p>
                     {recommendation.message && <p className="mt-4 rounded-xl bg-[#F5F8FE] p-3 text-sm leading-6 text-[#53657D]">{recommendation.message}</p>}
-                    <p className="mt-4 text-sm leading-6 text-[#68778C]">A recomendação foi carregada do seu percurso. A próxima etapa é trazer o estudo do tópico para esta interface mobile, sem abrir o layout desktop.</p>
+                    <p className="mt-4 text-sm leading-6 text-[#68778C]">Escolha o tópico em Meus cursos para abrir o conteúdo completo e praticar por aqui.</p>
                     <button type="button" onClick={() => setTab("cursos")} className="mt-4 min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white">Ver meus cursos</button>
                   </div>
                 ) : (
