@@ -70,6 +70,18 @@ self.addEventListener("fetch", (event) => {
       return response;
     })());
   }
+
+  // Cache same-origin build assets after first use so the app shell can reopen offline.
+  if (["script", "style", "font", "image"].includes(request.destination)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response.ok) await cache.put(request, response.clone());
+      return response;
+    })());
+  }
 });
 
 self.addEventListener("push", (event) => {
