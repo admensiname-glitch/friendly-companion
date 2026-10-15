@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 type ExamQuestion = {
@@ -83,7 +83,7 @@ export function MobileStudyTools({ topicId, disciplineId, availableTopics, onOpe
     setReviews(rows.map((r) => { const t = tm.get(r.topic_id); const d = t ? dm.get(t.discipline_id) : null; return t && d ? { topic_id: t.id, topic_name: t.name, discipline_id: d.id, discipline_name: d.name, next_micro_review_at: r.next_micro_review_at } : null; }).filter((r): r is ReviewItem => Boolean(r)));
     setReviewBusy(false);
   }
-  async function askTutor(event: React.FormEvent<HTMLFormElement>) {
+  async function askTutor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = input.trim();
     if (!message || busy) return;
