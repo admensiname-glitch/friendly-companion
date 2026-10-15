@@ -67,7 +67,10 @@ export function MobileStudyTools({ topicId, disciplineId, availableTopics, onOpe
   }
   async function loadReviews() {
     setReviewBusy(true); setError("");
-    const { data, error: loadError } = await supabase.from("student_topic_progress").select("topic_id,next_micro_review_at").not("next_micro_review_at", "is", null).order("next_micro_review_at");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (!userId) { setError("Sua sessão expirou. Entre novamente para consultar as revisões."); setReviewBusy(false); return; }
+    const { data, error: loadError } = await supabase.from("student_topic_progress").select("topic_id,next_micro_review_at").eq("user_id", userId).not("next_micro_review_at", "is", null).order("next_micro_review_at");
     if (loadError) { setError("Não foi possível carregar a revisão agendada."); setReviews([]); setReviewBusy(false); return; }
     const rows = (data ?? []) as { topic_id: string; next_micro_review_at: string }[];
     if (!rows.length) { setReviews([]); setReviewBusy(false); return; }
