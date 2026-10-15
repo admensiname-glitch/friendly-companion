@@ -121,6 +121,9 @@ function MobileApp() {
   }
 
   const greetingName = profile?.display_name?.trim().split(/\s+/)[0] || "por aqui";
+  const fullName = profile?.display_name?.trim();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const recommendationReason = recommendation?.reason === "review"
     ? "Uma revisão está pronta"
     : recommendation?.reason === "assessment"
@@ -156,8 +159,8 @@ function MobileApp() {
             {tab === "inicio" && (
               <section className="space-y-5">
                 <div className="pt-1">
-                  <p className="text-sm font-semibold text-[#65758B]">Seu espaço de aprendizagem</p>
-                  <h1 className="mt-1 text-[30px] font-extrabold leading-tight tracking-[-0.055em]">Olá, {greetingName}.</h1>
+                  <p className="text-sm font-semibold text-[#65758B]">Sua jornada de aprendizagem</p>
+                  <h1 className="mt-1 text-[30px] font-extrabold leading-tight tracking-[-0.055em]">{fullName ? `${greeting}, ${fullName}.` : `${greeting}!`}</h1>
                   <p className="mt-2 text-[14px] leading-6 text-[#66758A]">Um passo de cada vez. Vamos avançar no seu aprendizado?</p>
                 </div>
 
