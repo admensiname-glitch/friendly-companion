@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { MobileStudyTools } from "@/components/mobile/MobileStudyTools";
 
 export const Route = createFileRoute("/mobile")({
   ssr: false,
@@ -492,6 +493,17 @@ function MobileApp() {
                 <p className="text-sm font-bold text-[#0242D7]">{recommendationReason}</p>
                 <h1 className="mt-1 text-[29px] font-extrabold tracking-[-.05em]">Estudar agora</h1>
                 <p className="mt-2 text-sm leading-6 text-[#68778C]">Uma sugestão baseada no seu percurso de aprendizagem.</p>
+                <div className="mt-5">
+                  <MobileStudyTools
+                    topicId={studyTopic?.id ?? recommendation?.topic_id ?? null}
+                    disciplineId={selectedDiscipline?.id ?? null}
+                    availableTopics={topics}
+                    onOpenTopic={(item) => {
+                      setStudyTopic({ id: item.id, name: item.name, description: null, position: 0 });
+                      setSelectedDiscipline((current) => current?.id === item.disciplineId ? current : { id: item.disciplineId, name: "Disciplina", description: null });
+                    }}
+                  />
+                </div>
                 {studyTopic ? (
                   <div className="mt-5 space-y-4">
                     <button type="button" onClick={() => { setStudyTopic(null); setTab("cursos"); }} className="text-sm font-bold text-[#0242D7]">← Voltar aos tópicos</button>
