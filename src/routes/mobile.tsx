@@ -38,6 +38,9 @@ function MobileApp() {
   const [authPassword, setAuthPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
+  const [authName, setAuthName] = useState("");
+  const [authPasswordConfirmation, setAuthPasswordConfirmation] = useState("");
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -215,6 +218,46 @@ function MobileApp() {
     window.location.replace("/mobile");
   }
 
+  async function signUpMobile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthMessage("");
+    const normalizedName = authName.trim();
+    const normalizedEmail = authEmail.trim().toLowerCase();
+    if (!normalizedName || !normalizedEmail || authPassword.length < 8 || authPassword !== authPasswordConfirmation) {
+      setAuthMessage("Confira seu nome, e-mail e senha. A senha deve ter ao menos 8 caracteres e as confirmações precisam ser iguais.");
+      return;
+    }
+    setAuthBusy(true);
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password: authPassword,
+      options: { data: { full_name: normalizedName } },
+    });
+    if (signUpError) {
+      setAuthMessage(signUpError.message.toLowerCase().includes("already") ? "Já existe uma conta com este e-mail. Tente entrar." : "Não foi possível criar a conta. Confira os dados e tente novamente.");
+      setAuthBusy(false);
+      return;
+    }
+    if (data.session) {
+      window.location.replace("/mobile");
+      return;
+    }
+    setAuthMode("login");
+    setAuthMessage("Conta criada. Confirme seu e-mail pelo link enviado pelo Ensina-me e depois entre.");
+    setAuthBusy(false);
+  }
+
+  async function resetPasswordMobile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthMessage("");
+    const normalizedEmail = authEmail.trim().toLowerCase();
+    if (!normalizedEmail) { setAuthMessage("Informe seu e-mail."); return; }
+    setAuthBusy(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: `${window.location.origin}/redefinir-senha` });
+    setAuthMessage(resetError ? "Não foi possível enviar o link agora. Tente novamente." : "Se houver uma conta com esse e-mail, enviaremos as instruções de recuperação. Confira também o spam.");
+    setAuthBusy(false);
+  }
+
   async function signOut() {
     setSigningOut(true);
     const { error: signOutError } = await supabase.auth.signOut();
@@ -223,7 +266,8 @@ function MobileApp() {
       setSigningOut(false);
       return;
     }
-    await navigate({ to: "/login", replace: true });
+    window.localStorage.setItem("ensina-me-entry-mode", "mobile");
+    await navigate({ to: "/mobile", replace: true });
   }
 
   const greetingName = profile?.display_name?.trim().split(/\s+/)[0] || "por aqui";
@@ -267,22 +311,31 @@ function MobileApp() {
               <h1 className="mt-2 text-[30px] font-extrabold leading-tight tracking-[-.055em]">Entre para continuar aprendendo.</h1>
               <p className="mt-3 text-sm leading-6 text-[#68778C]">Acesse seus cursos, pratique e acompanhe seu progresso pelo celular.</p>
             </div>
-            <form onSubmit={(event) => void signInMobile(event)} className="space-y-4 rounded-[24px] border border-[#E3EAF4] bg-white p-5">
-              <div>
-                <label htmlFor="mobile-email" className="text-sm font-bold">E-mail</label>
-                <input id="mobile-email" type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="voce@exemplo.com" />
-              </div>
-              <div>
-                <label htmlFor="mobile-password" className="text-sm font-bold">Senha</label>
-                <input id="mobile-password" type="password" autoComplete="current-password" required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Sua senha" />
-              </div>
-              {authMessage && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{authMessage}</p>}
-              <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Entrando…" : "Entrar no Ensina-me"}</button>
-              <div className="flex items-center justify-between gap-3 text-xs font-bold">
-                <a href="/recuperar-senha" className="text-[#0242D7]">Esqueci minha senha</a>
-                <a href="/cadastro" onClick={() => window.localStorage.setItem("ensina-me-entry-mode", "mobile")} className="text-[#53657D]">Criar conta</a>
-              </div>
-            </form>
+            {authMessage && <p role="status" aria-live="polite" className="mb-4 rounded-xl border border-[#DCE6F5] bg-white p-3 text-sm leading-6 text-[#42536A]">{authMessage}</p>}
+            {authMode === "login" ? (
+              <form onSubmit={(event) => void signInMobile(event)} className="space-y-4 rounded-[24px] border border-[#E3EAF4] bg-white p-5">
+                <div><label htmlFor="mobile-email" className="text-sm font-bold">E-mail</label><input id="mobile-email" type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="voce@exemplo.com" /></div>
+                <div><label htmlFor="mobile-password" className="text-sm font-bold">Senha</label><input id="mobile-password" type="password" autoComplete="current-password" required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Sua senha" /></div>
+                <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Entrando…" : "Entrar no Ensina-me"}</button>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold"><button type="button" onClick={() => { setAuthMode("forgot"); setAuthMessage(""); }} className="text-[#0242D7]">Esqueci minha senha</button><button type="button" onClick={() => { setAuthMode("signup"); setAuthMessage(""); }} className="text-[#53657D]">Criar conta</button></div>
+              </form>
+            ) : authMode === "signup" ? (
+              <form onSubmit={(event) => void signUpMobile(event)} className="space-y-4 rounded-[24px] border border-[#E3EAF4] bg-white p-5">
+                <div><label htmlFor="mobile-name" className="text-sm font-bold">Nome completo</label><input id="mobile-name" autoComplete="name" required value={authName} onChange={(event) => setAuthName(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Seu nome" /></div>
+                <div><label htmlFor="mobile-signup-email" className="text-sm font-bold">E-mail</label><input id="mobile-signup-email" type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="voce@exemplo.com" /></div>
+                <div><label htmlFor="mobile-signup-password" className="text-sm font-bold">Senha (mínimo 8 caracteres)</label><input id="mobile-signup-password" type="password" autoComplete="new-password" minLength={8} required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Crie uma senha" /></div>
+                <div><label htmlFor="mobile-signup-confirm" className="text-sm font-bold">Confirmar senha</label><input id="mobile-signup-confirm" type="password" autoComplete="new-password" minLength={8} required value={authPasswordConfirmation} onChange={(event) => setAuthPasswordConfirmation(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Repita sua senha" /></div>
+                <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Criando conta…" : "Criar minha conta"}</button>
+                <button type="button" onClick={() => { setAuthMode("login"); setAuthMessage(""); }} className="w-full py-2 text-sm font-bold text-[#0242D7]">Já tenho conta</button>
+              </form>
+            ) : (
+              <form onSubmit={(event) => void resetPasswordMobile(event)} className="space-y-4 rounded-[24px] border border-[#E3EAF4] bg-white p-5">
+                <h2 className="font-extrabold">Recuperar senha</h2>
+                <div><label htmlFor="mobile-reset-email" className="text-sm font-bold">E-mail</label><input id="mobile-reset-email" type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="voce@exemplo.com" /></div>
+                <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Enviando…" : "Enviar link de recuperação"}</button>
+                <button type="button" onClick={() => { setAuthMode("login"); setAuthMessage(""); }} className="w-full py-2 text-sm font-bold text-[#0242D7]">Voltar ao login</button>
+              </form>
+            )}
           </section>
         ) : (
           <>
