@@ -77,7 +77,7 @@ function MobileApp() {
       } else {
         const ids = [...new Set((membershipsResult.data ?? []).map((row) => row.course_id).filter(Boolean))];
         if (ids.length) {
-          const courseResult = await supabase.from("courses").select("id,name,description").in("id", ids).eq("published", true).order("name");
+          const courseResult = await supabase.from("courses").select("id,name").in("id", ids).eq("published", true).order("name");
           if (!active) return;
           if (!courseResult.error) setCourses((courseResult.data ?? []) as Course[]);
         }
@@ -184,7 +184,7 @@ function MobileApp() {
         ) : !authenticated ? (
           <section className="pt-5">
             <div className="mb-6">
-              <p className="text-sm font-bold text-[#0242D7]">Seu espaço de aprendizagem</p>
+              <p className="text-sm font-bold text-[#0242D7]">Acesse sua conta</p>
               <h1 className="mt-2 text-[30px] font-extrabold leading-tight tracking-[-.055em]">Entre para continuar aprendendo.</h1>
               <p className="mt-3 text-sm leading-6 text-[#68778C]">Acesse seus cursos, pratique e acompanhe seu progresso pelo celular.</p>
             </div>
@@ -201,7 +201,7 @@ function MobileApp() {
               <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Entrando…" : "Entrar no Ensina-me"}</button>
               <div className="flex items-center justify-between gap-3 text-xs font-bold">
                 <a href="/recuperar-senha" className="text-[#0242D7]">Esqueci minha senha</a>
-                <a href="/cadastro" className="text-[#53657D]">Criar conta</a>
+                <a href="/cadastro" onClick={() => window.localStorage.setItem("ensina-me-entry-mode", "mobile")} className="text-[#53657D]">Criar conta</a>
               </div>
             </form>
           </section>
