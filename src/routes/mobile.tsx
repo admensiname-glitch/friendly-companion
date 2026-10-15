@@ -49,6 +49,7 @@ function MobileApp() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const session = sessionData.session;
       if (!session || sessionError) {
+        window.localStorage.setItem("ensina-me-entry-mode", "mobile");
         await navigate({ to: "/login", replace: true });
         return;
       }
