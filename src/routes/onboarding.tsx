@@ -778,7 +778,13 @@ function Onboarding() {
         .maybeSingle();
 
       if (profile?.onboarding_completed) {
-        await navigate({ to: "/app/dashboard", replace: true });
+        const entryMode = window.localStorage.getItem("ensina-me-entry-mode");
+        if (entryMode === "mobile") {
+          window.localStorage.removeItem("ensina-me-entry-mode");
+          await navigate({ to: "/mobile", replace: true });
+        } else {
+          await navigate({ to: "/app/dashboard", replace: true });
+        }
         return;
       }
 
@@ -1165,7 +1171,13 @@ function Onboarding() {
     }
 
     setStatus("saved");
-    await navigate({ to: "/app/dashboard" });
+    const entryMode = window.localStorage.getItem("ensina-me-entry-mode");
+    if (entryMode === "mobile") {
+      window.localStorage.removeItem("ensina-me-entry-mode");
+      await navigate({ to: "/mobile" });
+    } else {
+      await navigate({ to: "/app/dashboard" });
+    }
   }
 
   const isFirstStep = step === "institution";
