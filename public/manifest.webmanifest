@@ -1,15 +1,17 @@
 {
-  "id": "/app",
+  "id": "/mobile",
   "name": "Ensina-me",
   "short_name": "Ensina-me",
   "description": "Estude, pratique, revise e acompanhe seu aprendizado em um só lugar.",
   "lang": "pt-BR",
-  "start_url": "/app/dashboard",
+  "start_url": "/mobile",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone"],
+  "display_override": [
+    "standalone"
+  ],
   "orientation": "portrait",
-  "background_color": "#F8FAFC",
+  "background_color": "#F5F8FE",
   "theme_color": "#0242D7",
   "prefer_related_applications": false,
   "icons": [

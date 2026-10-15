@@ -714,6 +714,7 @@ export const Route = createFileRoute("/onboarding")({
 
 function Onboarding() {
   const navigate = useNavigate();
+  const [mobileEntry] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("ensina-me-entry-mode") === "mobile");
   const saveDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -778,7 +779,13 @@ function Onboarding() {
         .maybeSingle();
 
       if (profile?.onboarding_completed) {
-        await navigate({ to: "/app/dashboard", replace: true });
+        const entryMode = window.localStorage.getItem("ensina-me-entry-mode");
+        if (entryMode === "mobile") {
+          window.localStorage.removeItem("ensina-me-entry-mode");
+          await navigate({ to: "/mobile", replace: true });
+        } else {
+          await navigate({ to: "/app/dashboard", replace: true });
+        }
         return;
       }
 
@@ -1165,7 +1172,13 @@ function Onboarding() {
     }
 
     setStatus("saved");
-    await navigate({ to: "/app/dashboard" });
+    const entryMode = window.localStorage.getItem("ensina-me-entry-mode");
+    if (entryMode === "mobile") {
+      window.localStorage.removeItem("ensina-me-entry-mode");
+      await navigate({ to: "/mobile" });
+    } else {
+      await navigate({ to: "/app/dashboard" });
+    }
   }
 
   const isFirstStep = step === "institution";
@@ -1190,8 +1203,8 @@ function Onboarding() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A] sm:py-12">
-      <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-2xl flex-col justify-center">
+    <main className={`min-h-screen bg-[#F8FAFC] text-[#0F172A] ${mobileEntry ? "px-4 py-5 sm:py-6" : "px-6 py-8 sm:py-12"}`}>
+      <div className={`mx-auto flex w-full flex-col justify-center ${mobileEntry ? "min-h-[calc(100dvh-2.5rem)] max-w-lg" : "min-h-[calc(100vh-6rem)] max-w-2xl"}`}>
         <header className="mb-10">
           <Link
             to="/"
@@ -1203,7 +1216,7 @@ function Onboarding() {
         </header>
 
         <section
-          className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-10"
+          className={`rounded-2xl border border-[#E2E8F0] bg-white shadow-sm ${mobileEntry ? "p-4 sm:p-6" : "p-6 sm:p-10"}`}
           aria-labelledby="onboarding-title"
         >
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
