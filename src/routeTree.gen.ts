@@ -15,6 +15,7 @@ import { Route as AdminAtivarRouteImport } from './routes/admin-ativar'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MobileRouteImport } from './routes/mobile'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
@@ -66,6 +67,11 @@ const CadastroRoute = CadastroRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobileRoute = MobileRouteImport.update({
+  id: '/mobile',
+  path: '/mobile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -372,6 +378,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CadastroRoute: typeof CadastroRoute
   LoginRoute: typeof LoginRoute
+  MobileRoute: typeof MobileRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
@@ -421,6 +428,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobile': {
+      id: '/mobile'
+      path: '/mobile'
+      fullPath: '/mobile'
+      preLoaderRoute: typeof MobileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -670,6 +684,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CadastroRoute: CadastroRoute,
   LoginRoute: LoginRoute,
+  MobileRoute: MobileRoute,
   OnboardingRoute: OnboardingRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
