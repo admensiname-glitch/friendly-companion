@@ -714,6 +714,7 @@ export const Route = createFileRoute("/onboarding")({
 
 function Onboarding() {
   const navigate = useNavigate();
+  const [mobileEntry] = useState(() => typeof window !== "undefined" && window.localStorage.getItem("ensina-me-entry-mode") === "mobile");
   const saveDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -1202,8 +1203,8 @@ function Onboarding() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A] sm:py-12">
-      <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-2xl flex-col justify-center">
+    <main className={`min-h-screen bg-[#F8FAFC] text-[#0F172A] ${mobileEntry ? "px-4 py-5 sm:py-6" : "px-6 py-8 sm:py-12"}`}>
+      <div className={`mx-auto flex w-full flex-col justify-center ${mobileEntry ? "min-h-[calc(100dvh-2.5rem)] max-w-lg" : "min-h-[calc(100vh-6rem)] max-w-2xl"}`}>
         <header className="mb-10">
           <Link
             to="/"
