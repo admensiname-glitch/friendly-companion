@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/mobile")({
@@ -30,6 +30,11 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 function MobileApp() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("inicio");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -49,8 +54,7 @@ function MobileApp() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const session = sessionData.session;
       if (!session || sessionError) {
-        window.localStorage.setItem("ensina-me-entry-mode", "mobile");
-        await navigate({ to: "/login", replace: true });
+        setLoading(false);
         return;
       }
       if (!active) return;
@@ -83,6 +87,7 @@ function MobileApp() {
         const value = todayResult.data as unknown as { minutes?: number };
         setTodayMinutes(Number(value.minutes ?? 0));
       }
+      setAuthenticated(true);
       setLoading(false);
     })();
     return () => { active = false; };
@@ -108,6 +113,28 @@ function MobileApp() {
     const normalized = search.trim().toLocaleLowerCase("pt-BR");
     return normalized ? courses.filter((course) => course.name.toLocaleLowerCase("pt-BR").includes(normalized)) : courses;
   }, [courses, search]);
+
+  async function signInMobile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthMessage("");
+    setAuthBusy(true);
+    const normalizedEmail = authEmail.trim().toLowerCase();
+    if (!normalizedEmail || !authPassword) {
+      setAuthMessage("Informe seu e-mail e sua senha.");
+      setAuthBusy(false);
+      return;
+    }
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: authPassword,
+    });
+    if (signInError) {
+      setAuthMessage("Não foi possível entrar. Confira seu e-mail e sua senha e tente novamente.");
+      setAuthBusy(false);
+      return;
+    }
+    window.location.replace("/mobile");
+  }
 
   async function signOut() {
     setSigningOut(true);
@@ -154,6 +181,30 @@ function MobileApp() {
             <div className="h-40 animate-pulse rounded-3xl bg-[#E7EDF7]" />
             <div className="h-24 animate-pulse rounded-3xl bg-[#E7EDF7]" />
           </div>
+        ) : !authenticated ? (
+          <section className="pt-5">
+            <div className="mb-6">
+              <p className="text-sm font-bold text-[#0242D7]">Seu espaço de aprendizagem</p>
+              <h1 className="mt-2 text-[30px] font-extrabold leading-tight tracking-[-.055em]">Entre para continuar aprendendo.</h1>
+              <p className="mt-3 text-sm leading-6 text-[#68778C]">Acesse seus cursos, pratique e acompanhe seu progresso pelo celular.</p>
+            </div>
+            <form onSubmit={(event) => void signInMobile(event)} className="space-y-4 rounded-[24px] border border-[#E3EAF4] bg-white p-5">
+              <div>
+                <label htmlFor="mobile-email" className="text-sm font-bold">E-mail</label>
+                <input id="mobile-email" type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="voce@exemplo.com" />
+              </div>
+              <div>
+                <label htmlFor="mobile-password" className="text-sm font-bold">Senha</label>
+                <input id="mobile-password" type="password" autoComplete="current-password" required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-[#DCE5F0] bg-white px-3.5 text-base outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" placeholder="Sua senha" />
+              </div>
+              {authMessage && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{authMessage}</p>}
+              <button type="submit" disabled={authBusy} className="min-h-12 w-full rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-60">{authBusy ? "Entrando…" : "Entrar no Ensina-me"}</button>
+              <div className="flex items-center justify-between gap-3 text-xs font-bold">
+                <a href="/recuperar-senha" className="text-[#0242D7]">Esqueci minha senha</a>
+                <a href="/cadastro" className="text-[#53657D]">Criar conta</a>
+              </div>
+            </form>
+          </section>
         ) : (
           <>
             {tab === "inicio" && (
@@ -278,14 +329,14 @@ function MobileApp() {
         )}
       </main>
 
-      <nav aria-label="Navegação mobile" className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E1E9F4] bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur">
+      {authenticated && !loading && <nav aria-label="Navegação mobile" className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E1E9F4] bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur">
         <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
           {tabs.map((item) => {
             const active = tab === item.id;
             return <button key={item.id} type="button" onClick={() => { setTab(item.id); if (item.id !== "cursos") setSelectedCourse(null); }} aria-current={active ? "page" : undefined} className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-extrabold transition-colors ${active ? "bg-[#EEF4FF] text-[#0242D7]" : "text-[#8390A3] active:bg-[#F5F8FE]"}`}><span className="text-[21px] leading-none" aria-hidden="true">{item.icon}</span><span>{item.label}</span></button>;
           })}
         </div>
-      </nav>
+      </nav>}
     </div>
   );
 }
