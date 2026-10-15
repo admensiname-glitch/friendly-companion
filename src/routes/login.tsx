@@ -221,8 +221,17 @@ function Login() {
       // O guard da rota /app continua responsável por validar onboarding e acesso.
       const entryMode = window.localStorage.getItem("ensina-me-entry-mode");
       if (entryMode === "mobile") {
-        window.localStorage.removeItem("ensina-me-entry-mode");
-        await navigate({ to: "/mobile", replace: true });
+        const { data: profile } = await supabase
+          .from("student_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", sessionData.session.user.id)
+          .maybeSingle();
+        if (profile?.onboarding_completed) {
+          window.localStorage.removeItem("ensina-me-entry-mode");
+          await navigate({ to: "/mobile", replace: true });
+        } else {
+          await navigate({ to: "/onboarding", replace: true });
+        }
       } else {
         await navigate({ to: "/app/dashboard", replace: true });
       }
