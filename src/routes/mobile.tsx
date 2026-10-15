@@ -56,12 +56,17 @@ function MobileApp() {
       if (!active) return;
       setEmail(session.user.email ?? "");
       const [profileResult, membershipsResult, recommendationResult, todayResult] = await Promise.all([
-        supabase.from("student_profiles").select("display_name,avatar_url").eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("student_profiles").select("display_name,avatar_url,onboarding_completed").eq("user_id", session.user.id).maybeSingle(),
         supabase.from("student_courses").select("course_id").order("created_at", { ascending: true }),
         supabase.rpc("get_student_study_recommendation"),
         supabase.rpc("get_student_today_study"),
       ]);
       if (!active) return;
+      if (!profileResult.data?.onboarding_completed) {
+        window.localStorage.setItem("ensina-me-entry-mode", "mobile");
+        await navigate({ to: "/onboarding", replace: true });
+        return;
+      }
       if (profileResult.data) setProfile(profileResult.data as Profile);
       if (membershipsResult.error) {
         setError("Não foi possível carregar seus cursos. Tente novamente.");
