@@ -1207,9 +1207,9 @@ function Onboarding() {
       <div className={`mx-auto flex w-full flex-col justify-center ${mobileEntry ? "min-h-[calc(100dvh-2.5rem)] max-w-lg" : "min-h-[calc(100vh-6rem)] max-w-2xl"}`}>
         <header className="mb-10">
           <Link
-            to="/"
+            to={mobileEntry ? "/mobile" : "/"}
             className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
-            aria-label="Ensina-me, página inicial"
+            aria-label={mobileEntry ? "Voltar à versão mobile do Ensina-me" : "Ensina-me, página inicial"}
           >
             <BrandLogo compact />
           </Link>
