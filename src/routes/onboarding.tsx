@@ -1216,7 +1216,7 @@ function Onboarding() {
         </header>
 
         <section
-          className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-10"
+          className={`rounded-2xl border border-[#E2E8F0] bg-white shadow-sm ${mobileEntry ? "p-4 sm:p-6" : "p-6 sm:p-10"}`}
           aria-labelledby="onboarding-title"
         >
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
