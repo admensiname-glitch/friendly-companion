@@ -69,6 +69,7 @@ self.addEventListener("fetch", (event) => {
       }
       return response;
     })());
+    return;
   }
 
   // Cache same-origin build assets after first use so the app shell can reopen offline.
