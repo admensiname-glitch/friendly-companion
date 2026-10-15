@@ -7,7 +7,7 @@ export const Route = createFileRoute("/mobile")({
   component: MobileApp,
 });
 
-type Tab = "inicio" | "cursos" | "estudar" | "perfil";
+type Tab = "inicio" | "cursos" | "estudar" | "comunidade" | "perfil";
 type Course = { id: string; name: string; description?: string | null };
 type Profile = { display_name: string | null; avatar_url?: string | null };
 type Recommendation = {
@@ -22,11 +22,14 @@ type Discipline = { id: string; name: string; description: string | null };
 type Topic = { id: string; name: string; description: string | null; position: number };
 type LessonSection = { id: string; title: string; content: string; position: number; section_type: string | null };
 type PracticeQuestion = { id: string; question_text: string; question_type: string; position: number; feedback_hint: string | null; options: { id: string; content: string; is_correct: boolean; feedback_correct: string | null; feedback_incorrect: string | null }[] };
+type TopicVideo = { id: string; title: string; description: string | null; video_url: string; embed_url: string | null; platform: string | null; channel_name: string | null; duration_label: string | null };
+type CommunityPost = { id: string; body: string; created_at: string; author_id: string; author_display_name: string | null; author_avatar_url: string | null; author_is_verified: boolean | null; is_official: boolean | null; official_until: string | null; image_url: string | null };
 
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: "inicio", label: "Início", icon: "⌂" },
   { id: "cursos", label: "Cursos", icon: "▤" },
   { id: "estudar", label: "Estudar", icon: "✦" },
+  { id: "comunidade", label: "Comunidade", icon: "💬" },
   { id: "perfil", label: "Perfil", icon: "○" },
 ];
 
@@ -58,7 +61,12 @@ function MobileApp() {
   const [studyTopic, setStudyTopic] = useState<Topic | null>(null);
   const [lessonSections, setLessonSections] = useState<LessonSection[]>([]);
   const [practiceQuestions, setPracticeQuestions] = useState<PracticeQuestion[]>([]);
+  const [topicVideos, setTopicVideos] = useState<TopicVideo[]>([]);
   const [lessonLoading, setLessonLoading] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityMessage, setCommunityMessage] = useState("");
+  const [communityPosting, setCommunityPosting] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [signingOut, setSigningOut] = useState(false);
 
@@ -143,15 +151,17 @@ function MobileApp() {
     if (!studyTopic) {
       setLessonSections([]);
       setPracticeQuestions([]);
+      setTopicVideos([]);
       return;
     }
     let active = true;
     setLessonLoading(true);
     setSelectedAnswers({});
     void (async () => {
-      const [materialResult, exerciseResult] = await Promise.all([
+      const [materialResult, exerciseResult, videoResult] = await Promise.all([
         supabase.from("materials").select("id").eq("topic_id", studyTopic.id).eq("status", "published").limit(1).maybeSingle(),
         supabase.from("exercises").select("id").eq("topic_id", studyTopic.id).eq("published", true).order("position"),
+        supabase.from("topic_videos").select("id,title,description,video_url,embed_url,platform,channel_name,duration_label").eq("topic_id", studyTopic.id).eq("published", true).order("position"),
       ]);
       if (!active) return;
       let sections: LessonSection[] = [];
@@ -186,10 +196,25 @@ function MobileApp() {
       }
       setLessonSections(sections);
       setPracticeQuestions(questions);
+      setTopicVideos((videoResult.data ?? []) as TopicVideo[]);
       setLessonLoading(false);
     })();
     return () => { active = false; };
   }, [studyTopic]);
+
+  useEffect(() => {
+    if (tab !== "comunidade" || !authenticated) return;
+    let active = true;
+    setCommunityLoading(true);
+    void supabase.from("community_posts").select("id,body,created_at,author_id,author_display_name,author_avatar_url,author_is_verified,is_official,official_until,image_url").order("is_official", { ascending: false }).order("created_at", { ascending: false }).limit(50)
+      .then(({ data, error: queryError }) => {
+        if (!active) return;
+        if (queryError) setError("Não foi possível carregar a comunidade agora.");
+        else setCommunityPosts((data ?? []) as CommunityPost[]);
+        setCommunityLoading(false);
+      });
+    return () => { active = false; };
+  }, [tab, authenticated]);
 
   const filteredCourses = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase("pt-BR");
@@ -256,6 +281,30 @@ function MobileApp() {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: `${window.location.origin}/redefinir-senha` });
     setAuthMessage(resetError ? "Não foi possível enviar o link agora. Tente novamente." : "Se houver uma conta com esse e-mail, enviaremos as instruções de recuperação. Confira também o spam.");
     setAuthBusy(false);
+  }
+
+  async function publishCommunityPost(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = communityMessage.trim();
+    if (!body || communityPosting) return;
+    setCommunityPosting(true);
+    setError("");
+    const { data: userResult, error: userError } = await supabase.auth.getUser();
+    if (userError || !userResult.user) {
+      setError("Sua sessão expirou. Entre novamente para publicar.");
+      setCommunityPosting(false);
+      return;
+    }
+    const { error: insertError } = await supabase.from("community_posts").insert({ author_id: userResult.user.id, body });
+    if (insertError) {
+      setError("Não foi possível publicar. Confira sua conexão e tente novamente.");
+      setCommunityPosting(false);
+      return;
+    }
+    setCommunityMessage("");
+    const { data } = await supabase.from("community_posts").select("id,body,created_at,author_id,author_display_name,author_avatar_url,author_is_verified,is_official,official_until,image_url").order("is_official", { ascending: false }).order("created_at", { ascending: false }).limit(50);
+    setCommunityPosts((data ?? []) as CommunityPost[]);
+    setCommunityPosting(false);
   }
 
   async function signOut() {
@@ -456,6 +505,7 @@ function MobileApp() {
                         {lessonSections.map((section, index) => <article key={section.id} className="rounded-2xl border border-[#E3EAF4] bg-white p-5"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0242D7]">Parte {index + 1}</p><h3 className="mt-2 text-base font-extrabold">{section.title}</h3><div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#42536A]">{section.content}</div></article>)}
                       </div>
                     ) : !lessonLoading ? <div className="rounded-2xl border border-[#E3EAF4] bg-white p-5"><p className="font-bold">Conteúdo ainda indisponível</p><p className="mt-2 text-sm leading-6 text-[#68778C]">Este tópico ainda não tem material publicado para leitura.</p></div> : null}
+                    {topicVideos.length > 0 && <section className="space-y-3"><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0242D7]">Aprenda também em vídeo</p><h2 className="mt-1 text-xl font-extrabold">Vídeos explicativos</h2><p className="mt-2 text-sm leading-6 text-[#68778C]">Materiais em vídeo selecionados para este tópico.</p></div>{topicVideos.map((video) => <article key={video.id} className="overflow-hidden rounded-2xl border border-[#E3EAF4] bg-white">{video.embed_url && /^https:\/\//i.test(video.embed_url) ? <div className="aspect-video bg-[#0F172A]"><iframe src={video.embed_url} title={video.title} className="h-full w-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div> : null}<div className="p-4"><h3 className="font-extrabold">{video.title}</h3>{video.description && <p className="mt-2 text-sm leading-6 text-[#68778C]">{video.description}</p>}<div className="mt-2 flex flex-wrap gap-2 text-xs text-[#728096]">{video.channel_name && <span>{video.channel_name}</span>}{video.duration_label && <span>· {video.duration_label}</span>}</div><a href={video.video_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-[#EEF4FF] px-3 text-sm font-bold text-[#0242D7]">Assistir agora ↗</a></div></article>)}</section>}
                     <section className="space-y-3">
                       <div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0242D7]">Prática</p><h2 className="mt-1 text-xl font-extrabold">Confira sua compreensão</h2><p className="mt-2 text-sm leading-6 text-[#68778C]">Responda e receba o feedback disponível para cada alternativa.</p></div>
                       {!lessonLoading && practiceQuestions.length ? practiceQuestions.map((question, index) => {
@@ -480,6 +530,22 @@ function MobileApp() {
               </section>
             )}
 
+            {tab === "comunidade" && (
+              <section>
+                <p className="text-sm font-bold text-[#0242D7]">Aprenda em conjunto</p>
+                <h1 className="mt-1 text-[29px] font-extrabold tracking-[-.05em]">Comunidade</h1>
+                <p className="mt-2 text-sm leading-6 text-[#68778C]">Compartilhe dúvidas, descobertas e ideias com outros estudantes.</p>
+                <form onSubmit={(event) => void publishCommunityPost(event)} className="mt-5 rounded-2xl border border-[#E3EAF4] bg-white p-4">
+                  <label htmlFor="mobile-community-message" className="text-sm font-bold">O que você quer compartilhar?</label>
+                  <textarea id="mobile-community-message" value={communityMessage} onChange={(event) => setCommunityMessage(event.target.value)} maxLength={3000} rows={4} placeholder="Escreva uma dúvida, reflexão ou descoberta..." className="mt-2 w-full resize-y rounded-xl border border-[#DCE5F0] p-3 text-base leading-6 outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#0242D7]/15" />
+                  <div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs text-[#728096]">{communityMessage.length}/3000</span><button type="submit" disabled={communityPosting || !communityMessage.trim()} className="min-h-11 rounded-xl bg-[#0242D7] px-4 text-sm font-extrabold text-white disabled:opacity-50">{communityPosting ? "Publicando…" : "Publicar"}</button></div>
+                </form>
+                <div className="mt-5 space-y-3">
+                  {communityLoading ? <div className="h-32 animate-pulse rounded-2xl bg-[#E7EDF7]" /> : communityPosts.length ? communityPosts.map((post) => <article key={post.id} className="rounded-2xl border border-[#E3EAF4] bg-white p-4"><div className="flex items-center gap-3">{post.author_avatar_url ? <img src={post.author_avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF4FF] font-bold text-[#0242D7]">{(post.author_display_name || "E").slice(0,1).toUpperCase()}</span>}<div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-extrabold">{post.author_display_name || "Estudante"}</p>{post.author_is_verified && <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[10px] font-bold text-[#0242D7]">Verificado</span>}{post.is_official && (!post.official_until || new Date(post.official_until).getTime() > Date.now()) && <span className="rounded-full bg-[#FFF3D6] px-2 py-0.5 text-[10px] font-bold text-[#8A5A00]">Oficial</span>}</div><p className="text-xs text-[#8794A7]">{new Date(post.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p></div></div><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-[#42536A]">{post.body}</p>{post.image_url && <img src={post.image_url} alt="Imagem compartilhada na publicação" loading="lazy" className="mt-3 max-h-80 w-full rounded-xl object-cover" />}</article>) : <div className="rounded-2xl border border-dashed border-[#CDD9EA] bg-white p-6 text-center"><p className="font-bold">A comunidade começa com você</p><p className="mt-2 text-sm leading-6 text-[#728096]">Ainda não há publicações disponíveis. Compartilhe a primeira ideia.</p></div>}
+                </div>
+              </section>
+            )}
+
             {tab === "perfil" && (
               <section>
                 <p className="text-sm font-bold text-[#0242D7]">Sua conta</p>
@@ -499,7 +565,7 @@ function MobileApp() {
       </main>
 
       {authenticated && !loading && <nav aria-label="Navegação mobile" className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E1E9F4] bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur">
-        <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
           {tabs.map((item) => {
             const active = tab === item.id;
             return <button key={item.id} type="button" onClick={() => { setTab(item.id); if (item.id !== "cursos") setSelectedCourse(null); }} aria-current={active ? "page" : undefined} className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-extrabold transition-colors ${active ? "bg-[#EEF4FF] text-[#0242D7]" : "text-[#8390A3] active:bg-[#F5F8FE]"}`}><span className="text-[21px] leading-none" aria-hidden="true">{item.icon}</span><span>{item.label}</span></button>;
