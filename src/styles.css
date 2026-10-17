@@ -1516,3 +1516,71 @@ html.dark svg text,
 html.dark svg tspan {
   fill: #FFFFFF !important;
 }
+
+
+/* Native-style mobile app shell:
+   The viewport stays fixed; only the content pane scrolls between stable chrome. */
+@media (max-width: 767px) {
+  html:has(.app-shell),
+  body:has(.app-shell),
+  body:has(.app-shell) #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .app-shell .app-mobile-header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+  }
+
+  .app-shell main {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell main::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-shell .app-content {
+    width: 100%;
+    height: auto;
+    min-height: 100%;
+    padding: 10px 16px 24px;
+  }
+
+  .app-shell .app-route-stage {
+    min-width: 0;
+  }
+
+  .app-shell > nav[aria-label="Atalhos principais"] {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 40;
+  }
+}
