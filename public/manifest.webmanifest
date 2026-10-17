@@ -6,11 +6,14 @@
   "lang": "pt-BR",
   "start_url": "/app/dashboard",
   "scope": "/",
-  "display": "standalone",
-  "display_override": ["standalone"],
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "portrait",
-  "background_color": "#F8FAFC",
-  "theme_color": "#0242D7",
+  "background_color": "#101010",
+  "theme_color": "#101010",
   "prefer_related_applications": false,
   "icons": [
     {
