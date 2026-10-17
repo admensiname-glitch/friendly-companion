@@ -3,6 +3,7 @@ name: Sync generated route tree
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ensina-me-route-tree-sync
