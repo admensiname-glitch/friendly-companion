@@ -79,6 +79,12 @@ function AppLayout() {
 
   useEffect(() => {
     setMobileMenuOpen(false);
+
+    // The app content is its own scroll pane on mobile; start each new screen at the top.
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      const main = document.querySelector<HTMLElement>(".app-shell main");
+      if (main) main.scrollTop = 0;
+    }
   }, [location.pathname]);
 
   useEffect(() => {
