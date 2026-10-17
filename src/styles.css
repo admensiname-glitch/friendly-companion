@@ -1518,7 +1518,15 @@ html.dark svg tspan {
 }
 
 
-/* Native-like mobile shell: the viewport stays still; only the content pane scrolls. */
+/* Mobile native/PWA viewport: use Capacitor's corrected insets when available,
+   fall back to browser safe-area values, and let only the content pane scroll. */
+:root {
+  --ensina-safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --ensina-safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --ensina-safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --ensina-safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+}
+
 @media (max-width: 1023px) {
   html.ensina-app-viewport-lock,
   body.ensina-app-viewport-lock {
@@ -1532,9 +1540,10 @@ html.dark svg tspan {
   .app-shell {
     position: relative;
     width: 100%;
+    height: 100vh !important;
     height: 100dvh !important;
-    min-height: 100dvh !important;
-    max-height: 100dvh;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: hidden !important;
     overscroll-behavior: none;
   }
@@ -1544,9 +1553,9 @@ html.dark svg tspan {
     inset: 0 0 auto 0 !important;
     z-index: 50;
     box-sizing: border-box;
-    height: calc(60px + env(safe-area-inset-top));
-    min-height: calc(60px + env(safe-area-inset-top)) !important;
-    padding: calc(env(safe-area-inset-top) + 7px) 16px 7px;
+    height: calc(60px + var(--ensina-safe-top));
+    min-height: calc(60px + var(--ensina-safe-top)) !important;
+    padding: calc(var(--ensina-safe-top) + 7px) max(14px, var(--ensina-safe-right)) 7px max(14px, var(--ensina-safe-left));
   }
 
   .app-shell > nav[aria-label="Atalhos principais"] {
@@ -1554,20 +1563,23 @@ html.dark svg tspan {
     inset: auto 0 0 0 !important;
     z-index: 45;
     box-sizing: border-box;
-    height: calc(65px + max(6px, env(safe-area-inset-bottom)));
-    min-height: calc(65px + max(6px, env(safe-area-inset-bottom)));
+    height: calc(65px + max(6px, var(--ensina-safe-bottom)));
+    min-height: calc(65px + max(6px, var(--ensina-safe-bottom)));
     padding-top: 8px;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-right: max(6px, var(--ensina-safe-right));
+    padding-bottom: max(6px, var(--ensina-safe-bottom));
+    padding-left: max(6px, var(--ensina-safe-left));
   }
 
   .app-shell main.app-main-scroll {
     position: fixed !important;
     inset-inline: 0 !important;
-    top: calc(60px + env(safe-area-inset-top)) !important;
-    bottom: calc(65px + max(6px, env(safe-area-inset-bottom))) !important;
+    top: calc(60px + var(--ensina-safe-top)) !important;
+    bottom: calc(65px + max(6px, var(--ensina-safe-bottom))) !important;
     width: auto;
     height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow-x: hidden !important;
@@ -1576,6 +1588,7 @@ html.dark svg tspan {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    touch-action: pan-y;
   }
 
   .app-shell main.app-main-scroll::-webkit-scrollbar {
@@ -1583,9 +1596,28 @@ html.dark svg tspan {
   }
 
   .app-shell main.app-main-scroll .app-content {
+    width: 100%;
+    min-width: 0 !important;
     min-height: 0 !important;
+    max-height: none !important;
+    box-sizing: border-box;
     padding-top: 10px;
-    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-right: max(16px, var(--ensina-safe-right));
+    padding-bottom: max(24px, var(--ensina-safe-bottom));
+    padding-left: max(16px, var(--ensina-safe-left));
+  }
+
+  .app-shell main.app-main-scroll .app-route-stage,
+  .app-shell main.app-main-scroll .app-route-stage > section {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .app-shell main.app-main-scroll img,
+  .app-shell main.app-main-scroll video,
+  .app-shell main.app-main-scroll canvas,
+  .app-shell main.app-main-scroll iframe {
+    max-width: 100%;
   }
 }
 

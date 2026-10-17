@@ -18,7 +18,8 @@
       "insetsHandling": "css",
       "style": "DARK",
       "hidden": true,
-      "animation": "NONE"
+      "animation": "NONE",
+      "initialViewportFitValueHint": "cover"
     }
   }
 }
