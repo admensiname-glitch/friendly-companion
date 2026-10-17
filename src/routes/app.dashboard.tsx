@@ -137,8 +137,26 @@ function ProgressRing({ value, size = 76 }: { value: number; size?: number }) {
 function AppDashboard() {
   const router = useRouter();
 
-  // Warm up the most-used destinations after the dashboard mounts.
+
+
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
+  const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
+  const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
+  const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
+  const [nextExam, setNextExam] = useState<StudentExam | null>(null);
+  const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
+  const [resumeTopics, setResumeTopics] = useState<ResumeTopic[]>([]);
+  const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
+  const [focusedDisciplineNames, setFocusedDisciplineNames] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [preloadReady, setPreloadReady] = useState(false);
+
+  // Warm up destinations only after dashboard data has finished loading.
   useEffect(() => {
+    if (!preloadReady) return;
+
     let cancelled = false;
     const warmRoutes = () => {
       if (cancelled) return;
@@ -168,20 +186,7 @@ function AppDashboard() {
         window.clearTimeout(idleId as number);
       }
     };
-  }, [router]);
-
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
-  const [topicsProgress, setTopicsProgress] = useState<DashboardTopic[]>([]);
-  const [recommendation, setRecommendation] = useState<StudyRecommendation | null>(null);
-  const [todayStudy, setTodayStudy] = useState<TodayStudy | null>(null);
-  const [nextExam, setNextExam] = useState<StudentExam | null>(null);
-  const [learningSignals, setLearningSignals] = useState<LearningSignal[]>([]);
-  const [resumeTopics, setResumeTopics] = useState<ResumeTopic[]>([]);
-  const [focusedDisciplineIds, setFocusedDisciplineIds] = useState<string[]>([]);
-  const [focusedDisciplineNames, setFocusedDisciplineNames] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  }, [router, preloadReady]);
 
   useEffect(() => {
     const refreshIdentity = async () => {
@@ -261,17 +266,16 @@ function AppDashboard() {
 
       if (examsResult.data?.[0]) setNextExam(examsResult.data[0] as StudentExam);
 
-      // Reconfirm the profile immediately before revealing the dashboard. This prevents
-      // an older initial read from briefly replacing a profile update made moments earlier.
+      // Show the dashboard as soon as its parallel initial requests finish.
+      // Keep the profile recheck, but do not make the user wait for this extra round trip.
+      setLoading(false);
+
       const { data: latestProfile } = await supabase
         .from("student_profiles")
         .select("display_name, institution, semester, daily_study_minutes, difficulties")
         .eq("user_id", userId)
         .maybeSingle();
       if (latestProfile) setProfile(latestProfile as Profile);
-
-      // The main dashboard can render while resume-position details finish loading.
-      setLoading(false);
 
       if (!resumeProgressResult.error && resumeProgressResult.data) {
         const progressRows = resumeProgressResult.data as Array<{
@@ -350,6 +354,8 @@ function AppDashboard() {
         }
       }
 
+      // Route preloading must not compete with initial dashboard or resume queries.
+      setPreloadReady(true);
     };
 
     void loadData().catch((error) => {
