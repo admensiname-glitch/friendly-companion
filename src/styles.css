@@ -1752,3 +1752,58 @@ html.dark svg tspan {
     height: 21px !important;
   }
 }
+
+
+/* Direct component hooks keep mobile dashboard styling attached to the actual UI. */
+@media (max-width: 767px) {
+  .app-shell .mobile-study-card {
+    border-radius: 20px !important;
+    box-shadow: 0 8px 24px rgba(2, 66, 215, .18) !important;
+  }
+  .app-shell .mobile-study-card-inner {
+    padding: 20px 18px 18px !important;
+  }
+  .app-shell .mobile-study-title {
+    margin-top: 12px !important;
+    font-size: clamp(20px, 5.2vw, 25px) !important;
+    line-height: 1.18 !important;
+    letter-spacing: -.03em !important;
+  }
+  .app-shell .mobile-study-message {
+    margin-top: 10px !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+  .app-shell .mobile-study-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+  }
+  .app-shell .mobile-study-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    justify-content: space-between !important;
+    padding: 10px 13px !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+  }
+  .app-shell .mobile-study-action-primary {
+    background: #fff !important;
+    color: #0242D7 !important;
+    -webkit-text-fill-color: #0242D7 !important;
+  }
+  .app-shell .mobile-study-action-secondary {
+    background: rgba(255,255,255,.12) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    border: 1px solid rgba(255,255,255,.32) !important;
+  }
+  .app-shell .mobile-study-action svg {
+    flex: 0 0 auto;
+  }
+}
