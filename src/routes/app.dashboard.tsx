@@ -137,8 +137,6 @@ function ProgressRing({ value, size = 76 }: { value: number; size?: number }) {
 function AppDashboard() {
   const router = useRouter();
 
-
-
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [disciplines, setDisciplines] = useState<StudentDiscipline[]>([]);
