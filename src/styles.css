@@ -1839,3 +1839,62 @@ html.dark svg tspan {
     flex: 0 0 auto;
   }
 }
+
+
+/* Stable mobile viewport: prevent browser text inflation and input-focus auto-zoom
+   while preserving user-controlled pinch zoom and the full scrollable content area. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 100% !important;
+  }
+
+  body {
+    font-size: 16px !important;
+    min-width: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .app-shell,
+  .app-shell main.app-main-scroll,
+  .app-shell main.app-main-scroll .app-content,
+  .app-shell main.app-main-scroll .app-route-stage {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* 16px prevents automatic focus-zoom in mobile Safari and compatible webviews. */
+  .app-shell input,
+  .app-shell textarea,
+  .app-shell select,
+  .app-shell [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+
+  /* Vertical page scrolling stays native; explicit pinch zoom remains available. */
+  .app-shell main.app-main-scroll {
+    touch-action: pan-y pinch-zoom !important;
+    overflow-y: auto !important;
+    overflow-x: clip !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell main.app-main-scroll .app-content {
+    height: auto !important;
+    min-height: 0 !important;
+    padding-bottom: max(32px, var(--ensina-safe-bottom)) !important;
+  }
+
+  .app-shell main.app-main-scroll .app-route-stage,
+  .app-shell main.app-main-scroll .app-route-stage > section {
+    overflow-wrap: anywhere;
+  }
+}
