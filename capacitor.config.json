@@ -3,7 +3,7 @@
   "appName": "Ensina-me",
   "webDir": "www",
   "loggingBehavior": "none",
-  "backgroundColor": "#F8FAFC",
+  "backgroundColor": "#101010",
   "android": {
     "minWebViewVersion": 60,
     "initialFocus": true
@@ -12,5 +12,13 @@
     "url": "https://ensina-me-sigma.vercel.app",
     "cleartext": false,
     "androidScheme": "https"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK",
+      "hidden": true,
+      "animation": "NONE"
+    }
   }
 }
