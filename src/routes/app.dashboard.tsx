@@ -502,8 +502,8 @@ function AppDashboard() {
         </h1>
       </section>
 
-      <section className="mt-3 overflow-hidden rounded-[18px] bg-[#0242D7] shadow-[0_10px_26px_rgba(2,66,215,.13)] sm:mt-5 lg:mt-8 lg:rounded-[20px] lg:shadow-[0_18px_42px_rgba(2,66,215,.16)]" aria-labelledby="next-study-title">
-        <div className="relative bg-[#0242D7] p-4 sm:p-9 lg:min-h-[300px] lg:p-11">
+      <section className="mobile-study-card mt-3 overflow-hidden rounded-[18px] bg-[#0242D7] shadow-[0_10px_26px_rgba(2,66,215,.13)] sm:mt-5 lg:mt-8 lg:rounded-[20px] lg:shadow-[0_18px_42px_rgba(2,66,215,.16)]" aria-labelledby="next-study-title">
+        <div className="mobile-study-card-inner relative bg-[#0242D7] p-4 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="relative">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
@@ -512,13 +512,13 @@ function AppDashboard() {
               O que estudar agora
             </div>
 
-            <h2 id="next-study-title" className="mt-3 max-w-3xl text-[23px] font-black leading-7 tracking-[-0.035em] text-white sm:mt-5 sm:text-[34px] sm:leading-9 lg:text-[40px] lg:leading-[1.08]">
+            <h2 id="next-study-title" className="mobile-study-title mt-3 max-w-3xl text-[23px] font-black leading-7 tracking-[-0.035em] text-white sm:mt-5 sm:text-[34px] sm:leading-9 lg:text-[40px] lg:leading-[1.08]">
               {loading ? "Carregando seu próximo passo…" : focusedRecommendation?.topic_name ?? activeTopics[0]?.topic_name ?? fallbackTopic?.topic_name ?? "Escolha uma disciplina para começar"}
             </h2>
             <p className="mt-1 text-sm font-bold text-white/80 sm:mt-2 sm:text-base lg:text-lg">
               {loading ? "Preparando seu percurso de aprendizagem." : focusedRecommendation?.discipline_name ?? activeTopics[0]?.discipline_name ?? fallbackTopic?.discipline_name ?? "Explore o catálogo e escolha por onde começar."}
             </p>
-            <p className="mt-2 max-w-3xl text-sm leading-5 text-white/80 sm:mt-4 sm:text-base sm:leading-7 lg:text-[17px] lg:leading-7">
+            <p className="mobile-study-message mt-2 max-w-3xl text-sm leading-5 text-white/80 sm:mt-4 sm:text-base sm:leading-7 lg:text-[17px] lg:leading-7">
               {focusedRecommendation?.message ?? "Aprenda, pratique e volte depois para revisar o que ainda não estiver firme."}
             </p>
 
@@ -529,23 +529,23 @@ function AppDashboard() {
               {focusedRecommendation?.reason === "review" && <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-inset ring-white/15">Baseado nos seus sinais de dificuldade</span>}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
+            <div className="mobile-study-actions mt-4 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
               {focusedRecommendation?.topic_id && focusedRecommendation.discipline_id ? (
                 <Link
                   to="/app/disciplinas/$disciplineId/$topicId"
                   params={{ disciplineId: focusedRecommendation.discipline_id, topicId: focusedRecommendation.topic_id }}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#0242D7] shadow-sm"
+                  className="mobile-study-action mobile-study-action-primary inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#0242D7] shadow-sm"
                 >
                   {focusedRecommendation.reason === "review" ? "Revisar agora" : "Continuar estudo"}
                   <Icon name="arrow" className="h-4 w-4" />
                 </Link>
               ) : (
-                <Link to="/app/disciplinas" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-[#0242D7]">
+                <Link to="/app/disciplinas" className="mobile-study-action mobile-study-action-primary inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-black text-[#0242D7]">
                   Escolher disciplina
                   <Icon name="arrow" className="h-4 w-4" />
                 </Link>
               )}
-              <Link to="/app/disciplinas" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white/12 px-5 py-3 text-sm font-extrabold text-white ring-1 ring-inset ring-white/30">
+              <Link to="/app/disciplinas" className="mobile-study-action mobile-study-action-secondary inline-flex min-h-12 items-center gap-2 rounded-xl bg-white/12 px-5 py-3 text-sm font-extrabold text-white ring-1 ring-inset ring-white/30">
                 Escolher outra matéria
                 <Icon name="arrow" className="h-4 w-4" />
               </Link>
