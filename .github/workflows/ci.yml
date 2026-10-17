@@ -1,12 +1,15 @@
 name: Ensina-me CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_run:
     workflows: ["Sync generated route tree"]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ensina-me-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.ref }}
@@ -17,15 +20,15 @@ permissions:
 
 jobs:
   quality:
-    if: github.event_name == 'pull_request' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout pull request
         if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
 
-      - name: Checkout synchronized default branch
-        if: github.event_name == 'workflow_run'
+      - name: Checkout default branch
+        if: github.event_name != 'pull_request'
         uses: actions/checkout@v4
         with:
           ref: main
