@@ -625,22 +625,22 @@ function AppDashboard() {
         </div>
 
         {loading ? (
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
             {[1, 2].map((item) => <div key={item} className="app-card h-20 animate-pulse" />)}
           </div>
         ) : disciplineProgress.length > 0 ? (
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div className="mt-3 grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
             {disciplineProgress.slice(0, 4).map((discipline) => (
               <Link
                 key={discipline.discipline_id}
                 to="/app/disciplinas/$disciplineId"
                 params={{ disciplineId: discipline.discipline_id }}
-                className="app-card group flex items-center gap-3 p-4"
+                className="app-card group flex min-w-0 w-full max-w-full items-center gap-3 overflow-hidden p-4 box-border"
               >
                 <ProgressRing value={discipline.progress} size={54} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{discipline.discipline_name}</p>
-                  <p className="mt-1 text-xs font-semibold text-[#8995A5] dark:text-[#8B9CAE]">{discipline.completed} de {discipline.topics} tópicos concluídos</p>
+                  <p className="mt-1 min-w-0 break-words text-xs font-semibold leading-5 text-[#8995A5] dark:text-[#8B9CAE]">{discipline.completed} de {discipline.topics} tópicos concluídos</p>
                 </div>
                 <Icon name="chevron" className="h-4 w-4 shrink-0 text-[#A0AAB7] group-hover:text-[#0242D7] dark:group-hover:text-[#78A9FF]" />
               </Link>

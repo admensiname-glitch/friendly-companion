@@ -1898,3 +1898,30 @@ html {
     overflow-wrap: anywhere;
   }
 }
+
+
+/* Keep every mobile route and card inside the viewport instead of masking overflow. */
+@media (max-width: 767px) {
+  .app-shell main.app-main-scroll .app-content,
+  .app-shell main.app-main-scroll .app-route-stage,
+  .app-shell main.app-main-scroll .app-route-stage > section {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-shell main.app-main-scroll .app-route-stage {
+    overflow-x: clip;
+  }
+
+  .app-shell main.app-main-scroll .app-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-shell main.app-main-scroll {
+    touch-action: pan-y pinch-zoom !important;
+  }
+}
