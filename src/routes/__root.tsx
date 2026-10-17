@@ -9,7 +9,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Capacitor, SystemBars } from "@capacitor/core";
+import { Capacitor, SystemBars, SystemBarType } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -129,13 +129,37 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
-  // Use immersive fullscreen in the installed native app so content reaches
-  // the physical top and bottom edges instead of leaving Android system bars.
+  // Hide each native system bar explicitly. Some Android builds can leave the
+  // bottom navigation bar visible when only the generic hide request is used.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    void SystemBars.hide().catch(() => {
-      // Keep the web experience usable on platforms that do not expose system bars.
-    });
+
+    let active = true;
+    const hideNativeSystemBars = async () => {
+      try {
+        await Promise.all([
+          SystemBars.hide({ bar: SystemBarType.StatusBar, animation: "NONE" }),
+          SystemBars.hide({ bar: SystemBarType.NavigationBar, animation: "NONE" }),
+        ]);
+      } catch {
+        // The web experience must remain usable if the native API is unavailable.
+      }
+    };
+
+    void hideNativeSystemBars();
+    const handleVisibilityChange = () => {
+      if (active && document.visibilityState === "visible") {
+        void hideNativeSystemBars();
+      }
+    };
+    window.addEventListener("focus", hideNativeSystemBars);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", hideNativeSystemBars);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
