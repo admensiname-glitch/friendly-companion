@@ -9,7 +9,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, SystemBars } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -128,6 +128,15 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  // Use immersive fullscreen in the installed native app so content reaches
+  // the physical top and bottom edges instead of leaving Android system bars.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void SystemBars.hide().catch(() => {
+      // Keep the web experience usable on platforms that do not expose system bars.
+    });
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
