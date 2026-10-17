@@ -82,6 +82,24 @@ function AppLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("ensina-app-viewport-lock");
+    body.classList.add("ensina-app-viewport-lock");
+
+    return () => {
+      root.classList.remove("ensina-app-viewport-lock");
+      body.classList.remove("ensina-app-viewport-lock");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023px)").matches) return;
+    const main = document.querySelector<HTMLElement>(".app-main-scroll");
+    main?.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
+
+  useEffect(() => {
     const savedTheme = window.localStorage.getItem("ensina-me-theme");
     const shouldUseDark = savedTheme === "dark";
     document.documentElement.classList.toggle("dark", shouldUseDark);
@@ -440,7 +458,7 @@ function AppLayout() {
         })}
       </nav>
 
-      <main className="lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px]">
+      <main className="app-main-scroll lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px]">
         <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
