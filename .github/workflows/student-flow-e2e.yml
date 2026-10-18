@@ -22,16 +22,19 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build app
         run: bun run build
-      - name: Start production preview
+      - name: Start app server
         run: |
-          bun run preview -- --host 0.0.0.0 --port 4173 > /tmp/ensina-me-vite.log 2>&1 &
+          bun run dev -- --host 0.0.0.0 --port 4173 > /tmp/ensina-me-vite.log 2>&1 &
           echo $! > /tmp/ensina-me-vite.pid
-      - name: Wait for app
+      - name: Wait for app HTTP 200
         run: |
+          status=000
           for i in {1..30}; do
-            if curl --silent --show-error --max-time 2 http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            status=$(curl --silent --output /dev/null --max-time 2 --write-out '%{http_code}' http://127.0.0.1:4173/ || true)
+            if [ "$status" = "200" ]; then exit 0; fi
             sleep 1
           done
+          echo "App server did not return HTTP 200 (last status: $status)"
           cat /tmp/ensina-me-vite.log
           exit 1
       - name: Run complete student journey
