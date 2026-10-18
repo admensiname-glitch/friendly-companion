@@ -1980,12 +1980,17 @@ html {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 0;
   border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, .48) 44%, rgba(255, 255, 255, .08) 50%, transparent 68%);
   background-size: 220% 100%;
   animation: ensina-motion-sheen 1250ms ease-out 420ms both;
+}
+
+.ensina-motion-panel > div {
+  position: relative;
+  z-index: 1;
 }
 
 .ensina-motion-primary-card {
