@@ -48,17 +48,30 @@ try {
   if (!sitemap.includes("/termos") || !sitemap.includes("/privacidade")) throw new Error("sitemap is missing public legal pages");
   console.log("PASS: public sitemap");
 
-  for (const path of ["/termos", "/privacidade"]) {
+  for (const [path, expectedTitle, expectedDescription] of [
+    ["/termos", "Termos de uso | Ensina-me", "Consulte os termos de uso da plataforma educacional Ensina-me."],
+    ["/privacidade", "Política de privacidade | Ensina-me", "Consulte como o Ensina-me trata dados de cadastro, perfil acadêmico e progresso de aprendizagem."],
+  ]) {
     const legalResponse = await page.goto(baseURL + path, { waitUntil: "domcontentloaded", timeout: 30000 });
     if (!legalResponse || !legalResponse.ok()) throw new Error(`${path} returned HTTP ${legalResponse?.status() ?? "unknown"}`);
     const legalMetadata = await page.evaluate(() => ({
+      title: document.title,
       canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href"),
       robots: document.querySelector('meta[name="robots"]')?.getAttribute("content"),
+      description: document.querySelector('meta[name="description"]')?.getAttribute("content"),
+      ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+      ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute("content"),
+      twitterTitle: document.querySelector('meta[name="twitter:title"]')?.getAttribute("content"),
+      twitterDescription: document.querySelector('meta[name="twitter:description"]')?.getAttribute("content"),
     }));
+    if (legalMetadata.title !== expectedTitle) throw new Error(`unexpected title for ${path}: ${legalMetadata.title}`);
     if (legalMetadata.canonical !== `https://ensina-buddy-app.lovable.app${path}`) throw new Error(`unexpected canonical for ${path}: ${legalMetadata.canonical}`);
     if (legalMetadata.robots !== "index,follow") throw new Error(`${path} should be indexable: ${legalMetadata.robots}`);
+    if (legalMetadata.description !== expectedDescription) throw new Error(`unexpected description for ${path}: ${legalMetadata.description}`);
+    if (legalMetadata.ogTitle !== expectedTitle || legalMetadata.twitterTitle !== expectedTitle) throw new Error(`stale social title for ${path}`);
+    if (legalMetadata.ogDescription !== expectedDescription || legalMetadata.twitterDescription !== expectedDescription) throw new Error(`stale social description for ${path}`);
   }
-  console.log("PASS: public legal pages metadata");
+  console.log("PASS: public legal titles, descriptions, canonical, robots and social previews");
 
   const loginResponse = await page.goto(baseURL + "/login", { waitUntil: "domcontentloaded", timeout: 30000 });
   if (!loginResponse || !loginResponse.ok()) throw new Error(`login returned HTTP ${loginResponse?.status() ?? "unknown"}`);
