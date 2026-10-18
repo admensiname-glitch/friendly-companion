@@ -118,11 +118,21 @@ where e.published = false;
 - A posição da alternativa correta está distribuída entre as quatro posições; a consulta de padrões genéricos retornou zero enunciados no conjunto editado.
 - O backup `private.exercise_quality_feedback_backups_20261018` contém **40 registros** para o lote `2026-10-18-learning-monitoring-eval-batch-02`. Nenhum material ou exercício publicado foi alterado.
 
-## Lote 03 — avaliação de fluência e compreensão leitora (aguardando CI/revisão)
+## Lote 03 — aplicado e verificado no Supabase
 
 **Escopo:** exercício em rascunho `Avaliação do tópico — Fluência e compreensão leitora` (UUID `1f1693d8-7931-4dfc-9edc-cc8a31c59729`), da disciplina Alfabetização II.
 
-- A migration `20261018201000_contextualize_fluency_comprehension_evaluation_batch03.sql` reescreve os 10 enunciados e 40 alternativas a partir do material publicado do tópico: decodificação, precisão, automaticidade, prosódia, compreensão, inferências, triagem responsável e apoios de leitura.
-- Os quatro distratores genéricos são substituídos por alternativas plausíveis, relacionadas ao cenário. Todos os feedbacks ativos têm explicações específicas da alternativa, e as posições das respostas corretas são distribuídas entre as quatro posições.
-- A migration inclui backup prévio de 40 opções, validação dos IDs e gabaritos originais, verificação de quatro opções distintas e uma correta por questão, feedback ativo de pelo menos 40 caracteres e confirmação de que a avaliação permanece em rascunho.
-- **Estado neste relatório:** arquivo SQL preparado em branch de trabalho; ainda não aplicado ao Supabase. Será aberto para revisão e CI antes da aplicação.
+- A migration `20261018201000_contextualize_fluency_comprehension_evaluation_batch03.sql` foi aplicada após CI/E2E verdes.
+- Foram reescritos 10 enunciados e 40 alternativas com base no material publicado do tópico: decodificação, precisão, automaticidade, prosódia, compreensão, inferências, triagem responsável e apoios de leitura.
+- Verificação pós-aplicação: o exercício continua com `published=false`, 10 questões e 40 alternativas; cada questão tem quatro alternativas distintas, exatamente uma correta e feedback ativo de pelo menos 137 caracteres.
+- Os gabaritos agora usam as quatro posições; a consulta dos padrões genéricos retornou zero enunciados genéricos e zero dicas “Questão em preparação”.
+- O backup `private.exercise_quality_feedback_backups_20261018` contém **40 registros** para o lote `2026-10-18-fluency-evaluation-batch-03`. Nenhum exercício ou material publicado foi alterado.
+
+## Lote 04 — prática de fluência e compreensão leitora (aguardando CI/revisão)
+
+**Escopo:** exercício em rascunho `Prática — Fluência e compreensão leitora` (UUID `a285aa8e-470f-454d-a4ba-0e887a79464c`), com 5 questões.
+
+- A migration `20261018204000_contextualize_fluency_comprehension_practice_batch04.sql` revisa quatro questões que repetiam feedbacks genéricos; a questão 3 foi preservada porque já continha justificativas contextuais.
+- Atualiza enunciados, dicas e 16 alternativas/feedbacks para avaliar a diferença entre fluência e compreensão, apoiar decodificação a partir dos erros observados, interpretar triagem com cautela e verificar se apoios de acessibilidade mantêm o objetivo de leitura.
+- O lote distribui as respostas corretas pelas quatro posições, cria backup das 16 alternativas e aborta se a estrutura, as chaves ou o estado de rascunho não corresponderem ao snapshot verificado.
+- **Estado neste relatório:** SQL está em branch isolada, ainda não foi integrado nem aplicado ao Supabase.
