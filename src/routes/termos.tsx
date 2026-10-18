@@ -4,6 +4,10 @@ export const Route = createFileRoute("/termos")({
     meta: [
       { title: "Termos de uso | Ensina-me" },
       { name: "description", content: "Consulte os termos de uso da plataforma educacional Ensina-me." },
+      { property: "og:title", content: "Termos de uso | Ensina-me" },
+      { property: "og:description", content: "Consulte os termos de uso da plataforma educacional Ensina-me." },
+      { name: "twitter:title", content: "Termos de uso | Ensina-me" },
+      { name: "twitter:description", content: "Consulte os termos de uso da plataforma educacional Ensina-me." },
       { name: "robots", content: "index,follow" }
     ],
     links: [{ rel: "canonical", href: "https://ensina-buddy-app.lovable.app/termos" }]
