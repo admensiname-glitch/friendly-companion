@@ -5,7 +5,7 @@ import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/recuperar-senha")({
   head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
-  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }), component: RecuperarSenha });
+   component: RecuperarSenha });
 
 function RecuperarSenha() {
   const [email, setEmail] = useState("");
