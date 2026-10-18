@@ -846,7 +846,9 @@ async function generateAdaptiveMicroAssessment(args: {
     "- Use prioritariamente o contexto acadêmico fornecido.\n" +
     "- Nunca invente informações, autores, datas, estudos ou definições.\n" +
     "- Gere exatamente uma nova questão de múltipla escolha com 4 alternativas.\n" +
-    "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +\n    "- Cada alternativa incorreta deve representar um erro conceitual plausível e distinto, sem pegadinhas ou distratores obviamente absurdos.\n" +\n    "- A explicação deve justificar a resposta com a relação conceitual precisa do contexto, não com elogios ou frases genéricas.\n" +
+    "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +
+    "- Cada alternativa incorreta deve representar um erro conceitual plausível e distinto, sem pegadinhas ou distratores obviamente absurdos.\n" +
+    "- A explicação deve justificar a resposta com a relação conceitual precisa do contexto, não com elogios ou frases genéricas.\n" +
     "- Não repita nenhuma das questões recentes. Mude o contexto ou o modo de aplicação quando necessário.\n" +
     "- A mensagem não pode conter a nova questão nem as alternativas; a questão será exibida separadamente.\n" +
     "- concept_tags deve ter de 1 a 3 conceitos, priorizando o conceito frágil quando indicado.\n" +
