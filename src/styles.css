@@ -1925,3 +1925,140 @@ html {
     touch-action: pan-y pinch-zoom !important;
   }
 }
+
+
+/* Ensina-me motion system — restrained, GPU-friendly depth for key surfaces.
+   No extra runtime dependency; all motion respects reduced-motion preferences. */
+@keyframes ensina-motion-enter {
+  from { opacity: 0; transform: translateY(10px) scale(.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ensina-motion-halo {
+  0%, 100% { opacity: .62; transform: translateZ(-28px) scale(.96); }
+  50% { opacity: .94; transform: translateZ(-28px) scale(1.035); }
+}
+
+@keyframes ensina-motion-sheen {
+  0% { opacity: 0; background-position: 130% 0; }
+  18% { opacity: .22; }
+  100% { opacity: 0; background-position: -20% 0; }
+}
+
+@keyframes ensina-motion-float {
+  0%, 100% { transform: translate3d(0, 0, 28px) rotate(0deg); }
+  50% { transform: translate3d(0, -4px, 28px) rotate(.25deg); }
+}
+
+.ensina-motion-scene {
+  position: relative;
+  isolation: isolate;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+.ensina-motion-scene::before {
+  content: "";
+  position: absolute;
+  inset: 8% 3% 0;
+  z-index: -1;
+  border-radius: 32px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 60% 42%, rgba(2, 66, 215, .14) 0%, rgba(2, 66, 215, .055) 38%, transparent 72%);
+  transform: translateZ(-28px);
+  animation: ensina-motion-halo 8s ease-in-out infinite;
+}
+
+.ensina-motion-panel {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: ensina-motion-enter 640ms cubic-bezier(.2, .75, .25, 1) both;
+  transition: transform 360ms cubic-bezier(.2, .75, .25, 1), box-shadow 360ms ease;
+}
+
+.ensina-motion-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, .48) 44%, rgba(255, 255, 255, .08) 50%, transparent 68%);
+  background-size: 220% 100%;
+  animation: ensina-motion-sheen 1250ms ease-out 420ms both;
+}
+
+.ensina-motion-panel > div {
+  position: relative;
+  z-index: 1;
+}
+
+.ensina-motion-primary-card {
+  position: relative;
+  transform: translateZ(12px);
+  transition: transform 360ms cubic-bezier(.2, .75, .25, 1), box-shadow 360ms ease;
+}
+
+.ensina-motion-floating-note {
+  transform: translateZ(28px);
+  animation: ensina-motion-float 6.5s ease-in-out 600ms infinite;
+}
+
+.ensina-motion-feature {
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  animation: ensina-motion-enter 560ms cubic-bezier(.2, .75, .25, 1) both;
+  transition: transform 260ms cubic-bezier(.2, .75, .25, 1), box-shadow 260ms ease;
+}
+
+.ensina-motion-feature::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 94% 4%, rgba(255, 255, 255, .18), transparent 34%),
+    linear-gradient(112deg, transparent 24%, rgba(255, 255, 255, .055) 47%, transparent 66%);
+}
+
+.ensina-motion-feature > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ensina-motion-panel:hover {
+    transform: rotateX(.45deg) rotateY(-.65deg) translateY(-3px);
+    box-shadow: 0 34px 88px rgba(22, 49, 94, .16);
+  }
+
+  .ensina-motion-panel:hover .ensina-motion-primary-card {
+    transform: translateZ(18px);
+    box-shadow: 0 14px 32px rgba(2, 45, 150, .16);
+  }
+
+  .ensina-motion-feature:hover {
+    transform: perspective(1200px) translateY(-2px) rotateX(.25deg);
+    box-shadow: 0 22px 48px rgba(2, 66, 215, .19);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ensina-motion-scene::before,
+  .ensina-motion-panel,
+  .ensina-motion-panel::after,
+  .ensina-motion-floating-note,
+  .ensina-motion-feature {
+    animation: none !important;
+  }
+
+  .ensina-motion-panel,
+  .ensina-motion-primary-card,
+  .ensina-motion-feature {
+    transition: none !important;
+    transform: none !important;
+  }
+}
