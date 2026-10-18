@@ -1,0 +1,1 @@
+drop index if exists public.push_subscriptions_endpoint_unique; create unique index push_subscriptions_endpoint_unique on public.push_subscriptions(endpoint);

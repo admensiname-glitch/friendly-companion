@@ -1,0 +1,22 @@
+with replacements(topic, content) as (
+ values
+ ('Sujeitos e trajetórias da EJA','Os sujeitos da EJA chegam à escola com trajetórias marcadas por trabalho, responsabilidades familiares, experiências educativas anteriores e diferentes relações com a escolarização. Essas experiências precisam ser consideradas como parte do contexto pedagógico, sem reduzir o estudante a uma característica única.'),
+ ('Alfabetização e letramento na EJA','Na EJA, alfabetização e letramento precisam responder às práticas reais de leitura e escrita dos estudantes adultos e jovens. O ensino do sistema de escrita deve dialogar com situações sociais significativas e com os conhecimentos já construídos.'),
+ ('Currículo e práticas pedagógicas','O currículo da EJA precisa articular conhecimentos escolares, experiências de vida e condições concretas de estudo. As práticas pedagógicas ganham sentido quando consideram diversidade de trajetórias, tempos de aprendizagem e finalidades dos estudantes.'),
+ ('Políticas e direito à educação','A EJA integra o direito à educação e responde a trajetórias de escolarização interrompidas ou não iniciadas. Compreender suas políticas exige relacionar legislação, oferta educacional, condições de acesso e permanência e características dos sujeitos.'),
+ ('Educação quilombola e identidade','A educação escolar quilombola precisa considerar identidade, memória, território e participação comunitária. A escola não deve tratar a comunidade como objeto externo, mas construir práticas que reconheçam seus saberes e sua história.'),
+ ('Território, memória e pertencimento','Território e memória ajudam a compreender como comunidades quilombolas constroem pertencimento e preservam referências coletivas. Na escola, esses elementos podem orientar projetos de pesquisa, registro de histórias e leitura crítica do espaço vivido.'),
+ ('Currículo e conhecimentos comunitários','Um currículo contextualizado pode incorporar conhecimentos produzidos na comunidade sem abandonar o acesso aos conhecimentos escolares. O desafio pedagógico é criar relações entre saberes, evitando folclorizar ou hierarquizar a experiência comunitária.'),
+ ('Relações étnico-raciais e escola','O trabalho escolar com relações étnico-raciais precisa enfrentar o racismo e ampliar a presença de histórias, culturas e produções negras no currículo. Isso exige seleção criteriosa de materiais, linguagem pedagógica adequada e análise das práticas institucionais.'),
+ ('Práticas educativas em contextos comunitários','Práticas educativas comunitárias dependem de participação, diálogo e reconhecimento das condições concretas do território. O pedagogo precisa analisar demandas, objetivos, recursos e efeitos da ação antes de propor uma intervenção.'),
+ ('Criança como sujeito de direitos','Reconhecer a criança como sujeito de direitos desloca a prática pedagógica de uma lógica de tutela para uma perspectiva de proteção, participação e desenvolvimento. Planejamento e relações cotidianas devem respeitar dignidade, expressão e singularidade.'),
+ ('Proteção integral','A proteção integral considera crianças e adolescentes como sujeitos de direitos e atribui responsabilidades articuladas à família, ao Estado e à sociedade. Na educação, isso implica criar condições de proteção, participação e acesso efetivo ao processo educativo.'),
+ ('Direitos da criança e políticas públicas','Direitos da criança não se realizam apenas por declarações normativas: dependem de políticas, instituições e práticas capazes de garantir acesso, permanência, proteção e participação. A escola integra essa rede de garantia de direitos.'),
+ ('Participação e voz das crianças','Dar voz às crianças não significa transferir a elas responsabilidades adultas. Significa criar condições para que expressem experiências e perspectivas e para que essas manifestações sejam consideradas na organização das experiências educativas.'),
+ ('Práticas pedagógicas e garantia de direitos','Garantir direitos no cotidiano escolar envolve combinar segurança, respeito, participação, cuidado e oportunidades de aprendizagem. A prática pedagógica precisa reconhecer situações que produzem barreiras e ajustar ambientes, relações e estratégias.')
+)
+update public.material_sections ms
+set content=r.content
+from replacements r, public.materials m, public.topics t
+where ms.material_id=m.id and m.topic_id=t.id
+  and m.status='published' and ms.position=2 and t.name=r.topic;
