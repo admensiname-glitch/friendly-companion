@@ -1,22 +1,6 @@
 -- Exercícios de Aplicação: Planejamento do Ensino
 -- 6 exercícios, 6 questões, 24 alternativas (4 por questão)
 
--- Resolve the seeded topic by its historical ID when present; on a clean replay,
--- older source migrations may have generated a new UUID for the same Didática topic.
-DO $preflight$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.topics AS t
-    JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-  ) THEN
-    RAISE EXCEPTION 'Cannot seed planning exercises: the Didática topic "Planejamento do ensino" is missing';
-  END IF;
-END
-$preflight$;
-
 -- EXERCÍCIO 1
 DO $$
 DECLARE
@@ -26,13 +10,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Planejamento e intencionalidade',
     'application',
     'Um professor prepara suas aulas escolhendo conteúdos e atividades previamente, mas não define claramente o que espera que os estudantes aprendam. Qual aspecto fundamental do planejamento está faltando?',
@@ -67,13 +45,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Coerência entre objetivo e avaliação',
     'application',
     'Uma professora define como objetivo que os estudantes sejam capazes de analisar diferentes propostas de ensino. Ao final da aula, porém, aplica apenas uma questão pedindo que definam o conceito de "método de ensino".',
@@ -108,13 +80,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Planejamento e contexto',
     'application',
     'Um professor utiliza exatamente o mesmo planejamento em duas turmas diferentes, mesmo sabendo que uma delas possui conhecimentos prévios muito diferentes e enfrenta outras condições de aprendizagem.',
@@ -149,13 +115,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Flexibilidade e replanejamento',
     'application',
     'Durante uma aula, o professor percebe que a turma não domina um conhecimento prévio essencial para compreender o conteúdo planejado. Ele decide interromper a sequência prevista, retomar o conceito básico e reorganizar as atividades seguintes.',
@@ -190,13 +150,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Analisando a coerência de um planejamento',
     'application',
     'Considere o seguinte planejamento: objetivo — desenvolver a capacidade de aplicar um conceito a situações novas; metodologia — exposição oral e cópia de definições durante toda a aula; avaliação — questões de memorização.',
@@ -231,13 +185,7 @@ BEGIN
   INSERT INTO exercises (id, topic_id, title, exercise_type, content, difficulty, position, published)
   VALUES (
     gen_random_uuid(),
-    (SELECT t.id
-     FROM public.topics AS t
-     JOIN public.disciplines AS d ON d.id = t.discipline_id
-    WHERE t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
-       OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
-    ORDER BY CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
-    LIMIT 1),
+    'd88141bb-0724-4f63-b9d5-466c34dde2cf',
     'Situação-problema — decisões de planejamento',
     'application',
     'Uma professora terá duas horas para trabalhar um novo conteúdo. Ela percebe que a turma possui conhecimentos prévios heterogêneos e que o tempo disponível não permite aprofundar todos os aspectos previstos inicialmente.',

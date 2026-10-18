@@ -268,9 +268,9 @@ BEGIN
     1, true)
   ON CONFLICT DO NOTHING;
 
-  -- Tópico 2
-  INSERT INTO topics (discipline_id, name, description, position, published)
-  VALUES (didatica_id,
+  -- Tópico 2. Use the historical ID referenced by later migration seeds.
+  INSERT INTO topics (id, discipline_id, name, description, position, published)
+  VALUES ('d88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid, didatica_id,
     'Planejamento do ensino',
     'O planejamento organiza intencionalmente o ensino em relação a objetivos, conteúdos, métodos e avaliação, considerando as condições concretas da prática educativa.',
     2, true)
