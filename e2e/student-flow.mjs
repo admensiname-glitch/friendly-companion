@@ -120,14 +120,14 @@ try {
   console.log("PASS: mobile Mais");
   await assertMobileLayout("mobile more menu");
 
-  for (const [path, pattern] of [
-    ["/app/tutor", /tutor|conversa|pergunta|ensina-me/i],
-    ["/app/prova", /prova|avaliação|questões|prática/i],
-    ["/app/comunidade", /comunidade|publicação|escreva/i],
+  for (const [path, headingPattern] of [
+    ["/app/tutor", /aprenda com contexto/i],
+    ["/app/prova", /demonstre o que você sabe|modo prova|prova concluída/i],
+    ["/app/comunidade", /aprenda junto/i],
   ]) {
     await page.goto(baseURL + path, { waitUntil: "networkidle" });
     if (!page.url().includes(path)) throw new Error(`Unable to open authenticated route ${path}; landed at ${page.url()}`);
-    await page.locator("h1, h2").first().waitFor({ timeout: 15000 });
+    await page.getByRole("heading", { name: headingPattern }).first().waitFor({ timeout: 15000 });
     await assertMobileLayout(path);
     console.log(`PASS: authenticated route ${path}`);
   }
