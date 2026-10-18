@@ -96,15 +96,23 @@ where e.published = false;
 - **Limite da intervenção:** os conteúdos já publicados não foram reescritos em massa. Os milhares de candidatos de feedback genérico em exercícios não publicados continuam exigindo correção contextual por questão antes de serem promovidos para publicação.
 
 
-## Próximo lote de correção contextual — lote 01 (aguardando revisão e aplicação)
+## Lote 01 — aplicado e verificado no Supabase
 
 **Escopo:** exercício em rascunho `Prática — Acompanhamento da aprendizagem` (UUID `9f6538a7-4825-4ee4-9520-af9290468770`).
 
-- Atualiza o enunciado e as quatro alternativas da questão 2, questão 4 e questão 5 para avaliar decisões reais de acompanhamento: comparar justificativas, formular hipóteses sobre erros recorrentes e medir o efeito de uma intervenção.
-- Personaliza os quatro feedbacks ativos da questão 1, preservando a situação matemática de memorização versus compreensão.
-- A questão 3 foi mantida porque os feedbacks ativos já distinguem de modo razoável repetição, fluência, compreensão conceitual e transferência.
-- Os gabaritos de todas as questões selecionadas são preservados. O lote inclui verificações de quatro alternativas distintas, exatamente uma alternativa correta, feedback ativo com tamanho mínimo e confirmação de que o exercício permanece como rascunho.
-- A migration arquiva o texto dos enunciados, as alternativas e os feedbacks anteriores em `private.exercise_quality_feedback_backups_20261018` antes de modificar qualquer conteúdo.
-- **Estado neste relatório:** migration criada na branch de trabalho, ainda não aplicada ao Supabase. Só será aplicada depois da revisão/CI da PR correspondente.
+- A migration `20261018193000_contextualize_learning_monitoring_draft_batch01.sql` foi aplicada em 18/10/2026.
+- Foram personalizadas as quatro explicações ativas da questão 1 e reescritos os enunciados/alternativas das questões 2, 4 e 5. A questão 3 foi preservada porque seus feedbacks ativos já eram suficientemente contextuais.
+- A tabela privada `private.exercise_quality_feedback_backups_20261018` contém **16 registros de backup**, cobrindo as alternativas das quatro questões editadas.
+- Verificação pós-aplicação: o exercício continua com `published=false`, conserva 5 questões e 20 alternativas; as quatro questões editadas têm quatro opções distintas, exatamente uma correta e feedback ativo com pelo menos 40 caracteres.
+- Nenhum material publicado foi modificado e o lote não foi publicado.
 
-O lote não publica nem altera materiais acadêmicos publicados. O objetivo é provar o processo com uma amostra contextual antes de ampliá-lo para os demais rascunhos.
+
+
+## Lote 02 — avaliação do tópico (aguardando PR e aplicação)
+
+**Escopo:** exercício `Avaliação do tópico — Acompanhamento da aprendizagem` (UUID `ee8cf24b-8087-4b2c-9764-a41153af3b25`), que permanece em rascunho.
+
+- A migration `20261018195000_contextualize_learning_monitoring_evaluation_batch02.sql` reescreve as 10 perguntas de avaliação e as 40 alternativas para remover alternativas modelo como “uma definição isolada”, “uma opinião pessoal” e “uma regra fixa”.
+- Cada alternativa recebe feedback específico para seu cenário e seu papel (correto/incorreto). A posição da resposta correta é distribuída entre as quatro posições, preservando exatamente uma correta por pergunta.
+- O script faz backup dos 40 registros antes da alteração e aborta caso o exercício não esteja em rascunho, os IDs/gabaritos não correspondam ao snapshot auditado, sobrem enunciados genéricos ou falhem as validações finais.
+- **Estado neste relatório:** migration criada na branch de trabalho e aguardando CI/revisão. Ainda não foi aplicada ao Supabase.
