@@ -6,7 +6,6 @@ import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
-  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
   component: Login,
 });
 
