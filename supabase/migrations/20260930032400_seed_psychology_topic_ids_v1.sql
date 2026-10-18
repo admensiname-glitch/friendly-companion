@@ -70,6 +70,66 @@ BEGIN
   )
   ON CONFLICT (source_id) DO NOTHING;
 
+  INSERT INTO public.sources (
+    id, title, publisher, source_type, status, language, canonical_url, doi, authors, publication_date
+  )
+  VALUES (
+    'bdc07365-c40b-440a-93ce-484eb86f9002'::uuid,
+    'O humano no homem: os pressupostos teórico-metodológicos da teoria histórico-cultural',
+    'Psicologia & Sociedade',
+    'article',
+    'active',
+    'pt-BR',
+    'https://www.periodicos.capes.gov.br/index.php/acervo/buscador.html?id=W2076549406&source=all&task=detalhes',
+    '10.1590/S0102-71822011000300005',
+    '[{"name":"Vanessa Dias Moretti"},{"name":"Flávia da Silva Ferreira Asbahr"},{"name":"Algacir José Rigon"}]'::jsonb,
+    '2011-09-01'::date
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.source_rights (
+    source_id, rights_class, access_model, evidence_url, evidence_note, verified_at
+  )
+  VALUES (
+    'bdc07365-c40b-440a-93ce-484eb86f9002'::uuid,
+    'METADATA_ONLY',
+    'OPEN',
+    'https://www.periodicos.capes.gov.br/index.php/acervo/buscador.html?id=W2076549406&source=all&task=detalhes',
+    'Referência acadêmica de acesso público no acervo CAPES; utilizado como referência e síntese original.',
+    now()
+  )
+  ON CONFLICT (source_id) DO NOTHING;
+
+  INSERT INTO public.sources (
+    id, title, publisher, source_type, status, language, canonical_url, doi, authors, publication_date
+  )
+  VALUES (
+    'c3673fd0-2a1c-499f-9d9b-6796dac1305a'::uuid,
+    'Psicologia da educação II',
+    'Universidade do Estado de Santa Catarina / eduCapes',
+    'open_educational_resource',
+    'active',
+    'pt-BR',
+    'https://educapes.capes.gov.br/handle/capes/560911?mode=full',
+    NULL,
+    '[{"name":"Giseli Renata Gouvêa"},{"name":"Maria da Glória Silva e Silva"},{"name":"Patrícia de Oliveira e Silva Pereira Mendes"}]'::jsonb,
+    '2011-01-01'::date
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.source_rights (
+    source_id, rights_class, access_model, evidence_url, evidence_note, verified_at
+  )
+  VALUES (
+    'c3673fd0-2a1c-499f-9d9b-6796dac1305a'::uuid,
+    'METADATA_ONLY',
+    'OPEN',
+    'https://educapes.capes.gov.br/handle/capes/560911?mode=full',
+    'Recurso educacional disponível publicamente no eduCapes; utilizado como referência e síntese original.',
+    now()
+  )
+  ON CONFLICT (source_id) DO NOTHING;
+
   INSERT INTO public.topics (
     id, discipline_id, name, description, position, published
   )
