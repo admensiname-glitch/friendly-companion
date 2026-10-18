@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/redefinir-senha")({
   head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
-  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }), component: RedefinirSenha });
+   component: RedefinirSenha });
 function RedefinirSenha(){
  const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState(""); const [status,setStatus]=useState<"normal"|"loading"|"success"|"error">("normal"); const [message,setMessage]=useState("");
  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setMessage("");if(password.length<6){setStatus("error");setMessage("A senha deve ter pelo menos 8 caracteres.");return}if(password!==confirm){setStatus("error");setMessage("As senhas não coincidem.");return}setStatus("loading");const {error}=await supabase.auth.updateUser({password});if(error){setStatus("error");setMessage("Não foi possível atualizar sua senha. Solicite um novo link de recuperação.");return}setStatus("success");setMessage("Senha atualizada com sucesso. Você já pode entrar novamente.");await supabase.auth.signOut()}
