@@ -32,6 +32,18 @@ if (files.includes(securityMigrationName)) {
   errors.push("Required security migration is missing: " + securityMigrationName);
 }
 
+
+const courseSecurityMigrationName = "20261018041000_harden_start_exam_course_scope.sql";
+if (files.includes(courseSecurityMigrationName)) {
+  const source = await readFile(new URL(courseSecurityMigrationName, migrationsDirectory), "utf8");
+  if (!source.includes("d.course_id = v_course_id")) errors.push(courseSecurityMigrationName + " must scope start_exam to the user's course.");
+  if (!source.includes("STUDENT_COURSE_NOT_CONFIGURED")) errors.push(courseSecurityMigrationName + " must reject profiles without an active course.");
+  if (!source.includes("CREATE OR REPLACE FUNCTION public.save_student_topic_position")) errors.push(courseSecurityMigrationName + " must harden the progress-position RPC.");
+  if (!source.includes("TOPIC_NOT_AVAILABLE")) errors.push(courseSecurityMigrationName + " must reject topic progress outside the user's course.");
+} else {
+  errors.push("Required course-scope security migration is missing: " + courseSecurityMigrationName);
+}
+
 if (errors.length > 0) {
   console.error("Migration validation failed:");
   for (const error of errors) console.error(" - " + error);

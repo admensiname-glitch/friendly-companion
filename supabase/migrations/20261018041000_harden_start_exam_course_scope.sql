@@ -136,3 +136,66 @@ BEGIN
   );
 END
 $function$;
+
+
+-- Course-scope study progress writes to prevent authenticated users from
+-- manufacturing progress records for unpublished or out-of-course topics.
+CREATE OR REPLACE FUNCTION public.save_student_topic_position(_topic_id uuid, _position integer)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_course_id uuid;
+  v_position integer := greatest(0, coalesce(_position, 0));
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'AUTH_REQUIRED';
+  END IF;
+
+  SELECT sp.course_id
+    INTO v_course_id
+  FROM public.student_profiles sp
+  JOIN public.courses c ON c.id = sp.course_id AND c.published = true
+  WHERE sp.user_id = v_user_id;
+
+  IF v_course_id IS NULL THEN
+    RAISE EXCEPTION 'STUDENT_COURSE_NOT_CONFIGURED';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.topics t
+    JOIN public.disciplines d ON d.id = t.discipline_id
+    WHERE t.id = _topic_id
+      AND t.published = true
+      AND d.published = true
+      AND d.course_id = v_course_id
+  ) THEN
+    RAISE EXCEPTION 'TOPIC_NOT_AVAILABLE';
+  END IF;
+
+  INSERT INTO public.student_topic_progress (
+    user_id, topic_id, status, last_position, last_learning_activity_at, updated_at
+  )
+  VALUES (v_user_id, _topic_id, 'in_progress', v_position, now(), now())
+  ON CONFLICT (user_id, topic_id)
+  DO UPDATE SET
+    last_position = excluded.last_position,
+    last_learning_activity_at = now(),
+    updated_at = now(),
+    status = CASE
+      WHEN public.student_topic_progress.status = 'completed'
+        THEN public.student_topic_progress.status
+      ELSE 'in_progress'
+    END;
+
+  RETURN jsonb_build_object(
+    'topic_id', _topic_id,
+    'last_position', v_position,
+    'updated_at', now()
+  );
+END
+$function$;
