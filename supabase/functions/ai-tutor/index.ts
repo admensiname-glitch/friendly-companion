@@ -1820,12 +1820,22 @@ Deno.serve(async (req: Request) => {
     const learningAction = detectLearningAction(userMessage);
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: recentUserMessages, error: usageError } = await supabase
-      .from("ai_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userData.user.id)
-      .eq("role", "user")
-      .gte("created_at", since);
+    const [usageResult, topicResult] = await Promise.all([
+      supabase
+        .from("ai_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userData.user.id)
+        .eq("role", "user")
+        .gte("created_at", since),
+      supabase
+        .from("topics")
+        .select("id, name, description")
+        .eq("id", topicId)
+        .eq("published", true)
+        .maybeSingle(),
+    ]);
+    const { count: recentUserMessages, error: usageError } = usageResult;
+    const { data: topic, error: topicError } = topicResult;
 
     if (usageError) {
       return json({ error: "Não foi possível verificar o limite de uso." }, 500);
@@ -1841,49 +1851,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: topic, error: topicError } = await supabase
-      .from("topics")
-      .select("id, name, description")
-      .eq("id", topicId)
-      .eq("published", true)
-      .maybeSingle();
-
     if (topicError || !topic) {
       return json({ error: "Tópico não encontrado." }, 404);
     }
 
-    const { data: material } = await supabase
-      .from("materials")
-      .select("id, title, introduction")
-      .eq("topic_id", topicId)
-      .eq("status", "published")
-      .maybeSingle();
-
-    const { data: sections } = material
-      ? await supabase
-          .from("material_sections")
-          .select("title, content, position")
-          .eq("material_id", material.id)
-          .order("position", { ascending: true })
-      : { data: [] };
-
-    const { data: difficulties } = await supabase
-      .from("student_topic_difficulties")
-      .select("difficulty_tag, count")
-      .eq("user_id", userData.user.id)
-      .eq("topic_id", topicId)
-      .eq("review_status", "pending")
-      .order("count", { ascending: false });
-
-    // Memória pedagógica transversal: disponível no chat e nas avaliações.
-    const { data: rawGlobalLearningSignals } = await supabase
-      .from("student_learning_signals")
-      .select("topic_id, discipline_id, concept, signal_type, severity, occurrences, correct_count, status, last_seen")
-      .eq("user_id", userData.user.id)
-      .in("status", ["pending", "improving"])
-      .order("severity", { ascending: false })
-      .order("occurrences", { ascending: false })
-      .limit(12);
+    const [materialResult, difficultiesResult, globalSignalsResult] = await Promise.all([
+      supabase
+        .from("materials")
+        .select("id, title, introduction")
+        .eq("topic_id", topicId)
+        .eq("status", "published")
+        .maybeSingle(),
+      supabase
+        .from("student_topic_difficulties")
+        .select("difficulty_tag, count")
+        .eq("user_id", userData.user.id)
+        .eq("topic_id", topicId)
+        .eq("review_status", "pending")
+        .order("count", { ascending: false }),
+      // Memória pedagógica transversal: disponível no chat e nas avaliações.
+      supabase
+        .from("student_learning_signals")
+        .select("topic_id, discipline_id, concept, signal_type, severity, occurrences, correct_count, status, last_seen")
+        .eq("user_id", userData.user.id)
+        .in("status", ["pending", "improving"])
+        .order("severity", { ascending: false })
+        .order("occurrences", { ascending: false })
+        .limit(12),
+    ]);
+    const material = materialResult.data;
+    const difficulties = difficultiesResult.data;
+    const rawGlobalLearningSignals = globalSignalsResult.data;
 
     const globalTopicIds = [
       ...new Set(
@@ -1900,7 +1898,20 @@ Deno.serve(async (req: Request) => {
       ),
     ];
 
-    const [{ data: globalTopics }, { data: globalDisciplines }] = await Promise.all([
+    const sectionsPromise = material
+      ? supabase
+          .from("material_sections")
+          .select("title, content, position")
+          .eq("material_id", material.id)
+          .order("position", { ascending: true })
+      : Promise.resolve({ data: [] });
+
+    const [
+      { data: sections },
+      { data: globalTopics },
+      { data: globalDisciplines },
+    ] = await Promise.all([
+      sectionsPromise,
       globalTopicIds.length
         ? supabase.from("topics").select("id, name").in("id", globalTopicIds)
         : Promise.resolve({ data: [] }),
@@ -1947,6 +1958,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let conversationId = body.conversation_id?.trim() || null;
+    const isNewConversation = !conversationId;
 
     if (conversationId) {
       const { data: conversation } = await supabase
@@ -1977,15 +1989,18 @@ Deno.serve(async (req: Request) => {
       conversationId = newConversation.id;
     }
 
-    const { data: history } = await supabase
-      .from("ai_messages")
-      .select("role, content")
-      .eq("conversation_id", conversationId)
-      .eq("user_id", userData.user.id)
-      .order("created_at", { ascending: false })
-      .limit(12);
+    let recentHistory: ChatMessage[] = [];
+    if (!isNewConversation) {
+      const { data: history } = await supabase
+        .from("ai_messages")
+        .select("role, content")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userData.user.id)
+        .order("created_at", { ascending: false })
+        .limit(12);
 
-    const recentHistory = ((history ?? []) as ChatMessage[]).reverse();
+      recentHistory = ((history ?? []) as ChatMessage[]).reverse();
+    }
 
     const context = [
       "TÓPICO: " + topic.name,
