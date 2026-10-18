@@ -23,7 +23,7 @@ for (const file of files) {
   else versions.set(version, file);
 }
 
-const securityMigrationName = "20261018190000_harden_internal_rebuild_token_transport.sql";
+const securityMigrationName = "20261018032910_harden_internal_rebuild_token_transport.sql";
 if (files.includes(securityMigrationName)) {
   const source = await readFile(new URL(securityMigrationName, migrationsDirectory), "utf8");
   if (!source.includes("\u0027x-rebuild-token\u0027")) errors.push(securityMigrationName + " must send token using the x-rebuild-token header.");
