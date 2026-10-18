@@ -85,8 +85,8 @@ where e.published = false;
 1. Processar as 502 questões pendentes de auditoria e completar os 20 registros ausentes.
 2. Auditar os 275 tópicos em ordem e só marcar a auditoria como aprovada após revisão semântica.
 3. Priorizar as 48 introduções curtas de exercícios publicados e melhorar a orientação ao aluno conforme o conteúdo real da atividade.
-4. Após CI, aplicar a migration de trava de publicação e confirmar que exercícios com feedback genérico não podem ser publicados.
-5. Rodar checagens estruturais e semânticas antes de cada nova publicação.
+4. Continuar a revisão semântica dos exercícios em rascunho em lotes pequenos, com backup e preservando o gabarito.
+5. Rodar checagens estruturais e semânticas antes de cada nova publicação; a trava SQL já está ativa.
 
 
 ## Atualização após a aplicação no Supabase
@@ -94,3 +94,17 @@ where e.published = false;
 - **Trava de publicação:** aplicada e verificada em 18/10/2026. Um exercício de rascunho com feedback genérico foi usado em teste controlado; o gatilho rejeitou a publicação com `PUBLICATION_BLOCKED_GENERIC_FEEDBACK`, e o registro permaneceu sem publicação.
 - **Tutor adaptativo:** a Edge Function `ai-tutor` foi publicada como versão 108, permanece `ACTIVE` e continua exigindo JWT (`verify_jwt=true`). A nova versão rejeita microavaliações malformadas em vez de expor questões com alternativas repetidas ou explicações insuficientes.
 - **Limite da intervenção:** os conteúdos já publicados não foram reescritos em massa. Os milhares de candidatos de feedback genérico em exercícios não publicados continuam exigindo correção contextual por questão antes de serem promovidos para publicação.
+
+
+## Próximo lote de correção contextual — lote 01 (aguardando revisão e aplicação)
+
+**Escopo:** exercício em rascunho `Prática — Acompanhamento da aprendizagem` (UUID `9f6538a7-4825-4ee4-9520-af9290468770`).
+
+- Atualiza o enunciado e as quatro alternativas da questão 2, questão 4 e questão 5 para avaliar decisões reais de acompanhamento: comparar justificativas, formular hipóteses sobre erros recorrentes e medir o efeito de uma intervenção.
+- Personaliza os quatro feedbacks ativos da questão 1, preservando a situação matemática de memorização versus compreensão.
+- A questão 3 foi mantida porque os feedbacks ativos já distinguem de modo razoável repetição, fluência, compreensão conceitual e transferência.
+- Os gabaritos de todas as questões selecionadas são preservados. O lote inclui verificações de quatro alternativas distintas, exatamente uma alternativa correta, feedback ativo com tamanho mínimo e confirmação de que o exercício permanece como rascunho.
+- A migration arquiva o texto dos enunciados, as alternativas e os feedbacks anteriores em `private.exercise_quality_feedback_backups_20261018` antes de modificar qualquer conteúdo.
+- **Estado neste relatório:** migration criada na branch de trabalho, ainda não aplicada ao Supabase. Só será aplicada depois da revisão/CI da PR correspondente.
+
+O lote não publica nem altera materiais acadêmicos publicados. O objetivo é provar o processo com uma amostra contextual antes de ampliá-lo para os demais rascunhos.
