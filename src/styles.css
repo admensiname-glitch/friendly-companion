@@ -1927,18 +1927,42 @@ html {
 }
 
 
-/* Restore the blue selected state in the dark desktop sidebar.
-   Keep the original Ensina-me palette instead of the neutral gray override. */
-.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active {
-  background-color: #172B48 !important;
-  color: #78A9FF !important;
-  box-shadow: inset 3px 0 0 #5E96F8 !important;
-}
-.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active {
-  background-color: #20334E !important;
-  color: #78A9FF !important;
+/* Selected sidebar destination: use the full Ensina-me brand blue, not a washed-out tint. */
+.app-shell .app-desktop-sidebar .app-sidebar-item-active,
+.app-shell .app-desktop-sidebar .app-sidebar-item-active:hover {
+  background-color: #0242D7 !important;
+  color: #FFFFFF !important;
   box-shadow: none !important;
 }
-.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active svg {
-  color: #78A9FF !important;
+
+.app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active,
+.app-shell .app-desktop-sidebar .app-sidebar-item-active:hover .app-nav-icon-active {
+  background-color: rgba(255, 255, 255, .16) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active svg,
+.app-shell .app-desktop-sidebar .app-sidebar-item-active:hover .app-nav-icon-active svg {
+  color: #FFFFFF !important;
+}
+
+/* Keep the saturated selected state in dark mode despite global neutral-theme overrides. */
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active,
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active:hover {
+  background-color: #0242D7 !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active,
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active:hover .app-nav-icon-active {
+  background-color: rgba(255, 255, 255, .16) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active svg,
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active:hover .app-nav-icon-active svg {
+  color: #FFFFFF !important;
 }
