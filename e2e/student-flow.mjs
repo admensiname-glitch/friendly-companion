@@ -11,6 +11,20 @@ if (!email || !password) {
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
+async function assertMobileLayout(label) {
+  for (const [width, height] of [[390, 844], [360, 800], [320, 740]]) {
+    await page.setViewportSize({ width, height });
+    const documentWidth = await page.evaluate(() =>
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
+    );
+    if (documentWidth > width + 1) {
+      throw new Error(`Horizontal overflow on ${label} at ${width}px (document width ${documentWidth}px).`);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  console.log(`PASS: responsive layout — ${label}`);
+}
+
 try {
   await page.goto(`${baseURL}/login`, { waitUntil: "networkidle" });
   await page.getByLabel("E-mail").fill(email);
@@ -34,6 +48,7 @@ try {
 
   await page.getByText(/^(Bom dia|Boa tarde|Boa noite)(, .+)?$/i).first().waitFor();
   console.log("PASS: dashboard");
+  await assertMobileLayout("dashboard");
 
   await page.goto(`${baseURL}/app/disciplinas`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: /minhas disciplinas/i }).waitFor();
@@ -49,6 +64,7 @@ try {
   await page.waitForURL(/\/app\/disciplinas\/[^/]+$/, { timeout: 10000 });
   await page.getByRole("heading", { name: /tópicos de aprendizagem/i }).waitFor();
   console.log("PASS: discipline");
+  await assertMobileLayout("discipline list");
 
   const topicHref = await page.locator('a[href^="/app/disciplinas/"]').evaluateAll((links) => {
     const match = links.find((link) => {
@@ -62,20 +78,24 @@ try {
   await page.waitForURL(/\/app\/disciplinas\/[^/]+\/[^/]+$/, { timeout: 10000 });
   await page.getByRole("heading", { name: /estudo guiado/i }).waitFor();
   console.log("PASS: topic/material");
+  await assertMobileLayout("topic/material");
 
   const studied = page.getByRole("button", { name: /marcar como estudada/i }).first();
   await studied.waitFor();
   await studied.click();
   await page.getByRole("button", { name: /parte estudada/i }).waitFor();
   console.log("PASS: material progress");
+  await assertMobileLayout("material progress");
 
   await page.locator("#pratica").scrollIntoViewIfNeeded();
   await page.getByText(/questões respondidas|prática registrada/i).first().waitFor();
   console.log("PASS: practice stage");
+  await assertMobileLayout("practice stage");
 
   await page.locator("#avaliacao").scrollIntoViewIfNeeded();
   await page.getByText(/avaliação|verificar/i).first().waitFor();
   console.log("PASS: evaluation stage");
+  await assertMobileLayout("evaluation stage");
 
   for (const [path, pattern] of [
     ["/app/revisao", /revisão/i],
@@ -85,17 +105,32 @@ try {
     await page.goto(baseURL + path, { waitUntil: "networkidle" });
     await page.getByText(pattern).first().waitFor();
     console.log(`PASS: ${path}`);
+    await assertMobileLayout(path);
   }
 
   await page.goto(`${baseURL}/app/dashboard`, { waitUntil: "networkidle" });
   await page.getByRole("navigation", { name: /navegação rápida/i }).getByRole("link", { name: "Disciplinas" }).click();
   await page.waitForURL(/\/app\/disciplinas$/, { timeout: 10000 });
   console.log("PASS: mobile navigation");
+  await assertMobileLayout("mobile navigation");
 
   await page.goto(`${baseURL}/app/dashboard`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /abrir mais opções/i }).click();
   await page.getByRole("heading", { name: /guia do aluno/i }).waitFor();
   console.log("PASS: mobile Mais");
+  await assertMobileLayout("mobile more menu");
+
+  for (const [path, headingPattern] of [
+    ["/app/tutor", /aprenda com contexto/i],
+    ["/app/prova", /demonstre o que você sabe|modo prova|prova concluída/i],
+    ["/app/comunidade", /aprenda junto/i],
+  ]) {
+    await page.goto(baseURL + path, { waitUntil: "networkidle" });
+    if (!page.url().includes(path)) throw new Error(`Unable to open authenticated route ${path}; landed at ${page.url()}`);
+    await page.getByRole("heading", { name: headingPattern }).first().waitFor({ timeout: 15000 });
+    await assertMobileLayout(path);
+    console.log(`PASS: authenticated route ${path}`);
+  }
 
   console.log("PASS: COMPLETE STUDENT JOURNEY");
 } catch (error) {

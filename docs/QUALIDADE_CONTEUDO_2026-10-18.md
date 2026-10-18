@@ -23,7 +23,7 @@
 
 Os checks estruturais básicos para questões publicadas passaram na consulta: quatro alternativas e exatamente uma correta, com feedback pertinente presente em cada tipo de alternativa. A distribuição dos textos observados nos exemplos consultados também não mostrou repetição literal entre feedbacks específicos publicados.
 
-**Isto não equivale a aprovação semântica completa.** Ainda é necessário revisar alinhamento enunciado–alternativas–gabarito–feedback, fontes e adequação pedagógica, sobretudo porque as filas de auditoria de questões e tópicos permanecem pendentes. Na consulta de 18/10, nenhum dos exercícios publicados foi identificado pelos padrões de feedback genérico/curto escolhidos para a nova trava. Já os exercícios não publicados apresentam numerosos candidatos a feedback genérico; a correção deve ser feita por questão, mantendo o gabarito, o enunciado e o contexto como fonte. Foi preparada a migration `supabase/migrations/20261018190000_harden_exercise_feedback_publication_gate_v1.sql` para bloquear feedback ausente, curto e frases-padrão específicas no momento da publicação. A consulta de segurança para os padrões escolhidos retornou zero opções publicadas afetadas. A migration ainda precisa ser aplicada ao projeto Supabase após CI e revisão; ela não reescreve conteúdos em rascunho.
+**Isto não equivale a aprovação semântica completa.** Ainda é necessário revisar alinhamento enunciado–alternativas–gabarito–feedback, fontes e adequação pedagógica, sobretudo porque as filas de auditoria de questões e tópicos permanecem pendentes. Na consulta de 18/10, nenhum dos exercícios publicados foi identificado pelos padrões de feedback genérico/curto escolhidos para a nova trava. Já os exercícios não publicados apresentam numerosos candidatos a feedback genérico; a correção deve ser feita por questão, mantendo o gabarito, o enunciado e o contexto como fonte. A migration `supabase/migrations/20261018190000_harden_exercise_feedback_publication_gate_v1.sql` foi aplicada ao projeto Supabase em 18/10/2026. A consulta de segurança para os padrões escolhidos retornou zero opções publicadas afetadas. Um teste controlado de publicação de exercício em rascunho foi bloqueado pela regra `PUBLICATION_BLOCKED_GENERIC_FEEDBACK`; uma consulta posterior confirmou que o exercício continuou não publicado. A migration impede futuras publicações com padrões de feedback reconhecidamente genéricos; ela não reescreve os milhares de feedbacks genéricos que já existem em rascunhos.
 
 ## Consultas de reprodução
 
@@ -87,3 +87,10 @@ where e.published = false;
 3. Priorizar as 48 introduções curtas de exercícios publicados e melhorar a orientação ao aluno conforme o conteúdo real da atividade.
 4. Após CI, aplicar a migration de trava de publicação e confirmar que exercícios com feedback genérico não podem ser publicados.
 5. Rodar checagens estruturais e semânticas antes de cada nova publicação.
+
+
+## Atualização após a aplicação no Supabase
+
+- **Trava de publicação:** aplicada e verificada em 18/10/2026. Um exercício de rascunho com feedback genérico foi usado em teste controlado; o gatilho rejeitou a publicação com `PUBLICATION_BLOCKED_GENERIC_FEEDBACK`, e o registro permaneceu sem publicação.
+- **Tutor adaptativo:** a Edge Function `ai-tutor` foi publicada como versão 108, permanece `ACTIVE` e continua exigindo JWT (`verify_jwt=true`). A nova versão rejeita microavaliações malformadas em vez de expor questões com alternativas repetidas ou explicações insuficientes.
+- **Limite da intervenção:** os conteúdos já publicados não foram reescritos em massa. Os milhares de candidatos de feedback genérico em exercícios não publicados continuam exigindo correção contextual por questão antes de serem promovidos para publicação.

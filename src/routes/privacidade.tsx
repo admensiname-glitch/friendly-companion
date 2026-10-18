@@ -4,6 +4,10 @@ export const Route = createFileRoute("/privacidade")({
     meta: [
       { title: "Política de privacidade | Ensina-me" },
       { name: "description", content: "Consulte como o Ensina-me trata dados de cadastro, perfil acadêmico e progresso de aprendizagem." },
+      { property: "og:title", content: "Política de privacidade | Ensina-me" },
+      { property: "og:description", content: "Consulte como o Ensina-me trata dados de cadastro, perfil acadêmico e progresso de aprendizagem." },
+      { name: "twitter:title", content: "Política de privacidade | Ensina-me" },
+      { name: "twitter:description", content: "Consulte como o Ensina-me trata dados de cadastro, perfil acadêmico e progresso de aprendizagem." },
       { name: "robots", content: "index,follow" }
     ],
     links: [{ rel: "canonical", href: "https://ensina-buddy-app.lovable.app/privacidade" }]
