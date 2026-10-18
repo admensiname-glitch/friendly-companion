@@ -1925,3 +1925,20 @@ html {
     touch-action: pan-y pinch-zoom !important;
   }
 }
+
+
+/* Restore the blue selected state in the dark desktop sidebar.
+   Keep the original Ensina-me palette instead of the neutral gray override. */
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active {
+  background-color: #172B48 !important;
+  color: #78A9FF !important;
+  box-shadow: inset 3px 0 0 #5E96F8 !important;
+}
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active {
+  background-color: #20334E !important;
+  color: #78A9FF !important;
+  box-shadow: none !important;
+}
+.dark .app-shell .app-desktop-sidebar .app-sidebar-item-active .app-nav-icon-active svg {
+  color: #78A9FF !important;
+}
