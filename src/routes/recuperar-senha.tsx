@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/recuperar-senha")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
   head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }), component: RecuperarSenha });
 
 function RecuperarSenha() {
