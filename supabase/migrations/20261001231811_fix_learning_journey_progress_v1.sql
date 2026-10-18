@@ -1,3 +1,4 @@
+
 begin;
 
 create or replace function public.get_student_dashboard_topics()

@@ -1,3 +1,4 @@
+
 create table if not exists private.assistant_content_audits (
   topic_id uuid primary key references public.topics(id) on delete cascade,
   audited_at timestamptz not null default now(),

@@ -1,3 +1,4 @@
+
 create or replace function private.run_pedagogia_rebuild_batch(p_limit integer default 1)
 returns bigint
 language sql

@@ -1,3 +1,4 @@
+
 update public.exercise_questions q
 set question_text =
   'No estudo de "'||t.name||'" — atividade "'||e.title||'" — '||

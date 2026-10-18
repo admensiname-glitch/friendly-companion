@@ -1,3 +1,4 @@
+
 with replacements(topic, content) as (
  values
  ('Sujeitos e trajetórias da EJA','Os sujeitos da EJA chegam à escola com trajetórias marcadas por trabalho, responsabilidades familiares, experiências educativas anteriores e diferentes relações com a escolarização. Essas experiências precisam ser consideradas como parte do contexto pedagógico, sem reduzir o estudante a uma característica única.'),

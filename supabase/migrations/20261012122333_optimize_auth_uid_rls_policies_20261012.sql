@@ -1,3 +1,4 @@
+
 ALTER POLICY community_comments_delete_own ON public.community_comments USING ((select auth.uid()) = author_id);
 ALTER POLICY community_comments_insert_own ON public.community_comments WITH CHECK ((select auth.uid()) = author_id);
 ALTER POLICY community_comments_update_own ON public.community_comments USING ((select auth.uid()) = author_id) WITH CHECK ((select auth.uid()) = author_id);

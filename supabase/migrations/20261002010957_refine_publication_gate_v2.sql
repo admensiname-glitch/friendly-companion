@@ -1,3 +1,4 @@
+
 create or replace function public.admin_set_publication(
   _entity_type text,
   _entity_id uuid,

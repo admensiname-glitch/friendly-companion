@@ -1,3 +1,4 @@
+
 update public.material_sections
 set content = regexp_replace(
   content,

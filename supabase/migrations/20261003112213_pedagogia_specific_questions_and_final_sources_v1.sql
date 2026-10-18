@@ -1,3 +1,4 @@
+
 -- Substitui contextos genéricos remanescentes por questões específicas do próprio tópico.
 with replacements(topic, content) as (
  values

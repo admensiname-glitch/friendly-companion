@@ -1,3 +1,4 @@
+
 create schema if not exists private;
 
 create or replace function private.run_pedagogia_rebuild_batch(p_limit integer default 1)

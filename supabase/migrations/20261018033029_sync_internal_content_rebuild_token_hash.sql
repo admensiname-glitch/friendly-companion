@@ -1,4 +1,3 @@
--- Keep the stored digest consistent with the internal rebuild token without exposing the token.
 do $migration$
 begin
   if not exists (

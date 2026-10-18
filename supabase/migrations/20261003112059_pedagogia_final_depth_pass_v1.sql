@@ -1,3 +1,4 @@
+
 -- Reforço documental para os componentes dos anos iniciais e Arte.
 insert into public.material_citations (material_id, source_id, citation_label)
 select m.id, '81597dfe-6898-4086-bdcd-067dba318cb9', 'Base Nacional Comum Curricular'

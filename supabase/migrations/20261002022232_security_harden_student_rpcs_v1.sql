@@ -1,6 +1,3 @@
--- Ensina-me: isolate student-facing privileged RPC implementations.
--- The public API keeps the existing function contract but is SECURITY INVOKER.
--- The privileged implementation remains in the private schema.
 
 create schema if not exists private;
 grant usage on schema private to authenticated;

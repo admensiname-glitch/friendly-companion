@@ -1,5 +1,6 @@
--- RLS is deny-by-default when no permissive policy exists.
--- Remove redundant explicit FALSE policies that only duplicate that behavior.
+
+-- Under RLS, absence of a permissive INSERT/DELETE policy is deny-by-default.
+-- Remove duplicate false policies that only added planner work/advisor noise.
 
 DROP POLICY IF EXISTS "No deletes on material_sections" ON public.material_sections;
 DROP POLICY IF EXISTS material_sections_no_delete ON public.material_sections;

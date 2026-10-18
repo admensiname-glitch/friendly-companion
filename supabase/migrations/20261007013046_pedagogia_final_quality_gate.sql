@@ -1,3 +1,4 @@
+
 do $$
 declare n bigint;
 begin

@@ -1,3 +1,4 @@
+
 -- Pedagogia: fechamento editorial e reforço de lastro documental.
 -- Remove fórmulas de geração, preservando o conteúdo específico já produzido.
 with ctx as (

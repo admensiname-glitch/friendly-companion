@@ -1,10 +1,11 @@
+
 begin;
 
 update public.material_sections ms
 set content =
   'Um erro frequente ao trabalhar com ' || lower(trim(t.name)) ||
   ' é simplificar o tema ou aplicar uma receita sem considerar contexto, finalidade e evidências. ' ||
-  regexp_replace(ms.content, '^Um erro frequente é undefined\\.?[[:space:]]*', '', 'i')
+  regexp_replace(ms.content, '^Um erro frequente é undefined\.?[[:space:]]*', '', 'i')
 from public.materials m
 join public.topics t on t.id=m.topic_id
 join public.disciplines d on d.id=t.discipline_id

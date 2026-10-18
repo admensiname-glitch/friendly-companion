@@ -1,3 +1,4 @@
+
 create table if not exists public.internal_content_rebuild_auth (
   id integer primary key,
   token_hash text not null,

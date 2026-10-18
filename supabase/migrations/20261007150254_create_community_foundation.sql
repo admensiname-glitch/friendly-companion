@@ -1,3 +1,4 @@
+
 create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),
   author_id uuid not null references auth.users(id) on delete cascade,

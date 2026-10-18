@@ -1,3 +1,4 @@
+
 drop policy if exists "No updates on materials" on public.materials;
 drop policy if exists "materials_no_update" on public.materials;
 

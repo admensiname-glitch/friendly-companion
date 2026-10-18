@@ -1,3 +1,4 @@
+
 create index if not exists exercise_questions_question_text_norm_idx
 on public.exercise_questions (lower(trim(question_text)));
 

@@ -1,3 +1,4 @@
+
 create schema if not exists private;
 
 alter table public.material_sections add column if not exists section_type text not null default 'explanation';

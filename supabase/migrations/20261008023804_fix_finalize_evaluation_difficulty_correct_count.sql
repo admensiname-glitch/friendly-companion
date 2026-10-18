@@ -1,6 +1,3 @@
--- Correção: finalização da avaliação falhava ao registrar uma resposta errada.
--- student_topic_difficulties.correct_count é NOT NULL e precisa ser 0
--- na primeira ocorrência de um conceito com erro.
 create or replace function public.update_topic_difficulty_after_answer(_user_id uuid, _topic_id uuid, _difficulty_tags text[], _is_correct boolean)
 returns void
 language plpgsql

@@ -1,3 +1,4 @@
+
 -- Harden Modo Prova RPCs, server-side deadline handling, and FK/RLS performance.
 
 drop function if exists public.start_exam(uuid, uuid[], integer, integer);

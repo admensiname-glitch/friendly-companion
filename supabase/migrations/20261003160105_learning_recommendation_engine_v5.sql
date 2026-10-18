@@ -1,3 +1,4 @@
+
 create or replace function private.get_student_study_recommendation()
 returns jsonb
 language plpgsql

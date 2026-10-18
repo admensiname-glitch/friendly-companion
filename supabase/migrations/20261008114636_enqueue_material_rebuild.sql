@@ -1,3 +1,4 @@
+
 create or replace function private.enqueue_material_rebuild(_topic_ids uuid[])
 returns bigint
 language plpgsql

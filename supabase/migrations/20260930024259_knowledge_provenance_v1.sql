@@ -1,3 +1,4 @@
+
 create extension if not exists vector with schema extensions;
 
 create schema if not exists private;

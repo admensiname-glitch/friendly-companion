@@ -1,3 +1,4 @@
+
 create table if not exists private.content_rebuild_queue (
   topic_id uuid primary key references public.topics(id) on delete cascade,
   status text not null default 'pending' check (status in ('pending','running','completed','failed')),

@@ -1,3 +1,4 @@
+
 create table if not exists public.student_focus_disciplines (
   user_id uuid not null references auth.users(id) on delete cascade,
   discipline_id uuid not null references public.disciplines(id) on delete cascade,

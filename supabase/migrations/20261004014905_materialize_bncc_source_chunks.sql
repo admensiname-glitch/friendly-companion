@@ -1,3 +1,4 @@
+
 update public.source_documents set retrieval_status='retrieved',retrieved_at=now(),updated_at=now()
 where id='b2bca6ce-189b-4f00-bc87-a42966e0bc2e';
 

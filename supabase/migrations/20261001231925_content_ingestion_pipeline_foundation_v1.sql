@@ -1,3 +1,4 @@
+
 begin;
 
 create table if not exists public.source_ingestion_jobs (

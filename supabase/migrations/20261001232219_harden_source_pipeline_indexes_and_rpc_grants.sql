@@ -1,3 +1,4 @@
+
 begin;
 
 revoke all on function public.get_student_topic_application_progress(uuid) from public, anon;

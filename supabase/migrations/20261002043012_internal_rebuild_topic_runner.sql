@@ -1,3 +1,4 @@
+
 create or replace function private.run_pedagogia_rebuild_topic(p_topic_id uuid)
 returns bigint
 language sql

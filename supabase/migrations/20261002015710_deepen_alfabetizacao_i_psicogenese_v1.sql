@@ -1,3 +1,4 @@
+
 -- Deepen Alfabetização I / Psicogênese da língua escrita.
 -- Adds six application exercises while preserving existing published content.
 do $$
@@ -126,7 +127,7 @@ begin
 
       ('c1000000-2000-4000-8000-000000000057'::uuid,'c1000000-1000-4000-8000-000000000045'::uuid,'Criar deliberadamente uma confusão e evitar qualquer explicação.',false,null,'Problema produtivo não significa ausência de mediação.',1),
       ('c1000000-2000-4000-8000-000000000058'::uuid,'c1000000-1000-4000-8000-000000000045'::uuid,'Comparar duas escritas, pedir justificativas e orientar a discussão para o conhecimento que está sendo construído.',true,'Correto. A comparação e a explicação tornam o raciocínio observável e podem provocar revisão de ideias.',null,2),
-      ('c1000000-2000-4000-8000-000000000059'::uuid,'c1000000-2000-4000-8000-000000000045'::uuid,'Entregar a resposta pronta e encerrar a discussão.',false,null,'O objetivo é tornar a reflexão possível, não eliminar a participação do aluno.',3),
+      ('c1000000-2000-4000-8000-000000000059'::uuid,'c1000000-1000-4000-8000-000000000045'::uuid,'Entregar a resposta pronta e encerrar a discussão.',false,null,'O objetivo é tornar a reflexão possível, não eliminar a participação do aluno.',3),
       ('c1000000-2000-4000-8000-000000000060'::uuid,'c1000000-1000-4000-8000-000000000045'::uuid,'Classificar os alunos antes de ouvi-los.',false,null,'A análise deve partir das produções e das justificativas observadas.',4),
 
       ('c1000000-2000-4000-8000-000000000061'::uuid,'c1000000-1000-4000-8000-000000000046'::uuid,'A psicogênese oferece uma receita rígida de etapas que determina a atividade certa para cada criança.',false,null,'O material alerta contra transformar hipóteses em uma escada rígida ou receita automática.',1),
