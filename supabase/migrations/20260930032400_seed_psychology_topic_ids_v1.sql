@@ -39,6 +39,37 @@ BEGIN
     WHERE id = v_discipline_id;
   END IF;
 
+  -- A later psychology content migration links this source to the first two topics.
+  INSERT INTO public.sources (
+    id, title, publisher, source_type, status, language, canonical_url, doi, authors, publication_date
+  )
+  VALUES (
+    '2d54eae8-d36c-4aa0-a4a4-a09d125d569f'::uuid,
+    'Desenvolvimento e aprendizagem: da perspectiva construtivista à socioconstrutivista',
+    'Psicologia da Educação',
+    'article',
+    'active',
+    'pt-BR',
+    'https://pepsic.bvsalud.org/scielo.php?pid=S1414-69752012000100004&script=sci_arttext',
+    NULL,
+    '[{"name":"Maria da Conceição Rodrigues Ferreira"},{"name":"Susana Maria Rodrigues Fernandes"}]'::jsonb,
+    '2012-06-01'::date
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.source_rights (
+    source_id, rights_class, access_model, evidence_url, evidence_note, verified_at
+  )
+  VALUES (
+    '2d54eae8-d36c-4aa0-a4a4-a09d125d569f'::uuid,
+    'METADATA_ONLY',
+    'OPEN',
+    'https://pepsic.bvsalud.org/scielo.php?pid=S1414-69752012000100004&script=sci_arttext',
+    'Artigo público em base acadêmica; utilizado como referência e síntese original, sem armazenamento do texto integral.',
+    now()
+  )
+  ON CONFLICT (source_id) DO NOTHING;
+
   INSERT INTO public.topics (
     id, discipline_id, name, description, position, published
   )
