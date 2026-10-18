@@ -23,7 +23,7 @@
 
 Os checks estruturais básicos para questões publicadas passaram na consulta: quatro alternativas e exatamente uma correta, com feedback pertinente presente em cada tipo de alternativa. A distribuição dos textos observados nos exemplos consultados também não mostrou repetição literal entre feedbacks específicos publicados.
 
-**Isto não equivale a aprovação semântica completa.** Ainda é necessário revisar alinhamento enunciado–alternativas–gabarito–feedback, fontes e adequação pedagógica, sobretudo porque as filas de auditoria de questões e tópicos permanecem pendentes. Na consulta de 18/10, nenhum dos exercícios publicados foi identificado pelos padrões de feedback genérico/curto escolhidos para a nova trava. Já os exercícios não publicados apresentam numerosos candidatos a feedback genérico; a correção deve ser feita por questão, mantendo o gabarito, o enunciado e o contexto como fonte. Uma trava no ato de publicação evita a entrada de novos exercícios defeituosos, mas não reescreve conteúdo em rascunho.
+**Isto não equivale a aprovação semântica completa.** Ainda é necessário revisar alinhamento enunciado–alternativas–gabarito–feedback, fontes e adequação pedagógica, sobretudo porque as filas de auditoria de questões e tópicos permanecem pendentes. Na consulta de 18/10, nenhum dos exercícios publicados foi identificado pelos padrões de feedback genérico/curto escolhidos para a nova trava. Já os exercícios não publicados apresentam numerosos candidatos a feedback genérico; a correção deve ser feita por questão, mantendo o gabarito, o enunciado e o contexto como fonte. Foi preparada a migration `supabase/migrations/20261018190000_harden_exercise_feedback_publication_gate_v1.sql` para bloquear feedback ausente, curto e frases-padrão específicas no momento da publicação. A consulta de segurança para os padrões escolhidos retornou zero opções publicadas afetadas. A migration ainda precisa ser aplicada ao projeto Supabase após CI e revisão; ela não reescreve conteúdos em rascunho.
 
 ## Consultas de reprodução
 
@@ -85,5 +85,5 @@ where e.published = false;
 1. Processar as 502 questões pendentes de auditoria e completar os 20 registros ausentes.
 2. Auditar os 275 tópicos em ordem e só marcar a auditoria como aprovada após revisão semântica.
 3. Priorizar as 48 introduções curtas de exercícios publicados e melhorar a orientação ao aluno conforme o conteúdo real da atividade.
-4. Adicionar uma trava de publicação para rejeitar feedback ausente, curto ou com frases-padrão reconhecidamente genéricas.
+4. Após CI, aplicar a migration de trava de publicação e confirmar que exercícios com feedback genérico não podem ser publicados.
 5. Rodar checagens estruturais e semânticas antes de cada nova publicação.
