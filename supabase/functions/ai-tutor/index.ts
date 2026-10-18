@@ -322,6 +322,19 @@ function truncateText(value: string, maxCharacters: number): string {
   );
 }
 
+async function resolveWithin<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<null>((resolve) => {
+    timeoutId = setTimeout(() => resolve(null), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
+
+const OPTIONAL_MEDIA_LOOKUP_TIMEOUT_MS = 1800;
 const DAILY_USER_MESSAGE_LIMIT = 60; // Tutor acadêmico Ensina-me
 const MAX_CONTEXT_CHARACTERS = 24000;;
 const PUBLIC_IMAGE_LICENSES = new Set(["cc0", "pdm"]);
@@ -2146,9 +2159,10 @@ Deno.serve(async (req: Request) => {
     ];
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 25000);
 
     let groqResponse: Response;
+    let payload: unknown;
     try {
       groqResponse = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
@@ -2163,7 +2177,7 @@ Deno.serve(async (req: Request) => {
             messages,
             max_completion_tokens: 1600,
             temperature: 0.2,
-            reasoning_effort: "medium",
+            reasoning_effort: "low",
             include_reasoning: false,
             response_format: {
               type: "json_schema",
@@ -2270,6 +2284,7 @@ Deno.serve(async (req: Request) => {
           signal: controller.signal,
         },
       );
+      payload = await groqResponse.json();
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return json(
@@ -2284,8 +2299,6 @@ Deno.serve(async (req: Request) => {
     } finally {
       clearTimeout(timeout);
     }
-
-    let payload = await groqResponse.json();
 
     if (!groqResponse.ok) {
       const providerErrorRecord =
@@ -2308,10 +2321,13 @@ Deno.serve(async (req: Request) => {
       // Alguns modelos/provedores podem recusar o JSON Schema estrito mesmo
       // aceitando a mesma resposta em JSON mode. Tente uma segunda vez para
       // não transformar uma falha de formatação do provedor em um erro do Tutor.
-      if (groqResponse.status >= 400 && groqResponse.status < 500) {
+      const shouldRetryWithoutSchema =
+        groqResponse.status === 400 &&
+        /json.?schema|response_format|structured output|strict/i.test(providerError);
+      if (shouldRetryWithoutSchema) {
         try {
           const fallbackController = new AbortController();
-          const fallbackTimeout = setTimeout(() => fallbackController.abort(), 30000);
+          const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
 
           try {
             const fallbackResponse = await fetch(
@@ -2327,7 +2343,7 @@ Deno.serve(async (req: Request) => {
                   messages,
                   max_completion_tokens: 1800,
                   temperature: 0.2,
-                  reasoning_effort: "medium",
+                  reasoning_effort: "low",
                   include_reasoning: false,
                   response_format: { type: "json_object" },
                 }),
@@ -2399,24 +2415,33 @@ Deno.serve(async (req: Request) => {
     const assistantMessage = tutorResult.message;
     const generatedAssessment = tutorResult.microassessment;
 
-    if (tutorResult.visualAid.enabled) {
-      const imageQueries = [
-        topic.name + " em português diagrama",
-        topic.name + " português esquema",
-        topic.name + " em português processo",
-        topic.name + " diagrama",
-        topic.name + " process diagram",
-        topic.name,
-      ].map((query) => query.trim()).filter(Boolean);
-      tutorResult.visualAid.image =
-        await findPublicDomainImage(imageQueries) ??
-        await findKnownPublicDomainImage(topic.name);
-      if (tutorResult.visualAid.image) {
-        tutorResult.visualAid.caption = tutorResult.visualAid.caption
-          ? tutorResult.visualAid.caption + " Imagem pública licenciada encontrada pelo Tutor."
-          : "Imagem pública licenciada encontrada pelo Tutor.";
-      }
-    }
+    const imageQueries = [
+      topic.name + " em português diagrama",
+      topic.name + " português esquema",
+      topic.name + " em português processo",
+      topic.name + " diagrama",
+      topic.name + " process diagram",
+      topic.name,
+    ].map((query) => query.trim()).filter(Boolean);
+
+    // Recursos opcionais começam junto com a persistência e não podem atrasar
+    // indefinidamente a resposta textual do Tutor.
+    const visualAidImageLookup = tutorResult.visualAid.enabled
+      ? resolveWithin(
+          (async () => {
+            const image = await findPublicDomainImage(imageQueries);
+            return image ?? await findKnownPublicDomainImage(topic.name);
+          })(),
+          OPTIONAL_MEDIA_LOOKUP_TIMEOUT_MS,
+        )
+      : Promise.resolve(null);
+
+    const tutorVideoLookup = tutorResult.videoRecommendation?.enabled
+      ? resolveWithin(
+          searchYoutubeVideoForQuestion(userMessage, topic.name),
+          OPTIONAL_MEDIA_LOOKUP_TIMEOUT_MS,
+        )
+      : Promise.resolve(null);
 
     let publicMicroAssessment: {
       id: string;
@@ -2510,33 +2535,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    await supabase
-      .from("ai_conversations")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", conversationId)
-      .eq("user_id", userData.user.id);
+    const [conversationUpdateResult, progressResult] = await Promise.all([
+      supabase
+        .from("ai_conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", conversationId)
+        .eq("user_id", userData.user.id),
+      supabase
+        .from("student_topic_progress")
+        .upsert(
+          {
+            user_id: userData.user.id,
+            topic_id: topicId,
+            status: "in_progress",
+            started_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,topic_id" },
+        ),
+    ]);
 
-    const { error: progressError } = await supabase
-      .from("student_topic_progress")
-      .upsert(
-        {
-          user_id: userData.user.id,
-          topic_id: topicId,
-          status: "in_progress",
-          started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,topic_id" },
-      );
-
-    if (progressError) {
+    if (conversationUpdateResult.error) {
       console.warn(
-        "[Ensina-me] ai-tutor: não foi possível atualizar progresso",
-        progressError.message,
+        "[Ensina-me] ai-tutor: não foi possível atualizar a conversa",
+        conversationUpdateResult.error.message,
       );
     }
 
-    for (const signal of learningSignals) {
+    if (progressResult.error) {
+      console.warn(
+        "[Ensina-me] ai-tutor: não foi possível atualizar progresso",
+        progressResult.error.message,
+      );
+    }
+
+    await Promise.all(learningSignals.map(async (signal) => {
       const { error: difficultyError } = await supabase.rpc("record_topic_difficulty", {
         _topic_id: topicId,
         _difficulty_tag: signal,
@@ -2548,9 +2581,9 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ signal, message: difficultyError.message }),
         );
       }
-    }
+    }));
 
-    for (const observation of tutorResult.learningObservations) {
+    await Promise.all(tutorResult.learningObservations.map(async (observation) => {
       const { error: signalError } = await supabase.rpc("record_learning_signal", {
         _topic_id: topicId,
         _concept: observation.concept,
@@ -2566,11 +2599,22 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ concept: observation.concept, message: signalError.message }),
         );
       }
-    }
+    }));
 
-    const searchedTutorVideo = tutorResult.videoRecommendation?.enabled
-      ? await searchYoutubeVideoForQuestion(userMessage, topic.name)
-      : null;
+    const [imageResult, searchedTutorVideo] = await Promise.all([
+      visualAidImageLookup,
+      tutorVideoLookup,
+    ]);
+
+    if (tutorResult.visualAid.enabled) {
+      tutorResult.visualAid.image =
+        imageResult ?? await findKnownPublicDomainImage(topic.name);
+      if (tutorResult.visualAid.image) {
+        tutorResult.visualAid.caption = tutorResult.visualAid.caption
+          ? tutorResult.visualAid.caption + " Imagem pública licenciada encontrada pelo Tutor."
+          : "Imagem pública licenciada encontrada pelo Tutor.";
+      }
+    }
 
     return json({
       conversation_id: conversationId,
