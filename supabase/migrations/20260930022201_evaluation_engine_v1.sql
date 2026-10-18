@@ -100,7 +100,7 @@ revoke all on function public.finalize_topic_evaluation(uuid,jsonb) from public,
 grant execute on function public.finalize_topic_evaluation(uuid,jsonb) to authenticated;
 
 do $$
-declare v_source_id uuid; v_topic_id uuid:='d88141bb-0724-4f63-b9d5-466c34dde2cf'; v_evaluation_id uuid; v_qid uuid; v_qi int:=0; v_oi int; q jsonb; o jsonb;
+declare v_source_id uuid; v_topic_id uuid; v_evaluation_id uuid; v_qid uuid; v_qi int:=0; v_oi int; q jsonb; o jsonb;
 questions jsonb:='[
 {"question":"Um planejamento define como objetivo que os estudantes sejam capazes de aplicar um conceito de Didática a uma situação nova. Qual procedimento avaliativo produz evidência mais diretamente coerente com esse objetivo?","tag":["coerencia_objetivos_avaliacao"],"options":[{"content":"Analisar uma situação nova e justificar a aplicação do conceito.","correct":true},{"content":"Repetir de memória a definição do conceito.","correct":false},{"content":"Listar todos os termos do capítulo estudado.","correct":false},{"content":"Copiar a definição para o caderno.","correct":false}]},
 {"question":"Uma turma apresenta conhecimentos prévios muito diferentes sobre o tema planejado. Qual decisão pedagógica melhor preserva a intencionalidade do ensino?","tag":["planejamento_contextualizado"],"options":[{"content":"Considerar os conhecimentos prévios e ajustar estratégias e apoios sem abandonar os objetivos.","correct":true},{"content":"Abandonar os objetivos para evitar diferenças entre estudantes.","correct":false},{"content":"Usar exatamente a mesma atividade e o mesmo tempo para todos.","correct":false},{"content":"Aumentar o volume de conteúdo para compensar as diferenças.","correct":false}]},
@@ -112,6 +112,19 @@ questions jsonb:='[
 {"question":"Qual situação representa melhor a integração entre planejamento e avaliação?","tag":["coerencia_objetivos_avaliacao","replanejamento"],"options":[{"content":"O professor analisa as evidências de aprendizagem e usa os resultados para decidir os próximos passos do ensino.","correct":true},{"content":"O professor corrige a prova e arquiva os resultados sem utilizá-los.","correct":false},{"content":"A avaliação acontece apenas por exigência administrativa.","correct":false},{"content":"O planejamento termina antes que qualquer evidência de aprendizagem seja coletada.","correct":false}]}
 ]'::jsonb;
 begin
+ select t.id
+   into v_topic_id
+   from public.topics AS t
+   join public.disciplines AS d ON d.id = t.discipline_id
+  where t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid
+     OR (lower(t.name) = 'planejamento do ensino' AND lower(d.name) = 'didática')
+  order by CASE WHEN t.id = 'd88141bb-0724-4f63-b9d5-466c34dde2cf'::uuid THEN 0 ELSE 1 END
+  limit 1;
+
+ if v_topic_id is null then
+   raise exception 'Cannot attach evaluation source: the Didática topic "Planejamento do ensino" is missing';
+ end if;
+
  select id into v_source_id from public.sources where doi='10.1590/S1678-4634202147241339';
  if v_source_id is null then
   insert into public.sources(title,authors,publication_date,doi,canonical_url,source_type,language,publisher,status)
