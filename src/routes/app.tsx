@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app")({
   ssr: false,
+  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
   component: AppLayout,
 });
 

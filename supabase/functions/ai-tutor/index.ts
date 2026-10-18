@@ -632,40 +632,74 @@ function extractTutorResult(payload: unknown): {
     let microassessment: GeneratedMicroAssessment | null = null;
 
     if (isRecord(parsed.microassessment)) {
+      const enabled = parsed.microassessment.enabled === true;
+      const question =
+        typeof parsed.microassessment.question === "string"
+          ? parsed.microassessment.question.trim()
+          : "";
       const options = Array.isArray(parsed.microassessment.options)
-        ? parsed.microassessment.options.filter((value): value is string => typeof value === "string")
+        ? parsed.microassessment.options
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.trim())
         : [];
-
+      const rawCorrectIndex = parsed.microassessment.correct_option_index;
       const correctIndex =
-        typeof parsed.microassessment.correct_option_index === "number"
-          ? Math.trunc(parsed.microassessment.correct_option_index)
-          : 0;
-
-      const difficulty = parsed.microassessment.difficulty;
+        typeof rawCorrectIndex === "number" && Number.isInteger(rawCorrectIndex)
+          ? rawCorrectIndex
+          : -1;
+      const explanation =
+        typeof parsed.microassessment.explanation === "string"
+          ? parsed.microassessment.explanation.trim()
+          : "";
+      const rawDifficulty = parsed.microassessment.difficulty;
+      const difficulty =
+        rawDifficulty === "introductory" ||
+        rawDifficulty === "advanced" ||
+        rawDifficulty === "intermediate"
+          ? rawDifficulty
+          : "intermediate";
       const tags = Array.isArray(parsed.microassessment.concept_tags)
-        ? parsed.microassessment.concept_tags.filter((value): value is string => typeof value === "string")
+        ? parsed.microassessment.concept_tags
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .slice(0, 5)
         : [];
 
-      microassessment = {
-        enabled: parsed.microassessment.enabled === true,
-        question:
-          typeof parsed.microassessment.question === "string"
-            ? parsed.microassessment.question.trim()
-            : "",
-        options,
-        correct_option_index: correctIndex,
-        explanation:
-          typeof parsed.microassessment.explanation === "string"
-            ? parsed.microassessment.explanation.trim()
-            : "",
-        difficulty:
-          difficulty === "introductory" ||
-          difficulty === "advanced" ||
-          difficulty === "intermediate"
-            ? difficulty
-            : "intermediate",
-        concept_tags: tags.slice(0, 5),
-      };
+      if (!enabled) {
+        microassessment = {
+          enabled: false,
+          question: "",
+          options: [],
+          correct_option_index: 0,
+          explanation: "",
+          difficulty,
+          concept_tags: [],
+        };
+      } else {
+        const validAssessment =
+          question.length >= 30 &&
+          options.length === 4 &&
+          options.every((option) => option.length >= 8) &&
+          uniqueNormalized(options) &&
+          correctIndex >= 0 &&
+          correctIndex < 4 &&
+          explanation.length >= 25 &&
+          tags.length > 0 &&
+          uniqueNormalized(tags);
+
+        if (validAssessment) {
+          microassessment = {
+            enabled: true,
+            question,
+            options,
+            correct_option_index: correctIndex,
+            explanation,
+            difficulty,
+            concept_tags: tags,
+          };
+        }
+      }
     }
 
     const learningObservations: LearningObservation[] = Array.isArray(parsed.learning_observations)
@@ -813,6 +847,8 @@ async function generateAdaptiveMicroAssessment(args: {
     "- Nunca invente informações, autores, datas, estudos ou definições.\n" +
     "- Gere exatamente uma nova questão de múltipla escolha com 4 alternativas.\n" +
     "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +
+    "- Cada alternativa incorreta deve representar um erro conceitual plausível e distinto, sem pegadinhas ou distratores obviamente absurdos.\n" +
+    "- A explicação deve justificar a resposta com a relação conceitual precisa do contexto, não com elogios ou frases genéricas.\n" +
     "- Não repita nenhuma das questões recentes. Mude o contexto ou o modo de aplicação quando necessário.\n" +
     "- A mensagem não pode conter a nova questão nem as alternativas; a questão será exibida separadamente.\n" +
     "- concept_tags deve ter de 1 a 3 conceitos, priorizando o conceito frágil quando indicado.\n" +
@@ -944,10 +980,14 @@ async function generateAdaptiveMicroAssessment(args: {
 
     const next = parsed.microassessment;
     if (
+      next.question.trim().length < 30 ||
       next.options.length !== 4 ||
-      next.options.some((option) => option.trim().length === 0) ||
-      next.question.length === 0 ||
-      next.explanation.length === 0
+      next.options.some((option) => option.trim().length < 8) ||
+      !uniqueNormalized(next.options) ||
+      !Number.isInteger(next.correct_option_index) ||
+      next.correct_option_index < 0 ||
+      next.correct_option_index > 3 ||
+      next.explanation.trim().length < 25
     ) {
       return null;
     }

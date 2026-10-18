@@ -708,6 +708,7 @@ function TechnicalErrorDetails({ techError }: TechnicalErrorDetailsProps) {
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
   ssr: false,
   component: Onboarding,
 });

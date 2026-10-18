@@ -2,6 +2,17 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Ensina-me | Aprendizagem universitária com prática e revisão" },
+      { name: "description", content: "Organize seus estudos universitários com materiais por tópico, tutor de IA, questões com feedback e revisão orientada pelo seu progresso." },
+      { name: "robots", content: "index,follow" },
+      { property: "og:title", content: "Ensina-me | Aprendizagem universitária com prática e revisão" },
+      { property: "og:description", content: "Organize seus estudos universitários com materiais por tópico, tutor de IA, questões com feedback e revisão orientada pelo seu progresso." },
+      { property: "og:type", content: "website" }
+    ],
+    links: [{ rel: "canonical", href: "https://ensina-buddy-app.lovable.app/" }]
+  }),
   component: Index,
 });
 
@@ -58,7 +69,7 @@ function Index() {
               Não estude só para lembrar. <span className="text-[#0646D9]">Aprenda para dominar.</span>
             </h1>
             <p className="mt-6 max-w-[550px] text-base leading-7 text-[#53627A] sm:text-lg sm:leading-8">
-              Transforme conteúdo em compreensão com prática, feedback e revisão que ajudam você a avançar de verdade.
+              Organize suas disciplinas, tire dúvidas com o tutor, pratique com questões e descubra o que revisar em seguida.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/cadastro" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#0646D9] px-6 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(6,70,217,0.2)] transition hover:-translate-y-0.5 hover:bg-[#0039B9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0646D9] focus-visible:ring-offset-2">
@@ -122,17 +133,17 @@ function Index() {
             <article className="border-l-2 border-[#BFD2FF] pl-4">
               <Icon name="book" className="h-6 w-6 text-[#0646D9]" />
               <h3 className="mt-3 text-base font-extrabold text-[#1B2B45]">Conteúdo claro</h3>
-              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Organize conceitos e construa uma base para entender o assunto.</p>
+              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Estude tópicos organizados em uma sequência clara, com materiais e referências para aprofundar o assunto.</p>
             </article>
             <article className="border-l-2 border-[#BFD2FF] pl-4">
               <Icon name="target" className="h-6 w-6 text-[#0646D9]" />
               <h3 className="mt-3 text-base font-extrabold text-[#1B2B45]">Prática orientada</h3>
-              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Responda questões e identifique o que já compreendeu.</p>
+              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Pratique com questões e use o feedback para entender por que uma alternativa faz sentido — ou não.</p>
             </article>
             <article className="border-l-2 border-[#BFD2FF] pl-4">
               <Icon name="chart" className="h-6 w-6 text-[#0646D9]" />
               <h3 className="mt-3 text-base font-extrabold text-[#1B2B45]">Evolução visível</h3>
-              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Use seu progresso para orientar os próximos passos de estudo.</p>
+              <p className="mt-2 text-sm leading-6 text-[#5C6B82]">Acompanhe seu desempenho por tópico e escolha os próximos passos com mais clareza.</p>
             </article>
           </div>
         </div>
