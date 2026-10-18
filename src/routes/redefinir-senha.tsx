@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/redefinir-senha")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }),
   head: () => ({ meta: [{ name: "robots", content: "noindex,nofollow" }] }), component: RedefinirSenha });
 function RedefinirSenha(){
  const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState(""); const [status,setStatus]=useState<"normal"|"loading"|"success"|"error">("normal"); const [message,setMessage]=useState("");
