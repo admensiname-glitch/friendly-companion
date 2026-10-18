@@ -72,10 +72,10 @@ function Index() {
             </div>
           </div>
 
-          <div className="ensina-motion-scene relative mx-auto w-full max-w-[540px] lg:ml-auto">
+          <div className="relative mx-auto w-full max-w-[540px] lg:ml-auto">
             <div aria-hidden="true" className="absolute -left-5 top-12 h-24 w-24 rounded-full border border-[#D8E5FF] sm:-left-8" />
             <div aria-hidden="true" className="absolute -bottom-5 right-8 h-24 w-24 rounded-[2rem] bg-[#EAF1FF] rotate-12" />
-            <div className="ensina-motion-panel relative rounded-[28px] border border-[#E0E8F5] bg-white p-3 shadow-[0_28px_80px_rgba(22,49,94,0.12)] sm:p-4">
+            <div className="relative rounded-[28px] border border-[#E0E8F5] bg-white p-3 shadow-[0_28px_80px_rgba(22,49,94,0.12)] sm:p-4">
               <div className="rounded-[21px] bg-[#F7F9FD] p-4 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -84,7 +84,7 @@ function Index() {
                   </div>
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E7EEFF] text-[#0646D9]"><Icon name="target" className="h-5 w-5" /></span>
                 </div>
-                <div className="ensina-motion-primary-card mt-6 rounded-2xl bg-[#0646D9] p-5 text-white sm:p-6">
+                <div className="mt-6 rounded-2xl bg-[#0646D9] p-5 text-white sm:p-6">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-xs font-bold text-white/75">EXEMPLO DE ESTUDO</span>
                     <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold">Pedagogia</span>
@@ -104,7 +104,7 @@ function Index() {
                 </div>
               </div>
             </div>
-            <div className="ensina-motion-floating-note absolute -right-2 top-[-18px] hidden items-center gap-2 rounded-2xl border border-[#E2EAF7] bg-white px-4 py-3 shadow-[0_12px_32px_rgba(22,49,94,0.1)] sm:flex">
+            <div className="absolute -right-2 top-[-18px] hidden items-center gap-2 rounded-2xl border border-[#E2EAF7] bg-white px-4 py-3 shadow-[0_12px_32px_rgba(22,49,94,0.1)] sm:flex">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#0646D9]"><Icon name="brain" className="h-4 w-4" /></span>
               <span className="text-xs font-extrabold text-[#253650]">Compreender antes de avançar</span>
             </div>
