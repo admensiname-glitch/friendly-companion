@@ -235,10 +235,10 @@ begin
         or count(o.id) filter (where o.is_correct) <> 1
         or count(o.id) filter (
           where o.is_correct and length(trim(coalesce(o.feedback_correct, ''))) < 40
-        ) <> 1
+        ) <> 0
         or count(o.id) filter (
           where not o.is_correct and length(trim(coalesce(o.feedback_incorrect, ''))) < 40
-        ) <> 3
+        ) <> 0
   ) then
     raise exception 'BATCH_ABORTED: post-update option, answer-key or active-feedback validation failed';
   end if;
