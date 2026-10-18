@@ -502,7 +502,7 @@ function AppDashboard() {
         </h1>
       </section>
 
-      <section className="mobile-study-card ensina-motion-feature mt-3 overflow-hidden rounded-[18px] bg-[#0242D7] shadow-[0_10px_26px_rgba(2,66,215,.13)] sm:mt-5 lg:mt-8 lg:rounded-[20px] lg:shadow-[0_18px_42px_rgba(2,66,215,.16)]" aria-labelledby="next-study-title">
+      <section className="mobile-study-card mt-3 overflow-hidden rounded-[18px] bg-[#0242D7] shadow-[0_10px_26px_rgba(2,66,215,.13)] sm:mt-5 lg:mt-8 lg:rounded-[20px] lg:shadow-[0_18px_42px_rgba(2,66,215,.16)]" aria-labelledby="next-study-title">
         <div className="mobile-study-card-inner relative bg-[#0242D7] p-4 sm:p-9 lg:min-h-[300px] lg:p-11">
           <div className="relative">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/70">
