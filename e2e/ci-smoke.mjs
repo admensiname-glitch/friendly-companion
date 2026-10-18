@@ -78,6 +78,25 @@ try {
   const loginRobots = await page.locator('meta[name="robots"]').getAttribute("content");
   if (!loginRobots?.includes("noindex")) throw new Error(`login should not be indexed: ${loginRobots}`);
   console.log("PASS: login is excluded from search indexing");
+
+  const authChecks = await page.evaluate(() => ({
+    emailLabelCount: [...document.querySelectorAll("label")].filter((label) => /e-mail/i.test(label.textContent ?? "")).length,
+    passwordLabelCount: [...document.querySelectorAll("label")].filter((label) => /senha/i.test(label.textContent ?? "")).length,
+    submitButtons: [...document.querySelectorAll("button[type=submit]")].length,
+  }));
+  if (authChecks.emailLabelCount < 1 || authChecks.passwordLabelCount < 1 || authChecks.submitButtons < 1) {
+    throw new Error(`login form labels/actions missing: ${JSON.stringify(authChecks)}`);
+  }
+
+  for (const path of ["/login", "/cadastro", "/termos", "/privacidade"]) {
+    await page.goto(baseURL + path, { waitUntil: "domcontentloaded", timeout: 30000 });
+    for (const [width, height] of [[390, 844], [360, 800], [320, 740]]) {
+      await page.setViewportSize({ width, height });
+      const pageWidth = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth));
+      if (pageWidth > width + 1) throw new Error(`horizontal overflow on ${path} at ${width}px: document width ${pageWidth}px`);
+    }
+  }
+  console.log("PASS: login, registration and legal pages at mobile widths (390/360/320px)");
 } finally {
   await browser.close();
 }
