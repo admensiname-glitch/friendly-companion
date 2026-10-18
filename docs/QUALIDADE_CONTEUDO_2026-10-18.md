@@ -108,11 +108,21 @@ where e.published = false;
 
 
 
-## Lote 02 — avaliação do tópico (aguardando PR e aplicação)
+## Lote 02 — aplicado e verificado no Supabase
 
-**Escopo:** exercício `Avaliação do tópico — Acompanhamento da aprendizagem` (UUID `ee8cf24b-8087-4b2c-9764-a41153af3b25`), que permanece em rascunho.
+**Escopo:** exercício em rascunho `Avaliação do tópico — Acompanhamento da aprendizagem` (UUID `ee8cf24b-8087-4b2c-9764-a41153af3b25`).
 
-- A migration `20261018195000_contextualize_learning_monitoring_evaluation_batch02.sql` reescreve as 10 perguntas de avaliação e as 40 alternativas para remover alternativas modelo como “uma definição isolada”, “uma opinião pessoal” e “uma regra fixa”.
-- Cada alternativa recebe feedback específico para seu cenário e seu papel (correto/incorreto). A posição da resposta correta é distribuída entre as quatro posições, preservando exatamente uma correta por pergunta.
-- O script faz backup dos 40 registros antes da alteração e aborta caso o exercício não esteja em rascunho, os IDs/gabaritos não correspondam ao snapshot auditado, sobrem enunciados genéricos ou falhem as validações finais.
-- **Estado neste relatório:** migration criada na branch de trabalho e aguardando CI/revisão. Ainda não foi aplicada ao Supabase.
+- A migration `20261018195000_contextualize_learning_monitoring_evaluation_batch02.sql` foi aplicada após CI e E2E verdes.
+- Foram reescritos 10 enunciados e 40 alternativas para remover enunciados-modelo e feedbacks de preparação.
+- A validação SQL posterior confirmou: exercício continua com `published=false`, 10 questões e 40 alternativas; cada questão possui quatro opções distintas, exatamente uma correta e feedback ativo com pelo menos 40 caracteres.
+- A posição da alternativa correta está distribuída entre as quatro posições; a consulta de padrões genéricos retornou zero enunciados no conjunto editado.
+- O backup `private.exercise_quality_feedback_backups_20261018` contém **40 registros** para o lote `2026-10-18-learning-monitoring-eval-batch-02`. Nenhum material ou exercício publicado foi alterado.
+
+## Lote 03 — avaliação de fluência e compreensão leitora (aguardando CI/revisão)
+
+**Escopo:** exercício em rascunho `Avaliação do tópico — Fluência e compreensão leitora` (UUID `1f1693d8-7931-4dfc-9edc-cc8a31c59729`), da disciplina Alfabetização II.
+
+- A migration `20261018201000_contextualize_fluency_comprehension_evaluation_batch03.sql` reescreve os 10 enunciados e 40 alternativas a partir do material publicado do tópico: decodificação, precisão, automaticidade, prosódia, compreensão, inferências, triagem responsável e apoios de leitura.
+- Os quatro distratores genéricos são substituídos por alternativas plausíveis, relacionadas ao cenário. Todos os feedbacks ativos têm explicações específicas da alternativa, e as posições das respostas corretas são distribuídas entre as quatro posições.
+- A migration inclui backup prévio de 40 opções, validação dos IDs e gabaritos originais, verificação de quatro opções distintas e uma correta por questão, feedback ativo de pelo menos 40 caracteres e confirmação de que a avaliação permanece em rascunho.
+- **Estado neste relatório:** arquivo SQL preparado em branch de trabalho; ainda não aplicado ao Supabase. Será aberto para revisão e CI antes da aplicação.
