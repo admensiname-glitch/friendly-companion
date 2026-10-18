@@ -11,7 +11,7 @@ where section_type = 'review'
   );
 
 insert into public.material_sections (material_id,title,content,position,section_type)
-select v.material_id,v.title,v.content,v.position,v.section_type
+select coalesce(mapped.material_id, v.material_id),v.title,v.content,v.position,v.section_type
 from (values
 ('00000000-0000-4000-8000-000000010002'::uuid,'Conceitos indispensáveis para dominar','Para dominar este tópico, é importante distinguir conceitos que aparecem juntos, mas não são equivalentes. Desenvolvimento envolve transformações do sujeito ao longo do tempo, enquanto aprendizagem diz respeito à apropriação de conhecimentos, habilidades e modos de agir em experiências sociais e educativas. A relação entre os dois pode ser analisada por diferentes perspectivas teóricas.
 
@@ -158,9 +158,32 @@ Uma sequência de ensino pode combinar trabalho explícito sobre aspectos da lei
 
 Em provas, procure o processo cognitivo exigido pela pergunta. Em trabalhos, relacione a proposta de leitura ou escrita ao público, finalidade e contexto de circulação.',8,'review')
 ) v(material_id,title,content,position,section_type)
+left join (
+  -- Earlier seed migrations may already have created the same topic's material
+  -- under a generated UUID. Resolve historical stable IDs to the existing row
+  -- by topic, rather than violating material_sections_material_id_fkey on replay.
+  select aliases.canonical_id, min(m.id::text)::uuid as material_id
+  from (values
+    ('00000000-0000-4000-8000-000000010002'::uuid, 'Desenvolvimento e aprendizagem'),
+    ('ff7dafa5-7776-4b66-a65f-db6c4f583472'::uuid, 'Didática e os processos de ensinar e aprender'),
+    ('7a1ee5b1-49e4-4722-9241-a9cd33464be0'::uuid, 'Alfabetização e letramento'),
+    ('84439dee-5451-47a7-9062-9a7664db631d'::uuid, 'Planejamento do ensino'),
+    ('00000000-0000-4000-8000-000000010078'::uuid, 'Construtivismo e construção do conhecimento'),
+    ('0aca8546-f2ad-46ad-a8c7-21707cc46a59'::uuid, 'Sistema de escrita alfabética'),
+    ('bc46afac-e6d6-49d2-8387-13c40d3d0f0b'::uuid, 'Consciência fonológica e relações grafofonêmicas'),
+    ('00000000-0000-4000-8000-000000010154'::uuid, 'Psicologia histórico-cultural e mediação'),
+    ('43562e58-bff1-4eb3-9dd3-b7ab291362c0'::uuid, 'Objetivos, conteúdos e métodos de ensino'),
+    ('d0aee9ac-e285-477e-aaec-e0a0e6964b18'::uuid, 'Avaliação da aprendizagem'),
+    ('00000000-0000-4000-8000-000000010230'::uuid, 'Interação, afetividade e práticas educativas'),
+    ('10c77160-d405-4484-a63c-e29ab1342f87'::uuid, 'Leitura, escrita e práticas sociais')
+  ) as aliases(canonical_id, topic_name)
+  join public.topics t on lower(t.name) = lower(aliases.topic_name)
+  join public.materials m on m.topic_id = t.id
+  group by aliases.canonical_id
+) mapped on mapped.canonical_id = v.material_id
 where not exists (
   select 1 from public.material_sections ms
-  where ms.material_id=v.material_id and ms.title=v.title
+  where ms.material_id=coalesce(mapped.material_id, v.material_id) and ms.title=v.title
 );
 
 with data as (
