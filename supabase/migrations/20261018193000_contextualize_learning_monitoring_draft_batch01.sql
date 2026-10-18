@@ -72,6 +72,14 @@ begin
     )
   on conflict (batch_id, option_id) do nothing;
 
+  if (
+    select count(*)
+    from private.exercise_quality_feedback_backups_20261018
+    where batch_id = v_batch_id and exercise_id = v_exercise_id
+  ) <> 16 then
+    raise exception 'BATCH_ABORTED: expected a 16-option backup before editing';
+  end if;
+
   -- Question 1: preserve its mathematics scenario; make each distractor's feedback distinct.
   update public.exercise_options
   set feedback_correct = case
