@@ -65,6 +65,12 @@ type TopicVideo = {
   duration_label: string | null;
 };
 
+function formatTutorFeedbackExplanation(explanation: string): string {
+  return explanation.replace(/\\b(alternativa)\\s+([1-4])\\b/gi, (_match, label: string, number: string) => {
+    return `${label} ${String.fromCharCode(64 + Number(number))}`;
+  });
+}
+
 type TutorReflection = {
   id: string;
   kind: "quote" | "reflection";
@@ -1236,7 +1242,7 @@ function TutorPage() {
                           {message.microAssessment.question}
                         </p>
 
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-3 flex flex-col gap-2">
                           {message.microAssessment.options.map((option, optionIndex) => {
                             const selected = message.microAssessment?.selectedOptionIndex === optionIndex;
                             const correct = message.microAssessment?.correctOptionIndex === optionIndex;
@@ -1251,7 +1257,7 @@ function TutorPage() {
                                   void answerMicroAssessment(index, message.microAssessment!, optionIndex)
                                 }
                                 className={
-                                  "w-full rounded-xl border px-4 py-3 text-left text-sm leading-5 transition " +
+                                  "block w-full rounded-xl border px-4 py-3 text-left text-sm leading-5 transition " +
                                   (answered && correct
                                     ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
                                     : answered && selected && !correct
@@ -1281,7 +1287,7 @@ function TutorPage() {
                               {message.microAssessment.isCorrect ? "Acertou." : "Ainda não."}
                             </p>
                             {message.microAssessment.explanation && (
-                              <p className="mt-1">{message.microAssessment.explanation}</p>
+                              <p className="mt-1">{formatTutorFeedbackExplanation(message.microAssessment.explanation)}</p>
                             )}
                           </div>
                         )}
