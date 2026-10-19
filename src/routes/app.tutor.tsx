@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
 import { retryDelayMs } from "@/lib/tutor-retry-policy";
+import { normalizeTutorOptionText } from "@/lib/tutor-comprehension-check";
 
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 // Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
@@ -723,7 +724,7 @@ function TutorPage() {
                                 <span className="mr-2 font-black">
                                   {String.fromCharCode(65 + optionIndex)}.
                                 </span>
-                                {option}
+                                {normalizeTutorOptionText(option)}
                               </button>
                             );
                           })}

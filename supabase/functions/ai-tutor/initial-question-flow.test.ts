@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   createInitialIdempotencyKey,
+  hasPhotosynthesisOxygenAttributionError,
+  normalizeQuestionOptionText,
   retryAfterSecondsFromResponse,
   selectRelevantAcademicSections,
   runInitialQuestionFlow,
@@ -175,5 +177,32 @@ describe("Tutor initial micro-assessment flow", () => {
         concept_tags: ["fotossíntese", "energia luminosa"],
       },
     });
+  });
+});
+
+
+describe("Tutor question quality safeguards", () => {
+  it("normalizes numbered, lettered, and HTML-escaped option prefixes", () => {
+    expect(normalizeQuestionOptionText("1. Captura de luz pela clorofila")).toBe(
+      "Captura de luz pela clorofila",
+    );
+    expect(normalizeQuestionOptionText("B) Na fase luminosa")).toBe("Na fase luminosa");
+    expect(normalizeQuestionOptionText("&#x4E;a fase luminosa")).toBe("Na fase luminosa");
+  });
+
+  it("rejects attributing oxygen release to the dark phase or Calvin cycle", () => {
+    expect(hasPhotosynthesisOxygenAttributionError({
+      question: "Qual sequência descreve a fotossíntese?",
+      correctOption: "O ciclo de Calvin fixa CO₂ e libera O₂.",
+      explanation: "A fase escura usa ATP e NADPH, liberando O₂ como subproduto.",
+    })).toBe(true);
+  });
+
+  it("accepts oxygen release correctly attributed to the light reactions", () => {
+    expect(hasPhotosynthesisOxygenAttributionError({
+      question: "Qual etapa libera oxigênio na fotossíntese?",
+      correctOption: "Nas reações luminosas, durante a fotólise da água.",
+      explanation: "O O₂ é liberado nas reações luminosas; o ciclo de Calvin não libera oxigênio.",
+    })).toBe(false);
   });
 });
