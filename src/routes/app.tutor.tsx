@@ -895,15 +895,6 @@ function TutorPage() {
     })();
   }, []);
 
-  const contextLabel = useMemo(
-    () => recommendation?.topic_name
-      ? `Estudando: ${recommendation.topic_name}${recommendation.discipline_name ? ` · ${recommendation.discipline_name}` : ""}`
-      : courseNames.length
-        ? `Seu percurso: ${courseNames.join(" · ")}. Escolha uma disciplina para aprofundar.`
-        : "Adicione um curso ao seu perfil para começar a personalizar o Tutor.",
-    [courseNames, recommendation],
-  );
-
   async function answerMicroAssessment(
     messageIndex: number,
     assessment: MicroAssessment,
@@ -1158,7 +1149,7 @@ function TutorPage() {
         </p>
       </header>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
         <section className="rounded-2xl border border-[#DCE5F0] bg-white shadow-[0_8px_28px_rgba(15,23,42,.05)]">
           <div className="min-h-[360px] space-y-4 p-5 sm:p-7">
             {loading ? (
@@ -1332,29 +1323,23 @@ function TutorPage() {
           </form>
         </section>
 
-        <aside className="rounded-2xl border border-[#DCE5F0] bg-[#F8FAFC] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Seu percurso</p>
-          <h2 className="mt-2 text-lg font-black text-[#172334]">
-            {courseNames.length ? courseNames.join(" · ") : "Nenhum curso adicionado"}
-          </h2>
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto atual</p>
-          <p className="mt-2 text-sm font-bold text-[#334155]">{contextLabel}</p>
-          <figure className="mt-3 rounded-2xl border border-[#DCE5F0] bg-gradient-to-br from-white to-[#F4F8FF] p-4 sm:p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">
+        <aside className="rounded-2xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+          <figure className="flex min-h-[260px] flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5 text-card-foreground sm:min-h-[300px] sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">
               {reflection.kind === "quote" ? "Palavras de um pensador" : "Uma ideia para levar com você"}
             </p>
-            <blockquote className="mt-3 text-base font-semibold leading-7 text-[#172334] sm:text-lg">
+            <blockquote className="mt-4 text-lg font-semibold leading-8 text-foreground sm:text-xl sm:leading-9">
               {reflection.kind === "quote" ? `“${reflection.text}”` : reflection.text}
             </blockquote>
-            <figcaption className="mt-3 text-sm font-extrabold text-[#334155]">
+            <figcaption className="mt-5 text-sm font-extrabold text-foreground">
               {reflection.author}
             </figcaption>
-            <p className="mt-1 text-xs leading-5 text-[#687688]">
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
               {reflection.source}
               {reflection.sourceUrl && (
                 <>
                   {" · "}
-                  <a href={reflection.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">
+                  <a href={reflection.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-primary underline-offset-4 hover:underline">
                     Consultar fonte ↗
                   </a>
                 </>
@@ -1368,7 +1353,7 @@ function TutorPage() {
             <Link to="/app/disciplinas" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Escolher disciplina</Link>
           )}
           {topicId && recommendation?.discipline_id && (
-            <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: recommendation.discipline_id, topicId }} className="mt-5 inline-flex rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-black text-[#334155]">Abrir tópico</Link>
+            <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: recommendation.discipline_id, topicId }} className="mt-5 inline-flex rounded-xl border border-border bg-background text-foreground hover:bg-accent px-4 py-2.5 text-sm font-black">Abrir tópico</Link>
           )}
         </aside>
       </div>
