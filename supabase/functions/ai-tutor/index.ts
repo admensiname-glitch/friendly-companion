@@ -1667,21 +1667,26 @@ Deno.serve(async (req: Request) => {
         .map((item: { question_text: string }) => item.question_text)
         .filter((question: string) => typeof question === "string" && question.trim());
 
+      // Match sections against the learner's actual question and the exact explanation
+      // being checked, not the topic name/description; otherwise every request inherits
+      // unrelated first-page material just because it is attached to the current topic.
       const relevantSections = selectRelevantAcademicSections(
         sections ?? [],
-        userQuestion + "\n" + tutorAnswer + "\n" + topic.name + "\n" + (topic.description ?? ""),
+        userQuestion + "\n" + tutorAnswer,
         2,
       );
+      const hasRelevantAcademicSections = relevantSections.length > 0;
       const initialContext = [
-        "TÓPICO: " + topic.name.slice(0, 240),
-        topic.description ? "DESCRIÇÃO: " + topic.description.slice(0, 500) : "",
-        material
-          ? "MATERIAL: " + material.title.slice(0, 240) + "\n" + (material.introduction ?? "").slice(0, 800)
+        "FOCO DA VERIFICAÇÃO: crie a pergunta sobre o conceito da pergunta do aluno e da explicação imediatamente abaixo. Corrija qualquer erro factual antes de avaliar. Não misture conceitos de outro assunto.",
+        hasRelevantAcademicSections ? "TÓPICO ACADÊMICO DE APOIO: " + topic.name.slice(0, 240) : "",
+        hasRelevantAcademicSections && topic.description ? "DESCRIÇÃO ACADÊMICA DE APOIO: " + topic.description.slice(0, 500) : "",
+        hasRelevantAcademicSections && material
+          ? "MATERIAL ACADÊMICO DE APOIO: " + material.title.slice(0, 240) + "\n" + (material.introduction ?? "").slice(0, 800)
           : "",
         ...relevantSections.map((section: { title: string; content: string }) =>
-          "TRECHO RELEVANTE — " + section.title.slice(0, 160) + "\n" + section.content.slice(0, 450)),
-        "PERGUNTA DO ALUNO: " + userQuestion.slice(0, 1200),
-        "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer.slice(0, 1800),
+          "TRECHO ACADÊMICO PERTINENTE — " + section.title.slice(0, 160) + "\n" + section.content.slice(0, 450)),
+        "PERGUNTA DO ALUNO — use como foco principal: " + userQuestion.slice(0, 1200),
+        "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR — confira a precisão e avalie somente os conceitos explicados aqui: " + tutorAnswer.slice(0, 1800),
       ].filter(Boolean).join("\n\n");
 
       const requestKey = await createInitialIdempotencyKey({
@@ -2139,38 +2144,38 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const [signalResults, { data: recentAssessments }] = await Promise.all([
-        Promise.all(
-          (assessment.concept_tags ?? []).map(async (concept: string) => {
-            const { error: signalError } = await supabase.rpc("record_learning_signal", {
-              _topic_id: assessment.topic_id,
-              _concept: concept,
-              _signal_type: "micro_error",
-              _severity: assessment.is_correct ? 1 : 5,
-              _evidence: assessment.question_text,
-              _correct: Boolean(assessment.is_correct),
-            });
-            return { concept, error: signalError };
-          }),
-        ),
-        supabase
-          .from("ai_micro_assessments")
-          .select("is_correct, difficulty, concept_tags, question_text, answered_at")
-          .eq("user_id", userData.user.id)
-          .eq("topic_id", assessment.topic_id)
-          .eq("status", "answered")
-          .order("answered_at", { ascending: false })
-          .limit(12),
-      ]);
+      // Analytics are non-critical for showing the answer correction. Record them in the
+      // background so a slow signal-write cannot delay the immediate feedback response.
+      const signalUpdates = Promise.all(
+        (assessment.concept_tags ?? []).map(async (concept: string) => {
+          const { error: signalError } = await supabase.rpc("record_learning_signal", {
+            _topic_id: assessment.topic_id,
+            _concept: concept,
+            _signal_type: "micro_error",
+            _severity: assessment.is_correct ? 1 : 5,
+            _evidence: assessment.question_text,
+            _correct: Boolean(assessment.is_correct),
+          });
+          if (signalError) {
+            console.warn(
+              "[Ensina-me] ai-tutor: não foi possível registrar resultado conceitual da microavaliação",
+              JSON.stringify({ concept, message: signalError.message }),
+            );
+          }
+        }),
+      ).catch((signalTaskError) => {
+        console.warn("[Ensina-me] ai-tutor: falha na gravação assíncrona de sinais de aprendizagem", signalTaskError instanceof Error ? signalTaskError.message : "unknown error");
+      });
+      EdgeRuntime.waitUntil(signalUpdates);
 
-      for (const { concept, error: signalError } of signalResults) {
-        if (signalError) {
-          console.warn(
-            "[Ensina-me] ai-tutor: não foi possível registrar resultado conceitual da microavaliação",
-            JSON.stringify({ concept, message: signalError.message }),
-          );
-        }
-      }
+      const { data: recentAssessments } = await supabase
+        .from("ai_micro_assessments")
+        .select("is_correct, difficulty, concept_tags, question_text, answered_at")
+        .eq("user_id", userData.user.id)
+        .eq("topic_id", assessment.topic_id)
+        .eq("status", "answered")
+        .order("answered_at", { ascending: false })
+        .limit(12);
 
       const adaptiveHistory = (recentAssessments ?? []) as Array<{
         is_correct: boolean | null;

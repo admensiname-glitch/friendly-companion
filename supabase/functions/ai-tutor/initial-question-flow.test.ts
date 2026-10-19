@@ -206,3 +206,25 @@ describe("Tutor question quality safeguards", () => {
     })).toBe(false);
   });
 });
+
+
+describe("academic section relevance boundaries", () => {
+  it("does not inject the first sections when the learner asks about an unrelated concept", () => {
+    const educationSections = [
+      { title: "Educação como direito", content: "A educação é um direito social previsto na Constituição.", position: 1 },
+      { title: "Currículo escolar", content: "O currículo organiza objetivos, conteúdos e avaliação.", position: 2 },
+    ];
+    expect(selectRelevantAcademicSections(
+      educationSections,
+      "Explique a fotossíntese, o papel da clorofila e a fotólise da água.",
+      2,
+    )).toEqual([]);
+  });
+
+  it("returns no fallback sections when the learner context contains no searchable terms", () => {
+    const sections = [
+      { title: "Educação como direito", content: "Direito social e dever do Estado.", position: 1 },
+    ];
+    expect(selectRelevantAcademicSections(sections, "a e de", 2)).toEqual([]);
+  });
+});

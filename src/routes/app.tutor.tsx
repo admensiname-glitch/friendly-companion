@@ -65,6 +65,83 @@ type TopicVideo = {
   duration_label: string | null;
 };
 
+type TutorReflection = {
+  id: string;
+  text: string;
+  author: string;
+  source: string;
+  sourceUrl?: string;
+};
+
+const TUTOR_REFLECTIONS: TutorReflection[] = [
+  {
+    id: "socrates-apology",
+    text: "Uma vida sem exame não merece ser vivida.",
+    author: "Sócrates, conforme relatado por Platão",
+    source: "Apologia de Sócrates, 38a",
+    sourceUrl: "https://query.libretexts.org/Idioma_Portugues/Introducao_a_filosofia_%28OpenStax%29/01%3A_Introdu%C3%A7%C3%A3o_a_filosofia/1.03%3A_S%C3%B3crates_como_fil%C3%B3sofo_hist%C3%B3rico_paradigm%C3%A1tico",
+  },
+  {
+    id: "aristotle-metaphysics",
+    text: "Todos os seres humanos, por natureza, desejam conhecer.",
+    author: "Aristóteles",
+    source: "Metafísica, Livro I, 980a",
+    sourceUrl: "https://en.wikisource.org/wiki/Metaphysics_%28Ross%2C_1908%29/Book_1",
+  },
+  {
+    id: "kant-pedagogy",
+    text: "O homem não é nada além daquilo que a educação faz dele.",
+    author: "Immanuel Kant",
+    source: "Sobre a pedagogia",
+    sourceUrl: "https://pt.wikiquote.org/wiki/Immanuel_Kant",
+  },
+  {
+    id: "freire-oppressed",
+    text: "Ninguém educa ninguém, ninguém se educa a si mesmo: os homens se educam entre si, mediatizados pelo mundo.",
+    author: "Paulo Freire",
+    source: "Pedagogia do oprimido",
+    sourceUrl: "https://dhnet.org.br/direitos/militantes/paulofreire/paulo_freire_pedagogia_do_oprimido.pdf",
+  },
+  {
+    id: "clovis-happiness",
+    text: "A felicidade é a pretensão ilusória de converter um instante de alegria em eternidade.",
+    author: "Clóvis de Barros Filho",
+    source: "Trecho de entrevista com Antônio Abujamra, 2014",
+    sourceUrl: "https://www.pensador.com/frase/MTkyMzkyOQ/",
+  },
+  {
+    id: "durkheim-education",
+    text: "A educação é a ação exercida pelas gerações adultas sobre aquelas que ainda não estão maduras para a vida social.",
+    author: "Émile Durkheim",
+    source: "Educação e sociologia",
+  },
+  {
+    id: "arendt-education",
+    text: "A essência da educação é a natalidade: o fato de que seres humanos nascem para o mundo.",
+    author: "Hannah Arendt",
+    source: "A crise na educação, em Entre o passado e o futuro",
+  },
+]; 
+
+function chooseTutorReflection(): TutorReflection {
+  const available = TUTOR_REFLECTIONS.length > 1 ? TUTOR_REFLECTIONS : TUTOR_REFLECTIONS.slice(0, 1);
+  let previousId: string | null = null;
+  try {
+    previousId = window.localStorage.getItem("ensina-me:tutor:last-reflection");
+  } catch {
+    // Private browsing/storage restrictions must not prevent the Tutor from opening.
+  }
+  const candidates = available.filter((reflection) => reflection.id !== previousId);
+  const pool = candidates.length ? candidates : available;
+  const selected = pool[Math.floor(Math.random() * pool.length)] ?? available[0]!;
+  try {
+    window.localStorage.setItem("ensina-me:tutor:last-reflection", selected.id);
+  } catch {
+    // The quote still works when persistent storage is unavailable.
+  }
+  return selected;
+}
+
 function TutorMessageContent({ content }: { content: string }) {
   const lines = content.split("\n");
   const renderInline = (value: string) =>
@@ -138,6 +215,9 @@ function TutorPage() {
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
   const [answeringAssessmentId, setAnsweringAssessmentId] = useState<string | null>(null);
+  const [reflection] = useState<TutorReflection>(() =>
+    typeof window === "undefined" ? TUTOR_REFLECTIONS[0]! : chooseTutorReflection()
+  );
 
   async function downloadVisualImage(image: NonNullable<VisualAid["image"]>) {
     try {
@@ -367,13 +447,21 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "answer_microassessment",
-        micro_assessment_id: assessment.id,
-        selected_option_index: selectedOptionIndex,
-      },
-    });
+    let response: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+    try {
+      response = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "answer_microassessment",
+          micro_assessment_id: assessment.id,
+          selected_option_index: selectedOptionIndex,
+        },
+      });
+    } catch {
+      setError("A correção demorou demais para responder. Tente novamente; sua resposta não foi confirmada.");
+      setAnsweringAssessmentId(null);
+      return;
+    }
+    const { data, error: invokeError } = response;
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
@@ -460,14 +548,22 @@ function TutorPage() {
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "chat",
-        topic_id: topicId,
-        message,
-        conversation_id: conversationId,
-      },
-    });
+    let chatResponse: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+    try {
+      chatResponse = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "chat",
+          topic_id: topicId,
+          message,
+          conversation_id: conversationId,
+        },
+      });
+    } catch {
+      setError("A comunicação com o Tutor falhou. Sua mensagem não foi confirmada; tente enviá-la novamente.");
+      setSending(false);
+      return;
+    }
+    const { data, error: invokeError } = chatResponse;
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
@@ -526,7 +622,13 @@ function TutorPage() {
           let errorMessage: string | null = null;
 
           for (let attempt = 0; attempt < 2; attempt += 1) {
-            const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            let result: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+            try {
+              result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            } catch {
+              errorMessage = "A comunicação com o Tutor falhou ao preparar a pergunta. Peça uma nova verificação para tentar novamente.";
+              break;
+            }
             if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
               assessmentData = result.data;
               break;
@@ -730,6 +832,13 @@ function TutorPage() {
                           })}
                         </div>
 
+                        {!message.microAssessment.answered && answeringAssessmentId === message.microAssessment.id && (
+                          <div role="status" aria-live="polite" className="mt-4 flex items-center gap-2 rounded-xl border border-[#CFE0FF] bg-[#F4F8FF] px-4 py-3 text-sm font-semibold text-[#0242D7]">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
+                            Corrigindo sua resposta…
+                          </div>
+                        )}
+
                         {message.microAssessment.answered && (
                           <div
                             className={
@@ -792,9 +901,26 @@ function TutorPage() {
           </h2>
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto atual</p>
           <p className="mt-2 text-sm font-bold text-[#334155]">{contextLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-[#687688]">
-            O Tutor não é um chat genérico: ele deve permanecer ligado ao conteúdo acadêmico do tópico.
-          </p>
+          <figure className="mt-3 rounded-2xl border border-[#DCE5F0] bg-gradient-to-br from-white to-[#F4F8FF] p-4 sm:p-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Uma reflexão para começar</p>
+            <blockquote className="mt-3 text-base font-semibold leading-7 text-[#172334] sm:text-lg">
+              “{reflection.text}”
+            </blockquote>
+            <figcaption className="mt-3 text-sm font-extrabold text-[#334155]">
+              {reflection.author}
+            </figcaption>
+            <p className="mt-1 text-xs leading-5 text-[#687688]">
+              {reflection.source}
+              {reflection.sourceUrl && (
+                <>
+                  {" · "}
+                  <a href={reflection.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">
+                    Consultar fonte ↗
+                  </a>
+                </>
+              )}
+            </p>
+          </figure>
           {!courseNames.length && (
             <Link to="/app/catalogo" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Adicionar curso</Link>
           )}
