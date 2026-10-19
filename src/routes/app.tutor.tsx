@@ -133,7 +133,7 @@ function chooseTutorReflection(): TutorReflection {
   }
   const candidates = available.filter((reflection) => reflection.id !== previousId);
   const pool = candidates.length ? candidates : available;
-  const selected = pool[Math.floor(Math.random() * pool.length)] ?? available[0];
+  const selected = pool[Math.floor(Math.random() * pool.length)] ?? available[0]!;
   try {
     window.localStorage.setItem("ensina-me:tutor:last-reflection", selected.id);
   } catch {
@@ -216,7 +216,7 @@ function TutorPage() {
   const [courseNames, setCourseNames] = useState<string[]>([]);
   const [answeringAssessmentId, setAnsweringAssessmentId] = useState<string | null>(null);
   const [reflection] = useState<TutorReflection>(() =>
-    typeof window === "undefined" ? TUTOR_REFLECTIONS[0] : chooseTutorReflection()
+    typeof window === "undefined" ? TUTOR_REFLECTIONS[0]! : chooseTutorReflection()
   );
 
   async function downloadVisualImage(image: NonNullable<VisualAid["image"]>) {
