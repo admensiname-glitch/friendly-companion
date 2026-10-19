@@ -1394,6 +1394,25 @@ function TutorSection({
         </div>
       )}
 
+      {microAssessmentLoading && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#475569] dark:border-[#2B3A4F] dark:bg-[#1B2638] dark:text-[#B7C4D2]"
+        >
+          Preparando uma pergunta de compreensão…
+        </div>
+      )}
+
+      {microAssessmentError && !microAssessment && (
+        <div
+          role="alert"
+          className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B] dark:border-[#71333A] dark:bg-[#321A1F] dark:text-[#FCA5A5]"
+        >
+          {microAssessmentError}
+        </div>
+      )}
+
       {microAssessment && (
         <TutorMicroAssessmentCard
           key={microAssessment.id}
