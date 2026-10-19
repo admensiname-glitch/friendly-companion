@@ -3004,25 +3004,36 @@ Deno.serve(async (req: Request) => {
     }
 
     const assistantMessage = tutorResult.message;
-    // Reconhece pedidos explícitos de imagem no backend, sem depender da decisão
-    // probabilística do modelo de habilitar visual_aid.
     const normalizedCurrentMessage = userMessage
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\\u0300-\\u036f]/g, "");
-    const explicitlyRequestsImage =
-      /\\b(imagem|imagens|ilustracao|ilustracoes|figura|figuras|foto|fotos)\\b/.test(normalizedCurrentMessage);
-    if (explicitlyRequestsImage) {
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+    const isCasualOrNavigationMessage =
+      /^(oi|ola|bom dia|boa tarde|boa noite|obrigad[oa]s?|valeu|ok|certo|entendi|sim|nao|menu|voltar|sair|tchau)[.!?\s]*$/.test(normalizedCurrentMessage);
+    const isSubstantiveLearningTurn =
+      !isCasualOrNavigationMessage &&
+      assistantMessage.trim().length >= 160 &&
+      !/^(obrigad[oa]s?|de nada|ola|oi|bom dia|boa tarde|boa noite)\b/i.test(assistantMessage.trim());
+
+    // Imagem e vídeo são parte natural da aula em respostas acadêmicas substantivas.
+    // Não dependemos do modelo lembrar de ligar esses recursos em cada turno.
+    if (isSubstantiveLearningTurn) {
       tutorResult.visualAid.enabled = true;
-      tutorResult.visualAid.type = "concept_map";
-      tutorResult.visualAid.title = "Imagem de apoio: " + topic.name;
+      tutorResult.visualAid.type = tutorResult.visualAid.type || "concept_map";
+      tutorResult.visualAid.title = tutorResult.visualAid.title || "Apoio visual: " + topic.name;
       if (tutorResult.visualAid.items.length === 0) {
         tutorResult.visualAid.items = [
-          "Tema solicitado: " + topic.name,
-          "A imagem deve representar visualmente esse tema.",
+          "Tema em estudo: " + topic.name,
+          "Observe os conceitos centrais e como se relacionam.",
         ];
       }
-      tutorResult.visualAid.caption = "Imagem relacionada ao tópico em estudo, com fonte e licença verificáveis.";
+      tutorResult.visualAid.caption =
+        tutorResult.visualAid.caption || "Material ilustrativo relacionado ao tópico da aula.";
+      tutorResult.videoRecommendation = {
+        enabled: true,
+        reason: "Vídeo complementar para aprofundar o conteúdo de " + topic.name + ".",
+      };
     }
     let generatedAssessment = tutorResult.microassessment;
 
