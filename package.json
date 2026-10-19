@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test:tutor": "bun test supabase/functions/ai-tutor/initial-question-flow.test.ts",
+    "test:tutor": "bun test supabase/functions/ai-tutor/initial-question-flow.test.ts src/lib/tutor-comprehension-check.test.ts",
     "format": "prettier --write ."
   },
   "overrides": {
