@@ -468,14 +468,22 @@ function TutorPage() {
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "chat",
-        topic_id: topicId,
-        message,
-        conversation_id: conversationId,
-      },
-    });
+    let chatResponse: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+    try {
+      chatResponse = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "chat",
+          topic_id: topicId,
+          message,
+          conversation_id: conversationId,
+        },
+      });
+    } catch {
+      setError("A comunicação com o Tutor falhou. Sua mensagem não foi confirmada; tente enviá-la novamente.");
+      setSending(false);
+      return;
+    }
+    const { data, error: invokeError } = chatResponse;
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
@@ -534,7 +542,13 @@ function TutorPage() {
           let errorMessage: string | null = null;
 
           for (let attempt = 0; attempt < 2; attempt += 1) {
-            const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            let result: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+            try {
+              result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            } catch {
+              errorMessage = "A comunicação com o Tutor falhou ao preparar a pergunta. Peça uma nova verificação para tentar novamente.";
+              break;
+            }
             if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
               assessmentData = result.data;
               break;
