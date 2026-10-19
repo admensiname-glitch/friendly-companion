@@ -204,7 +204,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "A leitura do mundo precede a leitura da palavra.",
     author: "Paulo Freire",
     source: "A importância do ato de ler",
-    sourceUrl: "https://www.acervo.paulofreire.org/",
+    sourceUrl: "https://acervo.paulofreire.org/handle/7891/2842",
   },
   {
     id: "durkheim-education",
@@ -264,10 +264,10 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
   },
   {
     id: "vygotsky-learning",
-    kind: "quote",
-    text: "O que a criança consegue fazer hoje com ajuda, poderá fazer amanhã por si mesma.",
-    author: "Lev Vygotsky",
-    source: "A formação social da mente — tradução livre de uma formulação conhecida",
+    kind: "reflection",
+    text: "O apoio certo não substitui o esforço do estudante: amplia o que ele consegue alcançar até que o apoio deixe de ser necessário.",
+    author: "Reflexão inspirada em Lev Vygotsky",
+    source: "Tema: mediação e zona de desenvolvimento proximal. Não é uma citação literal.",
     sourceUrl: "https://www.marxists.org/archive/vygotsky/works/1934/thought-language/ch06.htm",
   },
   {
@@ -292,7 +292,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "Nem todo prazer enriquece a vida, e nem toda renúncia a empobrece: sabedoria é descobrir o que realmente basta.",
     author: "Reflexão inspirada em Epicuro",
     source: "Tema: prazer, serenidade e desejos — Carta a Meneceu. Não é uma citação literal.",
-    sourceUrl: "https://classics.mit.edu/Epicurus/meno.html",
+    sourceUrl: "https://classics.mit.edu/Epicurus/menoec.html",
   },
   {
     id: "augustine-search",
@@ -324,7 +324,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "Uma convicção merece ser examinada não apenas pela força com que a sentimos, mas pelas experiências que a sustentam.",
     author: "Reflexão inspirada em John Locke",
     source: "Tema: experiência e conhecimento — Ensaio acerca do entendimento humano. Não é uma citação literal.",
-    sourceUrl: "https://www.gutenberg.org/",
+    sourceUrl: "https://www.gutenberg.org/files/10615/10615-h/10615-h.htm",
   },
   {
     id: "hume-evidence",
@@ -332,7 +332,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "A mente honesta não pergunta somente se uma ideia parece convincente; pergunta que evidência poderia fazê-la mudar.",
     author: "Reflexão inspirada em David Hume",
     source: "Tema: evidência, hábito e ceticismo — Investigação sobre o entendimento humano. Não é uma citação literal.",
-    sourceUrl: "https://www.gutenberg.org/",
+    sourceUrl: "https://www.gutenberg.org/files/9662/9662-h/9662-h.htm",
   },
   {
     id: "mill-liberty",
@@ -340,7 +340,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "Uma sociedade perde quando transforma toda divergência em ameaça: ideias precisam de espaço para ser testadas e criticadas.",
     author: "Reflexão inspirada em John Stuart Mill",
     source: "Tema: liberdade de pensamento e debate — Sobre a liberdade. Não é uma citação literal.",
-    sourceUrl: "https://www.gutenberg.org/",
+    sourceUrl: "https://www.gutenberg.org/files/34901/34901-h/34901-h.htm",
   },
   {
     id: "william-james-action",
@@ -348,7 +348,7 @@ const TUTOR_REFLECTIONS: TutorReflection[] = [
     text: "Uma ideia começa a mostrar seu valor quando muda o modo como prestamos atenção, decidimos e agimos.",
     author: "Reflexão inspirada em William James",
     source: "Tema: experiência e pragmatismo — Pragmatismo. Não é uma citação literal.",
-    sourceUrl: "https://www.gutenberg.org/",
+    sourceUrl: "https://www.gutenberg.org/files/5116/5116-h/5116-h.htm",
   },
   {
     id: "weber-responsibility",
