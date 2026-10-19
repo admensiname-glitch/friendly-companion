@@ -2215,7 +2215,19 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const { data: assessment, error: assessmentError } = await supabase
+      // The answer key and explanation must never be readable through the student's
+      // publishable-key client. Use the service role only for this server-side read,
+      // and keep the authenticated user's ID in the filter as a second ownership check.
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+      if (!serviceRoleKey) {
+        return json({ error: "O servidor não está configurado para corrigir a resposta." }, 503);
+      }
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceRoleKey,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const { data: assessment, error: assessmentError } = await supabaseAdmin
         .from("ai_micro_assessments")
         .select(
           "id, topic_id, conversation_id, question_text, options, correct_option_index, explanation, difficulty, concept_tags, is_correct, selected_option_index, status",
