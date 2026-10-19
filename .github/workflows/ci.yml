@@ -41,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Test Tutor rate-limit and initial-question invariants
+        run: bun run test:tutor
+
       - name: Lint
         run: bun run lint
 

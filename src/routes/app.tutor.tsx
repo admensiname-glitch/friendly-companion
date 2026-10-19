@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
+import { retryDelayMs } from "@/lib/tutor-retry-policy";
 
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 // Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
@@ -455,7 +456,8 @@ function TutorPage() {
     setSending(true);
     setError(null);
     setInput("");
-    setMessages((current) => [...current, { role: "user", content: message }]);
+    const userMessageId = crypto.randomUUID();
+    setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
@@ -515,6 +517,7 @@ function TutorPage() {
             action: "generate_initial_microassessment",
             topic_id: topicId,
             conversation_id: data.conversation_id ?? conversationId,
+            idempotency_key: userMessageId,
             message,
             answer_context: data.message,
           };
@@ -556,7 +559,7 @@ function TutorPage() {
 
             if (responseStatus === 429 && attempt === 0) {
               errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
-              await new Promise((resolve) => setTimeout(resolve, (retryAfterSeconds + 1) * 1000));
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
               continue;
             }
 
