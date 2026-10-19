@@ -393,36 +393,51 @@ function TutorPage() {
           explanation: data.explanation ?? "",
         },
       };
-
-      if (data.next_micro_assessment?.id) {
-        next.push({
-          role: "assistant",
-          content:
-            data.next_message ??
-            (data.is_correct
-              ? "Muito bem. Vamos aumentar um pouco o desafio."
-              : "Vamos reforçar esse conceito com uma nova questão."),
-          microAssessment: {
-            id: data.next_micro_assessment.id,
-            question: data.next_micro_assessment.question,
-            options: data.next_micro_assessment.options,
-            difficulty: data.next_micro_assessment.difficulty,
-            concept_tags: data.next_micro_assessment.concept_tags ?? [],
-            revealed: false,
-            answered: false,
-          },
-        });
-      } else if (data.next_message) {
-        next.push({
-          role: "assistant",
-          content: data.next_message,
-        });
-      }
-
       return next;
     });
 
+    if (data.next_message) {
+      setMessages((current) => [...current, { role: "assistant", content: data.next_message }]);
+    }
     setAnsweringAssessmentId(null);
+
+    // Keep the answer correction independent from generating the next question.
+    if (data.mastery_level !== "mastered") {
+      void (async () => {
+        try {
+          const { data: followUp, error: followUpError } = await supabase.functions.invoke("ai-tutor", {
+            body: {
+              action: "generate_next_microassessment",
+              micro_assessment_id: assessment.id,
+            },
+          });
+          if (followUpError || followUp?.error) {
+            console.warn("[Ensina-me] Não foi possível preparar a próxima questão.", followUpError ?? followUp.error);
+            return;
+          }
+          if (!followUp?.next_micro_assessment?.id) return;
+
+          setMessages((current) => [
+            ...current,
+            {
+              role: "assistant",
+              content: followUp.next_message ?? "Vamos continuar com uma nova questão.",
+              microAssessment: {
+                id: followUp.next_micro_assessment.id,
+                question: followUp.next_micro_assessment.question,
+                options: followUp.next_micro_assessment.options,
+                difficulty: followUp.next_micro_assessment.difficulty,
+                concept_tags: followUp.next_micro_assessment.concept_tags ?? [],
+                revealed: false,
+                answered: false,
+              },
+            },
+          ]);
+        } catch (followUpError) {
+          console.warn("[Ensina-me] Falha ao preparar a próxima questão.", followUpError);
+        }
+      })();
+    }
   }
 
   async function send(event: FormEvent) {
@@ -526,7 +541,11 @@ function TutorPage() {
                           Verificação de compreensão
                         </p>
                         <p className="mt-1 text-sm font-black text-[#172334]">
-                          Quero ver se você realmente entendeu?
+                          {message.microAssessment.answered
+                            ? "Veja a correção e a explicação."
+                            : message.microAssessment.revealed
+                              ? "Escolha uma alternativa para conferir sua compreensão."
+                              : "Uma pergunta rápida para verificar o que você aprendeu."}
                         </p>
                       </div>
                       <span className="rounded-full bg-[#F4F8FF] px-2.5 py-1 text-[10px] font-black uppercase text-[#0242D7]">

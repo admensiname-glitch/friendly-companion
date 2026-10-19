@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 type Body = {
-  action?: "chat" | "answer_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
+  action?: "chat" | "answer_microassessment" | "generate_next_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
   topic_id?: string;
   conversation_id?: string | null;
   message?: string;
@@ -61,6 +61,36 @@ function normalizeForComparison(value: string): string {
 
 function uniqueNormalized(values: string[]): boolean {
   return new Set(values.map(normalizeForComparison)).size === values.length;
+}
+
+function isQuestionTooSimilar(candidate: string, previous: string): boolean {
+  const normalizedCandidate = normalizeForComparison(candidate);
+  const normalizedPrevious = normalizeForComparison(previous);
+  if (!normalizedCandidate || !normalizedPrevious) return false;
+  if (normalizedCandidate === normalizedPrevious) return true;
+
+  const ignored = new Set([
+    "qual", "quais", "como", "quando", "onde", "porque", "porquê",
+    "para", "pela", "pelo", "sobre", "entre", "uma", "umas", "uns",
+    "que", "com", "sem", "dos", "das", "deve", "ser", "sao", "sua",
+    "seu", "isso", "essa", "esse", "esta", "este", "mais", "menos",
+    "correta", "correto", "alternativa", "questao",
+  ]);
+  const candidateWords = new Set(
+    normalizedCandidate.match(/[a-z0-9]+/g)?.filter((word) => word.length > 3 && !ignored.has(word)) ?? [],
+  );
+  const previousWords = new Set(
+    normalizedPrevious.match(/[a-z0-9]+/g)?.filter((word) => word.length > 3 && !ignored.has(word)) ?? [],
+  );
+  if (candidateWords.size < 5 || previousWords.size < 5) return false;
+
+  let overlap = 0;
+  for (const word of candidateWords) {
+    if (previousWords.has(word)) overlap += 1;
+  }
+  const smallerSetSize = Math.min(candidateWords.size, previousWords.size);
+  const unionSize = new Set([...candidateWords, ...previousWords]).size;
+  return overlap / smallerSetSize >= 0.85 && overlap / unionSize >= 0.65;
 }
 
 async function generateFormalEvaluationQuestions(args: {
@@ -1005,6 +1035,11 @@ async function generateAdaptiveMicroAssessment(args: {
       return null;
     }
 
+    if (args.recentQuestions.some((question) => isQuestionTooSimilar(next.question, question))) {
+      console.warn("[Ensina-me] ai-tutor: questão adaptativa repetida recusada");
+      return null;
+    }
+
     next.difficulty = args.nextDifficulty;
     next.concept_tags =
       next.concept_tags.length > 0
@@ -1526,6 +1561,168 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (body.action === "generate_next_microassessment") {
+      const assessmentId = body.micro_assessment_id?.trim();
+      if (!assessmentId) return json({ error: "Microavaliação é obrigatória." }, 400);
+
+      const { data: assessment, error: assessmentError } = await supabase
+        .from("ai_micro_assessments")
+        .select("id, topic_id, conversation_id, question_text, difficulty, concept_tags, is_correct, status")
+        .eq("id", assessmentId)
+        .eq("user_id", userData.user.id)
+        .eq("status", "answered")
+        .maybeSingle();
+
+      if (assessmentError || !assessment) {
+        return json({ error: "Resultado da microavaliação não encontrado." }, 404);
+      }
+
+      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+      if (!groqApiKey) return json({ next_micro_assessment: null, next_message: null });
+
+      const [
+        { data: topic },
+        { data: material },
+        { data: recentAssessments },
+        { data: previousQuestionRows },
+      ] = await Promise.all([
+        supabase.from("topics").select("id, name, description")
+          .eq("id", assessment.topic_id).eq("published", true).maybeSingle(),
+        supabase.from("materials").select("id, title, introduction")
+          .eq("topic_id", assessment.topic_id).eq("status", "published").maybeSingle(),
+        supabase.from("ai_micro_assessments")
+          .select("is_correct, difficulty, concept_tags, question_text, answered_at")
+          .eq("user_id", userData.user.id).eq("topic_id", assessment.topic_id).eq("status", "answered")
+          .order("answered_at", { ascending: false }).limit(12),
+        supabase.from("ai_micro_assessments").select("question_text")
+          .eq("user_id", userData.user.id).eq("topic_id", assessment.topic_id)
+          .order("created_at", { ascending: false }).limit(30),
+      ]);
+
+      if (!topic) return json({ next_micro_assessment: null, next_message: null });
+
+      const { data: sections } = material
+        ? await supabase.from("material_sections").select("title, content, position")
+            .eq("material_id", material.id).order("position", { ascending: true })
+        : { data: [] };
+
+      const context = [
+        "TÓPICO: " + topic.name,
+        topic.description ? "DESCRIÇÃO: " + topic.description : "",
+        material ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "") : "",
+        ...(sections ?? []).map((section: { title: string; content: string }) =>
+          "SEÇÃO — " + section.title + "\n" + section.content),
+      ].filter(Boolean).join("\n\n");
+
+      const adaptiveHistory = (recentAssessments ?? []) as Array<{
+        is_correct: boolean | null;
+        difficulty: "introductory" | "intermediate" | "advanced";
+        concept_tags: string[] | null;
+        question_text: string;
+        answered_at: string | null;
+      }>;
+      let consecutiveCorrect = 0;
+      let consecutiveIncorrect = 0;
+      for (const item of adaptiveHistory) {
+        if (item.is_correct === true) {
+          if (consecutiveIncorrect > 0) break;
+          consecutiveCorrect += 1;
+        } else {
+          if (consecutiveCorrect > 0) break;
+          consecutiveIncorrect += 1;
+        }
+      }
+
+      const currentRank = difficultyRank(assessment.difficulty);
+      const nextDifficulty = assessment.is_correct
+        ? difficultyFromRank(Math.min(3, currentRank + 1))
+        : difficultyFromRank(Math.max(1, currentRank - 1));
+      const weakestConcept = pickWeakestConcept(adaptiveHistory.map((item) => ({
+        is_correct: item.is_correct,
+        concept_tags: item.concept_tags,
+      })));
+      const recentQuestions = (previousQuestionRows ?? [])
+        .map((item: { question_text: string }) => item.question_text)
+        .filter((question: string) => typeof question === "string" && question.trim());
+
+      const generated = await generateAdaptiveMicroAssessment({
+        apiKey: groqApiKey,
+        topicName: topic.name,
+        topicDescription: topic.description,
+        context: truncateText(context, MAX_CONTEXT_CHARACTERS),
+        previousQuestion: assessment.question_text,
+        previousTags: assessment.concept_tags ?? [],
+        wasCorrect: Boolean(assessment.is_correct),
+        nextDifficulty,
+        consecutiveCorrect,
+        consecutiveIncorrect,
+        weakestConcept,
+        recentQuestions,
+      });
+
+      if (!generated || recentQuestions.some((question) =>
+        isQuestionTooSimilar(generated.microassessment.question, question)
+      )) {
+        console.warn("[Ensina-me] ai-tutor: continuação recusada para evitar questão repetida");
+        return json({ next_micro_assessment: null, next_message: null });
+      }
+
+      const { error: expireError } = await supabase.from("ai_micro_assessments")
+        .update({ status: "expired" }).eq("user_id", userData.user.id)
+        .eq("topic_id", assessment.topic_id).eq("status", "pending");
+      if (expireError) {
+        console.warn("[Ensina-me] ai-tutor: não foi possível encerrar microavaliações pendentes anteriores", expireError.message);
+      }
+
+      const { data: savedNext, error: nextInsertError } = await supabase.from("ai_micro_assessments")
+        .insert({
+          user_id: userData.user.id,
+          topic_id: assessment.topic_id,
+          conversation_id: assessment.conversation_id,
+          question_text: generated.microassessment.question,
+          options: generated.microassessment.options,
+          correct_option_index: generated.microassessment.correct_option_index,
+          explanation: generated.microassessment.explanation,
+          difficulty: nextDifficulty,
+          concept_tags: generated.microassessment.concept_tags,
+        }).select("id").single();
+
+      if (nextInsertError || !savedNext) {
+        console.warn("[Ensina-me] ai-tutor: não foi possível salvar próxima microavaliação", nextInsertError?.message ?? "resultado vazio");
+        return json({ next_micro_assessment: null, next_message: null });
+      }
+
+      if (assessment.conversation_id) {
+        const [messageInsert, conversationUpdate] = await Promise.all([
+          supabase.from("ai_messages").insert({
+            conversation_id: assessment.conversation_id,
+            user_id: userData.user.id,
+            role: "assistant",
+            content: generated.message,
+          }),
+          supabase.from("ai_conversations").update({ updated_at: new Date().toISOString() })
+            .eq("id", assessment.conversation_id).eq("user_id", userData.user.id),
+        ]);
+        if (messageInsert.error) {
+          console.warn("[Ensina-me] ai-tutor: mensagem de continuação não foi registrada", messageInsert.error.message);
+        }
+        if (conversationUpdate.error) {
+          console.warn("[Ensina-me] ai-tutor: conversa não foi atualizada", conversationUpdate.error.message);
+        }
+      }
+
+      return json({
+        next_message: generated.message,
+        next_micro_assessment: {
+          id: savedNext.id,
+          question: generated.microassessment.question,
+          options: generated.microassessment.options,
+          difficulty: nextDifficulty,
+          concept_tags: generated.microassessment.concept_tags,
+        },
+      });
+    }
+
     if (body.action === "answer_microassessment") {
       const assessmentId = body.micro_assessment_id?.trim();
       const selectedIndex = body.selected_option_index;
@@ -1574,16 +1771,31 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      for (const concept of assessment.concept_tags ?? []) {
-        const { error: signalError } = await supabase.rpc("record_learning_signal", {
-          _topic_id: assessment.topic_id,
-          _concept: concept,
-          _signal_type: "micro_error",
-          _severity: assessment.is_correct ? 1 : 5,
-          _evidence: assessment.question_text,
-          _correct: Boolean(assessment.is_correct),
-        });
+      const [signalResults, { data: recentAssessments }] = await Promise.all([
+        Promise.all(
+          (assessment.concept_tags ?? []).map(async (concept: string) => {
+            const { error: signalError } = await supabase.rpc("record_learning_signal", {
+              _topic_id: assessment.topic_id,
+              _concept: concept,
+              _signal_type: "micro_error",
+              _severity: assessment.is_correct ? 1 : 5,
+              _evidence: assessment.question_text,
+              _correct: Boolean(assessment.is_correct),
+            });
+            return { concept, error: signalError };
+          }),
+        ),
+        supabase
+          .from("ai_micro_assessments")
+          .select("is_correct, difficulty, concept_tags, question_text, answered_at")
+          .eq("user_id", userData.user.id)
+          .eq("topic_id", assessment.topic_id)
+          .eq("status", "answered")
+          .order("answered_at", { ascending: false })
+          .limit(12),
+      ]);
 
+      for (const { concept, error: signalError } of signalResults) {
         if (signalError) {
           console.warn(
             "[Ensina-me] ai-tutor: não foi possível registrar resultado conceitual da microavaliação",
@@ -1591,15 +1803,6 @@ Deno.serve(async (req: Request) => {
           );
         }
       }
-
-      const { data: recentAssessments } = await supabase
-        .from("ai_micro_assessments")
-        .select("is_correct, difficulty, concept_tags, question_text, answered_at")
-        .eq("user_id", userData.user.id)
-        .eq("topic_id", assessment.topic_id)
-        .eq("status", "answered")
-        .order("answered_at", { ascending: false })
-        .limit(12);
 
       const adaptiveHistory = (recentAssessments ?? []) as Array<{
         is_correct: boolean | null;
@@ -1650,140 +1853,9 @@ Deno.serve(async (req: Request) => {
       const nextReviewAt =
         (result as { next_review_at?: string }).next_review_at ?? null;
 
-      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-
-      let nextMicroAssessment: {
-        id: string;
-        question: string;
-        options: string[];
-        difficulty: "introductory" | "intermediate" | "advanced";
-        concept_tags: string[];
-      } | null = null;
-      let nextMessage: string | null = null;
-
-      if (groqApiKey && masteryLevel !== "mastered") {
-        const { data: topic } = await supabase
-          .from("topics")
-          .select("id, name, description")
-          .eq("id", assessment.topic_id)
-          .eq("published", true)
-          .maybeSingle();
-
-        if (topic) {
-          const { data: material } = await supabase
-            .from("materials")
-            .select("id, title, introduction")
-            .eq("topic_id", assessment.topic_id)
-            .eq("status", "published")
-            .maybeSingle();
-
-          const { data: sections } = material
-            ? await supabase
-                .from("material_sections")
-                .select("title, content, position")
-                .eq("material_id", material.id)
-                .order("position", { ascending: true })
-            : { data: [] };
-
-          const context = [
-            "TÓPICO: " + topic.name,
-            topic.description ? "DESCRIÇÃO: " + topic.description : "",
-            material
-              ? "MATERIAL: " +
-                material.title +
-                "\n" +
-                (material.introduction ?? "")
-              : "",
-            ...(sections ?? []).map(
-              (section: { title: string; content: string }) =>
-                "SEÇÃO — " + section.title + "\n" + section.content,
-            ),
-          ]
-            .filter(Boolean)
-            .join("\n\n");
-
-          const generated = await generateAdaptiveMicroAssessment({
-            apiKey: groqApiKey,
-            topicName: topic.name,
-            topicDescription: topic.description,
-            context: truncateText(context, MAX_CONTEXT_CHARACTERS),
-            previousQuestion: assessment.question_text,
-            previousTags: assessment.concept_tags ?? [],
-            wasCorrect: Boolean(assessment.is_correct),
-            nextDifficulty,
-            consecutiveCorrect,
-            consecutiveIncorrect,
-            weakestConcept,
-            recentQuestions: adaptiveHistory
-              .slice(0, 8)
-              .map((item) => item.question_text)
-              .filter(Boolean),
-          });
-
-          if (generated) {
-            const { error: expireError } = await supabase
-              .from("ai_micro_assessments")
-              .update({ status: "expired" })
-              .eq("user_id", userData.user.id)
-              .eq("topic_id", assessment.topic_id)
-              .eq("status", "pending");
-
-            if (expireError) {
-              console.warn(
-                "[Ensina-me] ai-tutor: não foi possível encerrar microavaliação pendente anterior",
-                expireError.message,
-              );
-            }
-
-            const { data: savedNext, error: nextInsertError } = await supabase
-              .from("ai_micro_assessments")
-              .insert({
-                user_id: userData.user.id,
-                topic_id: assessment.topic_id,
-                conversation_id: assessment.conversation_id,
-                question_text: generated.microassessment.question,
-                options: generated.microassessment.options,
-                correct_option_index: generated.microassessment.correct_option_index,
-                explanation: generated.microassessment.explanation,
-                difficulty: nextDifficulty,
-                concept_tags: generated.microassessment.concept_tags,
-              })
-              .select("id")
-              .single();
-
-            if (!nextInsertError && savedNext) {
-              nextMicroAssessment = {
-                id: savedNext.id,
-                question: generated.microassessment.question,
-                options: generated.microassessment.options,
-                difficulty: nextDifficulty,
-                concept_tags: generated.microassessment.concept_tags,
-              };
-              nextMessage = generated.message;
-
-              if (assessment.conversation_id) {
-                await supabase.from("ai_messages").insert({
-                  conversation_id: assessment.conversation_id,
-                  user_id: userData.user.id,
-                  role: "assistant",
-                  content: generated.message,
-                });
-
-                await supabase
-                  .from("ai_conversations")
-                  .update({ updated_at: new Date().toISOString() })
-                  .eq("id", assessment.conversation_id)
-                  .eq("user_id", userData.user.id);
-              }
-            }
-          }
-        }
-      }
-
-      if (masteryLevel === "mastered") {
-        nextMessage =
-          "Você já acumulou evidências suficientes de domínio deste tópico. A nova etapa agora é revisá-lo na data programada para fortalecer a retenção.";
-      }
+      const nextMessage = masteryLevel === "mastered"
+        ? "Você já acumulou evidências suficientes de domínio deste tópico. A nova etapa agora é revisá-lo na data programada para fortalecer a retenção."
+        : null;
 
       return json({
         assessment_id: assessment.id,
@@ -1801,7 +1873,7 @@ Deno.serve(async (req: Request) => {
         next_review_at: nextReviewAt,
         next_action: assessment.is_correct ? "practice" : "simplify",
         next_message: nextMessage,
-        next_micro_assessment: nextMicroAssessment,
+        next_micro_assessment: null,
       });
     }
 
@@ -1855,33 +1927,31 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Tópico não encontrado." }, 404);
     }
 
-    const [materialResult, difficultiesResult, globalSignalsResult] = await Promise.all([
-      supabase
-        .from("materials")
-        .select("id, title, introduction")
-        .eq("topic_id", topicId)
-        .eq("status", "published")
-        .maybeSingle(),
-      supabase
-        .from("student_topic_difficulties")
-        .select("difficulty_tag, count")
-        .eq("user_id", userData.user.id)
-        .eq("topic_id", topicId)
-        .eq("review_status", "pending")
-        .order("count", { ascending: false }),
-      // Memória pedagógica transversal: disponível no chat e nas avaliações.
-      supabase
-        .from("student_learning_signals")
+    const [
+      materialResult,
+      difficultiesResult,
+      globalSignalsResult,
+      recentMicroAssessmentsResult,
+    ] = await Promise.all([
+      supabase.from("materials").select("id, title, introduction")
+        .eq("topic_id", topicId).eq("status", "published").maybeSingle(),
+      supabase.from("student_topic_difficulties").select("difficulty_tag, count")
+        .eq("user_id", userData.user.id).eq("topic_id", topicId)
+        .eq("review_status", "pending").order("count", { ascending: false }),
+      supabase.from("student_learning_signals")
         .select("topic_id, discipline_id, concept, signal_type, severity, occurrences, correct_count, status, last_seen")
-        .eq("user_id", userData.user.id)
-        .in("status", ["pending", "improving"])
-        .order("severity", { ascending: false })
-        .order("occurrences", { ascending: false })
-        .limit(12),
+        .eq("user_id", userData.user.id).in("status", ["pending", "improving"])
+        .order("severity", { ascending: false }).order("occurrences", { ascending: false }).limit(12),
+      supabase.from("ai_micro_assessments").select("question_text")
+        .eq("user_id", userData.user.id).eq("topic_id", topicId)
+        .order("created_at", { ascending: false }).limit(20),
     ]);
     const material = materialResult.data;
     const difficulties = difficultiesResult.data;
     const rawGlobalLearningSignals = globalSignalsResult.data;
+    const recentMicroAssessmentQuestions = (recentMicroAssessmentsResult.data ?? [])
+      .map((item: { question_text: string }) => item.question_text)
+      .filter((question: string) => typeof question === "string" && question.trim());
 
     const globalTopicIds = [
       ...new Set(
@@ -2159,10 +2229,15 @@ Deno.serve(async (req: Request) => {
       isSubstantiveAcademicTurn ||
       hasSubstantiveConversationHistory;
 
+    const priorQuestionGuard = recentMicroAssessmentQuestions.length
+      ? "\\n\\nQUESTÕES JÁ APRESENTADAS NESTE TÓPICO — NÃO REPITA NENHUMA, NEM COM PEQUENAS TROCAS DE PALAVRAS:\\n" +
+        recentMicroAssessmentQuestions.slice(0, 20).map((question, index) => (index + 1) + ". " + question).join("\\n") +
+        "\\nCrie uma questão genuinamente diferente, com outro cenário, operação mental ou aplicação do conceito."
+      : "";
     const microAssessmentDirective =
       shouldGenerateComprehensionCheck && (!explicitlyDeclinesPractice)
-        ? "MICROAVALIAÇÃO=GERAR: após ensinar ou esclarecer uma dúvida acadêmica substantiva, verifique automaticamente a compreensão do aluno com exatamente 1 questão de múltipla escolha e 4 alternativas. A questão deve avaliar o conceito/raciocínio que acabou de ser ensinado, não outro assunto. Se o aluno tiver pedido explicitamente uma questão/teste/exercício, gere-a da mesma forma. Não gere em saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno disser explicitamente que não quer ser testado."
-        : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\"\", explanation=\"\", concept_tags=[] e correct_option_index=0.";
+        ? "MICROAVALIAÇÃO=GERAR: após ensinar ou esclarecer uma dúvida acadêmica substantiva, verifique automaticamente a compreensão do aluno com exatamente 1 questão de múltipla escolha e 4 alternativas. A questão deve avaliar o conceito/raciocínio que acabou de ser ensinado, não outro assunto. Se o aluno tiver pedido explicitamente uma questão/teste/exercício, gere-a da mesma forma. Não gere em saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno disser explicitamente que não quer ser testado." + priorQuestionGuard
+        : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\\\"\\\", explanation=\\\"\\\", concept_tags=[] e correct_option_index=0.";
 
     const messages = [
       {
@@ -2428,7 +2503,34 @@ Deno.serve(async (req: Request) => {
     }
 
     const assistantMessage = tutorResult.message;
-    const generatedAssessment = tutorResult.microassessment;
+    let generatedAssessment = tutorResult.microassessment;
+
+    if (
+      generatedAssessment?.enabled &&
+      recentMicroAssessmentQuestions.some((question) =>
+        isQuestionTooSimilar(generatedAssessment!.question, question)
+      )
+    ) {
+      console.warn("[Ensina-me] ai-tutor: microavaliação repetida detectada; regenerando");
+      const replacement = await generateAdaptiveMicroAssessment({
+        apiKey: groqApiKey,
+        topicName: topic.name,
+        topicDescription: topic.description,
+        context: safeContext,
+        previousQuestion: generatedAssessment.question,
+        previousTags: generatedAssessment.concept_tags,
+        wasCorrect: false,
+        nextDifficulty: generatedAssessment.difficulty,
+        consecutiveCorrect: 0,
+        consecutiveIncorrect: 0,
+        weakestConcept: generatedAssessment.concept_tags[0] ?? null,
+        recentQuestions: [...recentMicroAssessmentQuestions, generatedAssessment.question],
+      });
+      generatedAssessment = replacement?.microassessment ?? {
+        ...generatedAssessment,
+        enabled: false,
+      };
+    }
 
     const imageQueries = [
       topic.name + " em português diagrama",
@@ -2473,6 +2575,9 @@ Deno.serve(async (req: Request) => {
       shouldGenerateComprehensionCheck &&
       generatedAssessment?.enabled &&
       !explicitlyDeclinesPractice &&
+      !recentMicroAssessmentQuestions.some((question) =>
+        isQuestionTooSimilar(generatedAssessment!.question, question)
+      ) &&
       generatedAssessment.question.length > 0 &&
       generatedAssessment.options.length === 4 &&
       generatedAssessment.options.every((option) => option.trim().length > 0) &&
