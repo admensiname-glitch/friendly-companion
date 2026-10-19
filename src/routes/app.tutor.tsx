@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
 import { retryDelayMs } from "@/lib/tutor-retry-policy";
