@@ -67,78 +67,545 @@ type TopicVideo = {
 
 type TutorReflection = {
   id: string;
+  kind: "quote" | "reflection";
   text: string;
   author: string;
   source: string;
   sourceUrl?: string;
 };
 
+// Citações curtas com obra de referência e, quando disponível, ligação para consulta.
+// As reflexões são textos autorais inspirados em ideias dos pensadores citados — não são
+// apresentadas como palavras literais deles. Assim evitamos perpetuar falsas atribuições.
 const TUTOR_REFLECTIONS: TutorReflection[] = [
   {
-    id: "socrates-apology",
+    id: "socrates-examined-life",
+    kind: "quote",
     text: "Uma vida sem exame não merece ser vivida.",
     author: "Sócrates, conforme relatado por Platão",
     source: "Apologia de Sócrates, 38a",
     sourceUrl: "https://query.libretexts.org/Idioma_Portugues/Introducao_a_filosofia_%28OpenStax%29/01%3A_Introdu%C3%A7%C3%A3o_a_filosofia/1.03%3A_S%C3%B3crates_como_fil%C3%B3sofo_hist%C3%B3rico_paradigm%C3%A1tico",
   },
   {
-    id: "aristotle-metaphysics",
+    id: "aristotle-desire-to-know",
+    kind: "quote",
     text: "Todos os seres humanos, por natureza, desejam conhecer.",
     author: "Aristóteles",
     source: "Metafísica, Livro I, 980a",
-    sourceUrl: "https://en.wikisource.org/wiki/Metaphysics_%28Ross%2C_1908%29/Book_1",
+    sourceUrl: "https://openscriptorium.com/read/aristotle/066-metaphysics-book-i",
   },
   {
-    id: "kant-pedagogy",
-    text: "O homem não é nada além daquilo que a educação faz dele.",
+    id: "epictetus-judgments",
+    kind: "quote",
+    text: "Não são as coisas que nos perturbam, mas nossos juízos sobre elas.",
+    author: "Epicteto",
+    source: "Manual (Encheirídion), § 5 — tradução resumida",
+    sourceUrl: "https://epictetus-enchiridion.org/en/quotecheck/not-things-but-judgments/",
+  },
+  {
+    id: "seneca-time",
+    kind: "quote",
+    text: "Não é que tenhamos pouco tempo, mas que desperdiçamos muito dele.",
+    author: "Sêneca",
+    source: "Sobre a brevidade da vida, capítulo 1 — tradução livre",
+    sourceUrl: "https://en.wikisource.org/wiki/On_the_Shortness_of_Life",
+  },
+  {
+    id: "marcus-aurelius-thoughts",
+    kind: "quote",
+    text: "A felicidade da sua vida depende da qualidade dos seus pensamentos.",
+    author: "Marco Aurélio",
+    source: "Meditações, Livro V — tradução livre",
+    sourceUrl: "https://www.gutenberg.org/files/2680/2680-h/2680-h.htm",
+  },
+  {
+    id: "confucius-learning-thinking",
+    kind: "quote",
+    text: "Aprender sem pensar é inútil; pensar sem aprender é perigoso.",
+    author: "Confúcio",
+    source: "Analectos, 2.15 — tradução livre",
+    sourceUrl: "https://classics.mit.edu/Confucius/analects.1.1.html",
+  },
+  {
+    id: "laozi-first-step",
+    kind: "quote",
+    text: "Uma jornada de mil milhas começa debaixo dos pés.",
+    author: "Laozi",
+    source: "Dao De Jing, capítulo 64 — tradução livre",
+    sourceUrl: "https://classics.mit.edu/Lao/taote.html",
+  },
+  {
+    id: "descartes-cogito",
+    kind: "quote",
+    text: "Penso, logo existo.",
+    author: "René Descartes",
+    source: "Discurso do método, parte IV",
+    sourceUrl: "https://www.gutenberg.org/files/59/59-h/59-h.htm",
+  },
+  {
+    id: "rousseau-freedom",
+    kind: "quote",
+    text: "O homem nasce livre, mas por toda parte está acorrentado.",
+    author: "Jean-Jacques Rousseau",
+    source: "Do contrato social, Livro I, capítulo 1 — tradução livre",
+    sourceUrl: "https://sourcebooks.web.fordham.edu/mod/rousseau-contract2.asp",
+  },
+  {
+    id: "kant-sapere-aude",
+    kind: "quote",
+    text: "Ouse saber! Tenha coragem de servir-se do próprio entendimento.",
     author: "Immanuel Kant",
-    source: "Sobre a pedagogia",
-    sourceUrl: "https://pt.wikiquote.org/wiki/Immanuel_Kant",
+    source: "Resposta à pergunta: O que é o Esclarecimento? (1784) — tradução livre",
+    sourceUrl: "https://sourcebooks.web.fordham.edu/mod/kant-whatis.asp",
   },
   {
-    id: "freire-oppressed",
-    text: "Ninguém educa ninguém, ninguém se educa a si mesmo: os homens se educam entre si, mediatizados pelo mundo.",
+    id: "nietzsche-dancing-star",
+    kind: "quote",
+    text: "É preciso ter caos dentro de si para dar à luz uma estrela dançante.",
+    author: "Friedrich Nietzsche",
+    source: "Assim falou Zaratustra, prólogo — tradução livre",
+    sourceUrl: "https://www.gutenberg.org/files/1998/1998-h/1998-h.htm",
+  },
+  {
+    id: "spinoza-understanding",
+    kind: "quote",
+    text: "Não rir, não lamentar nem detestar, mas compreender.",
+    author: "Baruch de Spinoza",
+    source: "Tratado político, capítulo I, § 4 — tradução livre",
+    sourceUrl: "https://en.wikisource.org/wiki/Tractatus_Politicus/Chapter_I",
+  },
+  {
+    id: "marx-change-world",
+    kind: "quote",
+    text: "Os filósofos apenas interpretaram o mundo de diferentes maneiras; o que importa é transformá-lo.",
+    author: "Karl Marx",
+    source: "Teses sobre Feuerbach, XI",
+    sourceUrl: "https://pt.wikisource.org/wiki/Teses_sobre_Feuerbach",
+  },
+  {
+    id: "beauvoir-becoming",
+    kind: "quote",
+    text: "Ninguém nasce mulher: torna-se mulher.",
+    author: "Simone de Beauvoir",
+    source: "O segundo sexo — tradução livre",
+    sourceUrl: "https://www.jstor.org/stable/10.7312/baue11664",
+  },
+  {
+    id: "freire-teaching",
+    kind: "quote",
+    text: "Ensinar não é transferir conhecimento, mas criar possibilidades para a sua produção.",
     author: "Paulo Freire",
-    source: "Pedagogia do oprimido",
+    source: "Pedagogia da autonomia — formulação abreviada",
     sourceUrl: "https://dhnet.org.br/direitos/militantes/paulofreire/paulo_freire_pedagogia_do_oprimido.pdf",
   },
   {
-    id: "clovis-happiness",
-    text: "A felicidade é a pretensão ilusória de converter um instante de alegria em eternidade.",
-    author: "Clóvis de Barros Filho",
-    source: "Trecho de entrevista com Antônio Abujamra, 2014",
-    sourceUrl: "https://www.pensador.com/frase/MTkyMzkyOQ/",
+    id: "freire-world-word",
+    kind: "quote",
+    text: "A leitura do mundo precede a leitura da palavra.",
+    author: "Paulo Freire",
+    source: "A importância do ato de ler",
+    sourceUrl: "https://acervo.paulofreire.org/handle/7891/2842",
   },
   {
     id: "durkheim-education",
+    kind: "quote",
     text: "A educação é a ação exercida pelas gerações adultas sobre aquelas que ainda não estão maduras para a vida social.",
     author: "Émile Durkheim",
-    source: "Educação e sociologia",
+    source: "Educação e sociologia — tradução livre",
+    sourceUrl: "https://www.gutenberg.org/files/55501/55501-h/55501-h.htm",
   },
   {
-    id: "arendt-education",
+    id: "arendt-natality",
+    kind: "quote",
     text: "A essência da educação é a natalidade: o fato de que seres humanos nascem para o mundo.",
     author: "Hannah Arendt",
-    source: "A crise na educação, em Entre o passado e o futuro",
+    source: "A crise na educação — tradução livre",
+    sourceUrl: "https://revistas.usp.br/ep/pt_BR/article/view/28264",
   },
-];
+  {
+    id: "bell-hooks-classroom",
+    kind: "quote",
+    text: "A sala de aula permanece como um dos espaços mais radicais de possibilidade.",
+    author: "bell hooks",
+    source: "Ensinando a transgredir — tradução livre",
+    sourceUrl: "https://faculty.bard.edu/hhaggard/teaching/sci127Sp20/notes/hooksTeachingToTransgress1.pdf",
+  },
+  {
+    id: "martin-luther-king-justice",
+    kind: "quote",
+    text: "A injustiça em qualquer lugar é uma ameaça à justiça em todo lugar.",
+    author: "Martin Luther King Jr.",
+    source: "Carta da prisão de Birmingham (1963) — tradução livre",
+    sourceUrl: "https://letterfromjail.com/",
+  },
+  {
+    id: "mandela-education",
+    kind: "quote",
+    text: "A educação é a arma mais poderosa que você pode usar para mudar o mundo.",
+    author: "Nelson Mandela",
+    source: "Fundação Nelson Mandela — tradução livre",
+    sourceUrl: "https://www.nelsonmandela.org/nm100-education",
+  },
+  {
+    id: "bacon-knowledge",
+    kind: "quote",
+    text: "O conhecimento em si é poder.",
+    author: "Francis Bacon",
+    source: "Meditationes Sacrae, De Hæresibus (1597) — tradução livre",
+    sourceUrl: "https://quotle.info/who-said/knowledge-itself-is-power/",
+  },
+  {
+    id: "wittgenstein-silence",
+    kind: "quote",
+    text: "Sobre aquilo de que não se pode falar, deve-se calar.",
+    author: "Ludwig Wittgenstein",
+    source: "Tractatus Logico-Philosophicus, proposição 7 — tradução livre",
+    sourceUrl: "https://www.wittgensteinproject.org/w/index.php/Tractatus_Logico-Philosophicus_%28static_tree-like_view%29",
+  },
+  {
+    id: "vygotsky-learning",
+    kind: "reflection",
+    text: "O apoio certo não substitui o esforço do estudante: amplia o que ele consegue alcançar até que o apoio deixe de ser necessário.",
+    author: "Reflexão inspirada em Lev Vygotsky",
+    source: "Tema: mediação e zona de desenvolvimento proximal. Não é uma citação literal.",
+    sourceUrl: "https://www.marxists.org/archive/vygotsky/works/1934/thought-language/ch06.htm",
+  },
+  {
+    id: "plato-cave",
+    kind: "reflection",
+    text: "Às vezes, o que nos limita não é a falta de luz, mas o apego às sombras que já aprendemos a reconhecer.",
+    author: "Reflexão inspirada em Platão",
+    source: "Tema: sair da caverna das aparências — A República, Livro VII. Não é uma citação literal.",
+    sourceUrl: "https://classics.mit.edu/Plato/republic.7.vi.html",
+  },
+  {
+    id: "heraclitus-change",
+    kind: "reflection",
+    text: "Uma mente que nunca muda de ideia pode parecer firme; talvez apenas tenha parado de observar o mundo.",
+    author: "Reflexão inspirada em Heráclito",
+    source: "Tema: mudança e devir — fragmentos de Heráclito. Não é uma citação literal.",
+    sourceUrl: "https://plato.stanford.edu/entries/heraclitus/",
+  },
+  {
+    id: "epicurus-enough",
+    kind: "reflection",
+    text: "Nem todo prazer enriquece a vida, e nem toda renúncia a empobrece: sabedoria é descobrir o que realmente basta.",
+    author: "Reflexão inspirada em Epicuro",
+    source: "Tema: prazer, serenidade e desejos — Carta a Meneceu. Não é uma citação literal.",
+    sourceUrl: "https://classics.mit.edu/Epicurus/menoec.html",
+  },
+  {
+    id: "augustine-search",
+    kind: "reflection",
+    text: "Respostas emprestadas podem acalmar por um instante; compreender o que buscamos exige coragem para olhar para dentro.",
+    author: "Reflexão inspirada em Agostinho de Hipona",
+    source: "Tema: interioridade e busca — Confissões. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/3296/3296-h/3296-h.htm",
+  },
+  {
+    id: "aquinas-reason",
+    kind: "reflection",
+    text: "Pensar com profundidade é distinguir o que sabemos, o que inferimos e o que ainda não temos razões para afirmar.",
+    author: "Reflexão inspirada em Tomás de Aquino",
+    source: "Tema: razão, argumento e conhecimento — Suma Teológica. Não é uma citação literal.",
+    sourceUrl: "https://www.newadvent.org/summa/",
+  },
+  {
+    id: "hobbes-common-life",
+    kind: "reflection",
+    text: "A vida em comum não depende apenas de boas intenções; depende também das regras que tornam a confiança possível.",
+    author: "Reflexão inspirada em Thomas Hobbes",
+    source: "Tema: pacto social e ordem política — Leviatã. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/3207/3207-h/3207-h.htm",
+  },
+  {
+    id: "locke-experience",
+    kind: "reflection",
+    text: "Uma convicção merece ser examinada não apenas pela força com que a sentimos, mas pelas experiências que a sustentam.",
+    author: "Reflexão inspirada em John Locke",
+    source: "Tema: experiência e conhecimento — Ensaio acerca do entendimento humano. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/10615/10615-h/10615-h.htm",
+  },
+  {
+    id: "hume-evidence",
+    kind: "reflection",
+    text: "A mente honesta não pergunta somente se uma ideia parece convincente; pergunta que evidência poderia fazê-la mudar.",
+    author: "Reflexão inspirada em David Hume",
+    source: "Tema: evidência, hábito e ceticismo — Investigação sobre o entendimento humano. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/9662/9662-h/9662-h.htm",
+  },
+  {
+    id: "mill-liberty",
+    kind: "reflection",
+    text: "Uma sociedade perde quando transforma toda divergência em ameaça: ideias precisam de espaço para ser testadas e criticadas.",
+    author: "Reflexão inspirada em John Stuart Mill",
+    source: "Tema: liberdade de pensamento e debate — Sobre a liberdade. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/34901/34901-h/34901-h.htm",
+  },
+  {
+    id: "william-james-action",
+    kind: "reflection",
+    text: "Uma ideia começa a mostrar seu valor quando muda o modo como prestamos atenção, decidimos e agimos.",
+    author: "Reflexão inspirada em William James",
+    source: "Tema: experiência e pragmatismo — Pragmatismo. Não é uma citação literal.",
+    sourceUrl: "https://www.gutenberg.org/files/5116/5116-h/5116-h.htm",
+  },
+  {
+    id: "weber-responsibility",
+    kind: "reflection",
+    text: "Ter boas intenções importa; examinar as consequências do que fazemos também é parte da responsabilidade.",
+    author: "Reflexão inspirada em Max Weber",
+    source: "Tema: ética da responsabilidade — A política como vocação. Não é uma citação literal.",
+  },
+  {
+    id: "bourdieu-inequality",
+    kind: "reflection",
+    text: "O que parece talento natural pode esconder anos de oportunidade, familiaridade e apoio que nem todos tiveram.",
+    author: "Reflexão inspirada em Pierre Bourdieu",
+    source: "Tema: capital cultural e reprodução social. Não é uma citação literal.",
+  },
+  {
+    id: "foucault-power",
+    kind: "reflection",
+    text: "Aprender também é perguntar quem definiu as regras, quem se beneficia delas e quem tem permissão para contestá-las.",
+    author: "Reflexão inspirada em Michel Foucault",
+    source: "Tema: saber, poder e instituições. Não é uma citação literal.",
+  },
+  {
+    id: "morin-complexity",
+    kind: "reflection",
+    text: "A complexidade não torna o mundo impossível de compreender; lembra que uma resposta simples pode deixar de fora o essencial.",
+    author: "Reflexão inspirada em Edgar Morin",
+    source: "Tema: pensamento complexo. Não é uma citação literal.",
+    sourceUrl: "https://unesdoc.unesco.org/ark:/48223/pf0000117740",
+  },
+  {
+    id: "vygotsky-support",
+    kind: "reflection",
+    text: "O apoio certo não faz o caminho pelo estudante: torna possível alcançar hoje aquilo que amanhã ele fará com autonomia.",
+    author: "Reflexão inspirada em Lev Vygotsky",
+    source: "Tema: mediação e zona de desenvolvimento proximal. Não é uma citação literal.",
+  },
+  {
+    id: "piaget-understanding",
+    kind: "reflection",
+    text: "Compreender não é repetir a descoberta de outra pessoa; é reconstruir as relações que fazem aquela descoberta ter sentido.",
+    author: "Reflexão inspirada em Jean Piaget",
+    source: "Tema: construção do conhecimento. Não é uma citação literal.",
+  },
+  {
+    id: "montessori-autonomy",
+    kind: "reflection",
+    text: "A autonomia cresce quando o ambiente oferece ferramentas adequadas, desafios possíveis e espaço real para tentar de novo.",
+    author: "Reflexão inspirada em Maria Montessori",
+    source: "Tema: autonomia e ambiente preparado. Não é uma citação literal.",
+  },
+  {
+    id: "dewey-experience",
+    kind: "reflection",
+    text: "Viver uma experiência não garante aprender com ela; a aprendizagem nasce quando examinamos o que aconteceu e o que faremos diferente.",
+    author: "Reflexão inspirada em John Dewey",
+    source: "Tema: experiência e reflexão — Democracia e educação. Não é uma citação literal.",
+  },
+  {
+    id: "rubem-alves-curiosity",
+    kind: "reflection",
+    text: "A curiosidade floresce quando o conhecimento deixa de ser uma lista de obrigações e se torna uma maneira nova de enxergar o cotidiano.",
+    author: "Reflexão inspirada em Rubem Alves",
+    source: "Tema: desejo de aprender e educação. Não é uma citação literal.",
+  },
+  {
+    id: "clovis-happiness",
+    kind: "reflection",
+    text: "Talvez a pergunta sobre felicidade não seja apenas 'o que me falta?', mas 'o que faço com aquilo que digo valorizar?'.",
+    author: "Reflexão inspirada nas aulas de Clóvis de Barros Filho",
+    source: "Tema: felicidade, ética e escolhas. Texto autoral, não é citação literal.",
+  },
+  {
+    id: "milton-santos-space",
+    kind: "reflection",
+    text: "O lugar onde vivemos não é apenas cenário: revela decisões, desigualdades e possibilidades que organizam a vida coletiva.",
+    author: "Reflexão inspirada em Milton Santos",
+    source: "Tema: espaço geográfico e cidadania — Por uma outra globalização. Não é uma citação literal.",
+  },
+  {
+    id: "djamila-ribeiro-listening",
+    kind: "reflection",
+    text: "Ouvir quem foi colocado à margem amplia o mapa da realidade; não elimina a crítica, torna a crítica mais responsável.",
+    author: "Reflexão inspirada em Djamila Ribeiro",
+    source: "Tema: lugar de fala e produção do conhecimento. Não é uma citação literal.",
+  },
+  {
+    id: "angela-davis-action",
+    kind: "reflection",
+    text: "A indignação ganha força ética quando deixa de ser apenas sentimento e se transforma em compromisso com mudanças concretas.",
+    author: "Reflexão inspirada em Angela Davis",
+    source: "Tema: justiça social, liberdade e ação coletiva. Não é uma citação literal.",
+  },
+  {
+    id: "fanon-recognition",
+    kind: "reflection",
+    text: "Não existe compreensão completa de uma sociedade sem perguntar como ela distribui humanidade, voz e reconhecimento.",
+    author: "Reflexão inspirada em Frantz Fanon",
+    source: "Tema: colonialismo, identidade e reconhecimento. Não é uma citação literal.",
+  },
+  {
+    id: "krenak-progress",
+    kind: "reflection",
+    text: "O progresso merece ser interrogado quando exige tratar pessoas, comunidades e natureza como coisas descartáveis.",
+    author: "Reflexão inspirada em Ailton Krenak",
+    source: "Tema: humanidade, natureza e futuro — Ideias para adiar o fim do mundo. Não é uma citação literal.",
+  },
+  {
+    id: "sagan-doubt",
+    kind: "reflection",
+    text: "A dúvida bem formulada não diminui o encanto de descobrir; protege a curiosidade contra certezas que recusam qualquer prova.",
+    author: "Reflexão inspirada em Carl Sagan",
+    source: "Tema: pensamento científico e ceticismo. Não é uma citação literal.",
+  },
+  {
+    id: "curie-evidence",
+    kind: "reflection",
+    text: "A coragem de investigar precisa caminhar junto com a humildade de reconhecer quando os dados ainda não permitem uma conclusão.",
+    author: "Reflexão inspirada em Marie Curie",
+    source: "Tema: investigação científica e rigor. Não é uma citação literal.",
+  },
+  {
+    id: "russell-certainty",
+    kind: "reflection",
+    text: "Pensar criticamente exige examinar uma crença querida com o mesmo rigor que aplicamos à crença de quem discorda de nós.",
+    author: "Reflexão inspirada em Bertrand Russell",
+    source: "Tema: lógica, dúvida e pensamento crítico. Não é uma citação literal.",
+  },
+  {
+    id: "frankl-meaning",
+    kind: "reflection",
+    text: "Buscar sentido não transforma a dor em algo bom; pode ajudar a escolher uma resposta digna diante daquilo que não controlamos.",
+    author: "Reflexão inspirada em Viktor Frankl",
+    source: "Tema: sentido e responsabilidade — Em busca de sentido. Não é uma citação literal.",
+  },
+  {
+    id: "malala-education",
+    kind: "reflection",
+    text: "Quando uma pessoa conquista acesso à educação, não ganha apenas informação: ganha novas perguntas, escolhas e possibilidades de participação.",
+    author: "Reflexão inspirada em Malala Yousafzai",
+    source: "Tema: educação como direito e voz pública. Não é uma citação literal.",
+  },
+  {
+    id: "simone-weil-attention",
+    kind: "reflection",
+    text: "Prestar atenção de verdade é uma forma de respeito: suspendemos por um momento a vontade de responder para conseguir compreender.",
+    author: "Reflexão inspirada em Simone Weil",
+    source: "Tema: atenção e responsabilidade. Não é uma citação literal.",
+  },
+  {
+    id: "benjamin-history",
+    kind: "reflection",
+    text: "Conhecer o passado não é decorar uma fila de datas; é perceber como escolhas antigas ainda distribuem oportunidades e limites no presente.",
+    author: "Reflexão inspirada em Walter Benjamin",
+    source: "Tema: memória e história. Não é uma citação literal.",
+  },
+  {
+    id: "gramsci-hope",
+    kind: "reflection",
+    text: "Realismo sem esperança vira resignação; esperança sem análise vira fantasia. A transformação precisa da lucidez dos dois.",
+    author: "Reflexão inspirada em Antonio Gramsci",
+    source: "Tema: cultura, política e ação histórica. Não é uma citação literal.",
+  },
+  {
+    id: "sen-capabilities",
+    kind: "reflection",
+    text: "Uma sociedade não deve ser avaliada só pelo que produz, mas pelas liberdades reais que as pessoas têm para escolher a vida que valorizam.",
+    author: "Reflexão inspirada em Amartya Sen",
+    source: "Tema: capacidades e desenvolvimento humano. Não é uma citação literal.",
+  },
+  {
+    id: "nussbaum-empathy",
+    kind: "reflection",
+    text: "Imaginar a vida de outra pessoa não exige concordar com tudo; exige reconhecer que a experiência alheia também merece ser compreendida.",
+    author: "Reflexão inspirada em Martha Nussbaum",
+    source: "Tema: emoções, empatia e justiça. Não é uma citação literal.",
+  },
+  {
+    id: "freire-dialogue",
+    kind: "reflection",
+    text: "O diálogo não é uma disputa para ver quem termina com a última palavra; é um trabalho conjunto para chegar a uma compreensão melhor.",
+    author: "Reflexão inspirada em Paulo Freire",
+    source: "Tema: diálogo e educação problematizadora. Não é uma citação literal.",
+  },
+  {
+    id: "king-courage",
+    kind: "reflection",
+    text: "Coragem não é ausência de receio: é decidir que um princípio importante vale mais do que o conforto de permanecer calado.",
+    author: "Reflexão inspirada em Martin Luther King Jr.",
+    source: "Tema: consciência moral e ação cívica. Não é uma citação literal.",
+  },
+  {
+    id: "mandela-reconciliation",
+    kind: "reflection",
+    text: "Reconstruir uma comunidade não significa apagar o passado; significa impedir que a lembrança da injustiça seja usada para perpetuá-la.",
+    author: "Reflexão inspirada em Nelson Mandela",
+    source: "Tema: reconciliação, justiça e vida pública. Não é uma citação literal.",
+  },
+  {
+    id: "aristotle-habits",
+    kind: "reflection",
+    text: "O caráter se forma menos nos ideais que admiramos e mais nos pequenos hábitos que repetimos quando ninguém está avaliando.",
+    author: "Reflexão inspirada em Aristóteles",
+    source: "Tema: virtude e hábito — Ética a Nicômaco. Não é uma citação literal.",
+  },
+  {
+    id: "confucius-practice",
+    kind: "reflection",
+    text: "O conhecimento amadurece quando aquilo que entendemos hoje muda, mesmo que discretamente, a maneira como agimos amanhã.",
+    author: "Reflexão inspirada em Confúcio",
+    source: "Tema: aprendizagem, prática e exemplo — Analectos. Não é uma citação literal.",
+  },
+]; 
+
+const TUTOR_REFLECTION_CYCLE_KEY = "ensina-me:tutor:reflection-cycle:v2";
+const TUTOR_REFLECTION_LAST_KEY = "ensina-me:tutor:last-reflection";
+let lastTutorReflectionInMemory: string | null = null;
 
 function chooseTutorReflection(): TutorReflection {
-  const available = TUTOR_REFLECTIONS;
-  let previousId: string | null = null;
+  let seenIds: string[] = [];
+  let previousId = lastTutorReflectionInMemory;
+
   try {
-    previousId = window.localStorage.getItem("ensina-me:tutor:last-reflection");
+    const rawCycle = window.localStorage.getItem(TUTOR_REFLECTION_CYCLE_KEY);
+    if (rawCycle) {
+      const parsed: unknown = JSON.parse(rawCycle);
+      if (Array.isArray(parsed)) {
+        seenIds = parsed.filter((id): id is string => typeof id === "string");
+      }
+    }
+    previousId = window.localStorage.getItem(TUTOR_REFLECTION_LAST_KEY) ?? previousId;
   } catch {
-    // Private browsing/storage restrictions must not prevent the Tutor from opening.
+    // O Tutor continua funcionando mesmo se o navegador bloquear o armazenamento local.
   }
-  const candidates = available.filter((reflection) => reflection.id !== previousId);
-  const pool = candidates.length ? candidates : available;
-  const selected = pool[Math.floor(Math.random() * pool.length)] ?? available[0]!;
+
+  let available = TUTOR_REFLECTIONS.filter((reflection) => !seenIds.includes(reflection.id));
+  if (available.length === 0) {
+    seenIds = [];
+    available = [...TUTOR_REFLECTIONS];
+  }
+
+  if (available.length > 1 && previousId) {
+    const withoutPrevious = available.filter((reflection) => reflection.id !== previousId);
+    if (withoutPrevious.length > 0) available = withoutPrevious;
+  }
+
+  const selected = available[Math.floor(Math.random() * available.length)] ?? TUTOR_REFLECTIONS[0]!;
+  lastTutorReflectionInMemory = selected.id;
+
   try {
-    window.localStorage.setItem("ensina-me:tutor:last-reflection", selected.id);
+    const nextSeen = [...new Set([...seenIds, selected.id])];
+    window.localStorage.setItem(TUTOR_REFLECTION_CYCLE_KEY, JSON.stringify(nextSeen));
+    window.localStorage.setItem(TUTOR_REFLECTION_LAST_KEY, selected.id);
   } catch {
-    // The quote still works when persistent storage is unavailable.
+    // A seleção aleatória ainda funciona sem armazenamento persistente.
   }
+
   return selected;
 }
 
@@ -873,9 +1340,11 @@ function TutorPage() {
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Contexto atual</p>
           <p className="mt-2 text-sm font-bold text-[#334155]">{contextLabel}</p>
           <figure className="mt-3 rounded-2xl border border-[#DCE5F0] bg-gradient-to-br from-white to-[#F4F8FF] p-4 sm:p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Uma reflexão para começar</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">
+              {reflection.kind === "quote" ? "Palavras de um pensador" : "Uma ideia para levar com você"}
+            </p>
             <blockquote className="mt-3 text-base font-semibold leading-7 text-[#172334] sm:text-lg">
-              “{reflection.text}”
+              {reflection.kind === "quote" ? `“${reflection.text}”` : reflection.text}
             </blockquote>
             <figcaption className="mt-3 text-sm font-extrabold text-[#334155]">
               {reflection.author}
