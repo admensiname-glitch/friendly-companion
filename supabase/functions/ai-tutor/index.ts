@@ -2622,7 +2622,9 @@ Deno.serve(async (req: Request) => {
       "- Pode ser um fluxo, mapa conceitual ou comparação.\n" +
       "- Não use para saudações, respostas curtas ou quando o visual seria apenas decorativo.\n" +
       "- Use de 2 a 6 itens curtos e semanticamente precisos, derivados do contexto acadêmico fornecido.\n" +
-      "- Nunca invente informação para preencher o apoio visual.\n\n" +
+      "- Nunca invente informação para preencher o apoio visual.\n" +
+      "- PRIORIDADE DA MENSAGEM ATUAL: responda primeiro ao pedido mais recente do aluno. Não repita correções, feedbacks de alternativas ou avaliações anteriores se o aluno mudou de assunto.\n" +
+      "- Se o aluno perguntar explicitamente por uma imagem, ilustração ou figura do assunto em estudo, habilite visual_aid e prepare uma legenda/estrutura visual relevante para esse pedido; o sistema tentará anexar uma imagem com fonte e licença. Não responda com feedback de uma questão anterior. Se não houver imagem disponível, diga isso claramente e ofereça uma alternativa visual textual pertinente.\n\n" +
       "VÍDEO RECOMENDADO\n" +
       "- Avalie a PERGUNTA ATUAL do aluno, não apenas o tópico.\n" +
       "- video_recommendation.enabled=true somente quando um vídeo didático puder responder, esclarecer ou aprofundar diretamente a pergunta atual.\n" +
