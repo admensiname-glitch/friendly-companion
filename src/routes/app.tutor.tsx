@@ -1149,7 +1149,7 @@ function TutorPage() {
         </p>
       </header>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
+      <div className="tutor-layout-grid mt-7 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
         <section className="tutor-chat-shell rounded-2xl border border-border bg-card text-card-foreground shadow-[0_8px_28px_rgba(15,23,42,.05)]">
           <div className="min-h-[360px] space-y-4 p-5 sm:p-7">
             {loading ? (
