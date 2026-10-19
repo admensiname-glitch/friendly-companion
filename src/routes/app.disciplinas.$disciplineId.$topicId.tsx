@@ -3,6 +3,11 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState } from "re
 
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { retryDelayMs } from "@/lib/tutor-retry-policy";
+import {
+  buildInitialComprehensionCheckRequest,
+  shouldRequestInitialComprehensionCheck,
+} from "@/lib/tutor-comprehension-check";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -981,6 +986,8 @@ function TutorSection({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recommendedAction, setRecommendedAction] = useState<"simplify" | "practice" | "review" | "explore" | null>(null);
   const [microAssessment, setMicroAssessment] = useState<TutorMicroAssessment | null>(null);
+  const [microAssessmentLoading, setMicroAssessmentLoading] = useState(false);
+  const [microAssessmentError, setMicroAssessmentError] = useState<string | null>(null);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef({ active: false, offsetX: 0, offsetY: 0, moved: false });
 
@@ -1184,7 +1191,7 @@ function TutorSection({
     setErrorMessage(null);
     setRecommendedAction(null);
 
-    const localId = "local-" + Date.now();
+    const localId = crypto.randomUUID();
     setMessages((current) => [
       ...current,
       { id: localId, role: "user", content: message },
@@ -1192,6 +1199,7 @@ function TutorSection({
 
     const { data, error } = await supabase.functions.invoke("ai-tutor", {
       body: {
+        action: "chat",
         topic_id: topicId,
         conversation_id: conversationId,
         message,
@@ -1225,7 +1233,8 @@ function TutorSection({
       return;
     }
 
-    setConversationId(data.conversation_id ?? conversationId);
+    const responseConversationId = data.conversation_id ?? conversationId;
+    setConversationId(responseConversationId);
     if (data.micro_assessment) {
       setMicroAssessment({
         id: data.micro_assessment.id,
@@ -1234,6 +1243,92 @@ function TutorSection({
         difficulty: data.micro_assessment.difficulty,
         concept_tags: data.micro_assessment.concept_tags,
       });
+      setMicroAssessmentLoading(false);
+      setMicroAssessmentError(null);
+    } else if (shouldRequestInitialComprehensionCheck({
+      shouldGenerate: data.should_generate_comprehension_check,
+      responseAssessment: data.micro_assessment,
+      existingAssessment: microAssessment,
+      alreadyLoading: microAssessmentLoading,
+    })) {
+      // The topic Tutor has its own UI, so it must explicitly request the
+      // complementary question when the main response didn't contain one.
+      setMicroAssessmentLoading(true);
+      setMicroAssessmentError(null);
+      void (async () => {
+        const requestBody = buildInitialComprehensionCheckRequest({
+          topicId,
+          conversationId: responseConversationId,
+          userMessageId: localId,
+          message,
+          answerContext: data.message,
+        });
+        let assessmentData: {
+          micro_assessment?: Pick<TutorMicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags">;
+        } | null = null;
+        let errorMessage: string | null = null;
+
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+          if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
+            assessmentData = result.data;
+            break;
+          }
+
+          let responseStatus: number | null = null;
+          let retryAfterSeconds = 30;
+          let providerErrorMessage: string | null = null;
+          if (result.error && typeof result.error === "object" && "context" in result.error) {
+            const errorContext = result.error.context;
+            if (errorContext instanceof Response) {
+              responseStatus = errorContext.status;
+              const retryAfterHeader = Number(errorContext.headers.get("retry-after"));
+              if (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0) {
+                retryAfterSeconds = Math.ceil(retryAfterHeader);
+              }
+              try {
+                const errorBody = await errorContext.clone().json() as {
+                  error?: unknown;
+                  retry_after_seconds?: unknown;
+                };
+                if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
+                if (typeof errorBody.retry_after_seconds === "number" && errorBody.retry_after_seconds > 0) {
+                  retryAfterSeconds = Math.ceil(errorBody.retry_after_seconds);
+                }
+              } catch {
+                // Some gateway failures do not include a JSON response body.
+              }
+            }
+          }
+
+          if (responseStatus === 429 && attempt === 0) {
+            errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
+            await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
+            continue;
+          }
+
+          errorMessage = providerErrorMessage ?? result.data?.error ??
+            (responseStatus === 429
+              ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
+              : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
+          break;
+        }
+
+        if (assessmentData?.micro_assessment) {
+          setMicroAssessment({
+            id: assessmentData.micro_assessment.id,
+            question: assessmentData.micro_assessment.question,
+            options: assessmentData.micro_assessment.options,
+            difficulty: assessmentData.micro_assessment.difficulty,
+            concept_tags: assessmentData.micro_assessment.concept_tags ?? [],
+          });
+          setMicroAssessmentError(null);
+        } else {
+          setMicroAssessmentError(errorMessage ??
+            "Não foi possível preparar uma pergunta inédita agora. A explicação foi preservada; tente novamente em instantes.");
+        }
+        setMicroAssessmentLoading(false);
+      })();
     }
     setRecommendedAction(
       data.learning_action === "simplify" ||
