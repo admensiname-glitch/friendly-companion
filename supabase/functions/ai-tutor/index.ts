@@ -1580,7 +1580,7 @@ Deno.serve(async (req: Request) => {
         return json({ error: "O contexto da pergunta é longo demais." }, 400);
       }
 
-      let conversationId = body.conversation_id?.trim() || null;
+      const conversationId = body.conversation_id?.trim() || null;
       if (conversationId) {
         const { data: conversation } = await supabase
           .from("ai_conversations")

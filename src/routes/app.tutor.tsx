@@ -518,7 +518,7 @@ function TutorPage() {
             message,
             answer_context: data.message,
           };
-          let assessmentData: any = null;
+          let assessmentData: { micro_assessment?: Pick<MicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags"> } | null = null;
           let errorMessage: string | null = null;
 
           for (let attempt = 0; attempt < 2; attempt += 1) {
