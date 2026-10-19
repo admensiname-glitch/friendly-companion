@@ -56,7 +56,7 @@ describe("Tutor initial micro-assessment flow", () => {
       userId: "student-1",
       topicId: "topic-1",
       conversationId: "conversation-1",
-      userQuestion: "  O que é fotossíntese?\\nExplique de forma simples. ",
+      userQuestion: "  O que é fotossíntese?   Explique de forma simples. ",
     };
     const first = await createInitialIdempotencyKey(base);
     const repeated = await createInitialIdempotencyKey({
