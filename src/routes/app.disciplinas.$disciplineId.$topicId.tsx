@@ -1214,10 +1214,10 @@ function TutorSection({
       if (!messageText && error) {
         try {
           const response = (error as { context?: Response }).context;
-          if (response) {
-            const payload = (await response.clone().json()) as { error?: string };
-            messageText = payload.error;
-          }
+            if (response) {
+              const payload = (await response.clone().json()) as { error?: string };
+              messageText = payload.error;
+            }
         } catch {
           // Keep the generic message below when the function error has no JSON body.
         }
