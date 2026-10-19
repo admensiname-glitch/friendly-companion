@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   createInitialIdempotencyKey,
   retryAfterSecondsFromResponse,
+  selectRelevantAcademicSections,
   runInitialQuestionFlow,
   runInitialQuestionFlowOnce,
   type InitialQuestionCandidate,
@@ -23,6 +24,20 @@ const validQuestion: InitialQuestionCandidate = {
 };
 
 describe("Tutor initial micro-assessment flow", () => {
+  it("prioriza os trechos acadêmicos relacionados à pergunta em vez de enviar as primeiras seções", () => {
+    const sections = [
+      { title: "Panorama da botânica", content: "Visão geral das plantas e classificação.", position: 1 },
+      { title: "Fotossíntese e clorofila", content: "A clorofila absorve energia da luz solar para iniciar as reações.", position: 5 },
+      { title: "Crescimento das raízes", content: "As raízes absorvem água e sais minerais do solo.", position: 2 },
+    ];
+    const selected = selectRelevantAcademicSections(
+      sections,
+      "Explique a fotossíntese e o papel da clorofila na captação da luz.",
+      1,
+    );
+    expect(selected).toEqual([sections[1]]);
+  });
+
   it("respeita Retry-After e calcula uma espera controlada após HTTP 429", () => {
     const retryAfter = retryAfterSecondsFromResponse(new Headers({ "retry-after": "24.5" }), "rate limited");
     expect(retryAfter).toBe(25);
