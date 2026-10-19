@@ -6,6 +6,7 @@ import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { retryDelayMs } from "@/lib/tutor-retry-policy";
 import {
   buildInitialComprehensionCheckRequest,
+  normalizeTutorOptionText,
   shouldRequestInitialComprehensionCheck,
 } from "@/lib/tutor-comprehension-check";
 
@@ -889,7 +890,7 @@ function TutorMicroAssessmentCard({
               <span className="mr-2 font-semibold">
                 {String.fromCharCode(65 + index)}.
               </span>
-              {option}
+              {normalizeTutorOptionText(option)}
             </button>
           );
         })}
