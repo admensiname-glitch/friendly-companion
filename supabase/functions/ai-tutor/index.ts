@@ -636,24 +636,36 @@ function detectLearningAction(message: string): "simplify" | "practice" | "revie
  * Gemini is optional until GEMINI_API_KEY is configured in Supabase Edge Function secrets.
  */
 async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
+  const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
   let primaryResponse: Response | null = null;
   let primaryError: unknown = null;
 
-  try {
-    primaryResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", init);
-    if (primaryResponse.ok || ![429, 500, 502, 503, 504].includes(primaryResponse.status)) {
-      return primaryResponse;
+  // Do not call Groq with an empty or missing key. Gemini can serve as the
+  // primary provider when the project has no Groq quota/key configured.
+  if (groqApiKey) {
+    try {
+      const primaryHeaders = new Headers(init.headers);
+      primaryHeaders.set("Authorization", "Bearer " + groqApiKey);
+      primaryResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        ...init,
+        headers: primaryHeaders,
+      });
+      if (primaryResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(primaryResponse.status)) {
+        return primaryResponse;
+      }
+      console.warn("[Ensina-me] ai-tutor: Groq indisponível; tentando Gemini", primaryResponse.status);
+    } catch (error) {
+      primaryError = error;
+      console.warn("[Ensina-me] ai-tutor: falha de rede/timeout na Groq; tentando Gemini");
     }
-    console.warn("[Ensina-me] ai-tutor: Groq temporariamente indisponível; tentando Gemini", primaryResponse.status);
-  } catch (error) {
-    primaryError = error;
-    console.warn("[Ensina-me] ai-tutor: falha de rede/timeout na Groq; tentando Gemini");
   }
 
   if (!geminiApiKey) {
     if (primaryResponse) return primaryResponse;
-    throw primaryError instanceof Error ? primaryError : new Error("Groq indisponível e GEMINI_API_KEY não configurada.");
+    throw primaryError instanceof Error
+      ? primaryError
+      : new Error("Nenhum provedor disponível: configure GROQ_API_KEY ou GEMINI_API_KEY.");
   }
 
   try {
@@ -666,19 +678,18 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
       try {
         const parsed = JSON.parse(requestBody) as Record<string, unknown>;
         parsed.model = "gemini-3.8-flash";
-        // The OpenAI-compatible Gemini endpoint does not need Groq-specific flags.
         delete parsed.include_reasoning;
+        delete parsed.reasoning_effort;
         if (typeof parsed.max_completion_tokens === "number") {
           parsed.max_tokens = parsed.max_completion_tokens;
           delete parsed.max_completion_tokens;
         }
         requestBody = JSON.stringify(parsed);
       } catch {
-        // Preserve the original body if it is not JSON; the request will report the provider error.
+        // Preserve non-JSON bodies and let the provider report the error.
       }
     }
 
-    // Use a fresh signal: the Groq timeout controller may already be aborted.
     const fallbackController = new AbortController();
     const fallbackTimeout = setTimeout(() => fallbackController.abort(), 15000);
     let fallbackResponse: Response;
@@ -691,13 +702,13 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
       clearTimeout(fallbackTimeout);
     }
     if (!fallbackResponse.ok) {
-      console.warn("[Ensina-me] ai-tutor: Gemini fallback também falhou", fallbackResponse.status);
+      console.warn("[Ensina-me] ai-tutor: Gemini também falhou", fallbackResponse.status);
     } else {
-      console.info("[Ensina-me] ai-tutor: resposta gerada pelo provedor de reserva Gemini");
+      console.info("[Ensina-me] ai-tutor: resposta gerada pelo provedor Gemini");
     }
     return fallbackResponse;
   } catch (fallbackError) {
-    console.error("[Ensina-me] ai-tutor: falha de rede no Gemini fallback",
+    console.error("[Ensina-me] ai-tutor: falha de rede no Gemini",
       fallbackError instanceof Error ? fallbackError.message : "unknown error");
     if (primaryResponse) return primaryResponse;
     throw fallbackError;
@@ -1242,7 +1253,7 @@ Deno.serve(async (req: Request) => {
       }
 
     const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-      if (!groqApiKey) {
+      if (!groqApiKey && !Deno.env.get("GEMINI_API_KEY")?.trim()) {
         return json({ error: "O Tutor ainda não foi configurado." }, 503);
       }
 
@@ -1321,7 +1332,7 @@ Deno.serve(async (req: Request) => {
       });
 
       const evaluationGenerationArgs = {
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: truncateText(context, MAX_CONTEXT_CHARACTERS),
@@ -1512,7 +1523,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-      if (!groqApiKey) {
+      if (!groqApiKey && !Deno.env.get("GEMINI_API_KEY")?.trim()) {
         return json({ error: "O Tutor ainda não foi configurado." }, 503);
       }
 
@@ -1599,7 +1610,7 @@ Deno.serve(async (req: Request) => {
 
       if (!recoveryQuestion) {
         const generated = await generateAdaptiveMicroAssessment({
-          apiKey: groqApiKey,
+          apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
           topicName: topic.name,
           topicDescription: topic.description,
           context: truncateText(context, 9000),
@@ -1702,7 +1713,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-      if (!groqApiKey) {
+      if (!groqApiKey && !Deno.env.get("GEMINI_API_KEY")?.trim()) {
         return json({ error: "O Tutor não está configurado para gerar a pergunta." }, 503);
       }
 
@@ -1910,7 +1921,7 @@ Deno.serve(async (req: Request) => {
           generate: async () => {
             let providerRetryAfter: number | null = null;
             const generated = await generateAdaptiveMicroAssessment({
-              apiKey: groqApiKey,
+              apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
               topicName: topic.name,
               topicDescription: topic.description,
               context: truncateText(initialContext, 6500),
@@ -2015,7 +2026,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-      if (!groqApiKey) return json({ next_micro_assessment: null, next_message: null });
+      if (!groqApiKey && !Deno.env.get("GEMINI_API_KEY")?.trim()) return json({ next_micro_assessment: null, next_message: null });
 
       const [
         { data: topic },
@@ -2083,7 +2094,7 @@ Deno.serve(async (req: Request) => {
         .filter((question: string) => typeof question === "string" && question.trim());
 
       const generated = await generateAdaptiveMicroAssessment({
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: truncateText(context, MAX_CONTEXT_CHARACTERS),
@@ -2453,8 +2464,8 @@ Deno.serve(async (req: Request) => {
     );
 
     const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
-    if (!groqApiKey) {
-      console.warn("[Ensina-me] ai-tutor: GROQ_API_KEY ausente no ambiente da Edge Function.");
+    if (!groqApiKey && !Deno.env.get("GEMINI_API_KEY")?.trim()) {
+      console.warn("[Ensina-me] ai-tutor: nenhum provedor configurado (GROQ_API_KEY/GEMINI_API_KEY).");
       return json(
         {
           error:
@@ -2946,7 +2957,7 @@ Deno.serve(async (req: Request) => {
     ) {
       console.warn("[Ensina-me] ai-tutor: microavaliação repetida detectada; regenerando");
       const replacement = await generateAdaptiveMicroAssessment({
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: safeContext,
