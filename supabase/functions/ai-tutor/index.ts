@@ -676,7 +676,9 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
         clearTimeout(timeout);
       }
 
-      if (geminiResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(geminiResponse.status)) {
+      // Any non-2xx provider response must allow the configured fallback to run.
+      // In particular, 400 can mean a model/schema incompatibility, not a user error.
+      if (geminiResponse.ok) {
         return geminiResponse;
       }
       console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse.status);
@@ -2865,7 +2867,10 @@ Deno.serve(async (req: Request) => {
           const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
 
           try {
-            const fallbackResponse = await fetchWithProviderFallback({
+            // This retry is specifically a Groq JSON-mode compatibility retry.
+            // Do not route it through fetchWithProviderFallback, which would try Gemini
+            // again and could repeat the same provider/schema failure.
+            const fallbackResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
