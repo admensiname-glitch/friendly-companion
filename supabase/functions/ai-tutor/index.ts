@@ -17,7 +17,6 @@ type Body = {
   action?: "chat" | "answer_microassessment" | "generate_next_microassessment" | "generate_initial_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
   topic_id?: string;
   conversation_id?: string | null;
-  idempotency_key?: string;
   message?: string;
   answer_context?: string;
   micro_assessment_id?: string;
@@ -1660,7 +1659,6 @@ Deno.serve(async (req: Request) => {
         userId: userData.user.id,
         topicId,
         conversationId,
-        clientRequestId: body.idempotency_key,
         userQuestion,
         tutorAnswer,
       });
