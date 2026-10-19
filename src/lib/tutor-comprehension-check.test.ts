@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   buildInitialComprehensionCheckRequest,
+  normalizeTutorOptionText,
   shouldRequestInitialComprehensionCheck,
 } from "./tutor-comprehension-check";
 
@@ -53,5 +54,15 @@ describe("topic Tutor comprehension-check flow", () => {
       message: "Explique o conceito.",
       answer_context: "A explicação produzida pelo Tutor.",
     });
+  });
+});
+
+describe("Tutor answer-option presentation", () => {
+  it("decodes numeric character references and removes duplicated option labels", () => {
+    expect(normalizeTutorOptionText("&#x31;. Captura de luz pela clorofila")).toBe(
+      "Captura de luz pela clorofila",
+    );
+    expect(normalizeTutorOptionText("&#x4E;a fase luminosa")).toBe("Na fase luminosa");
+    expect(normalizeTutorOptionText("D) Na fase luminosa")).toBe("Na fase luminosa");
   });
 });
