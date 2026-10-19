@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  createInitialIdempotencyKey,
   retryAfterSecondsFromResponse,
   runInitialQuestionFlow,
   runInitialQuestionFlowOnce,
@@ -48,6 +49,26 @@ describe("Tutor initial micro-assessment flow", () => {
     expect(attempts).toBe(2);
     expect(waits).toEqual([1]);
     expect(result.kind).toBe("unavailable");
+  });
+
+  it("gera a mesma chave para a mesma pergunta na mesma conversa mesmo se a solicitação for recriada", async () => {
+    const base = {
+      userId: "student-1",
+      topicId: "topic-1",
+      conversationId: "conversation-1",
+      userQuestion: "  O que é fotossíntese?\\nExplique de forma simples. ",
+    };
+    const first = await createInitialIdempotencyKey(base);
+    const repeated = await createInitialIdempotencyKey({
+      ...base,
+      userQuestion: "O que é fotossíntese? Explique de forma simples.",
+    });
+    const otherConversation = await createInitialIdempotencyKey({
+      ...base,
+      conversationId: "conversation-2",
+    });
+    expect(first).toBe(repeated);
+    expect(first).not.toBe(otherConversation);
   });
 
   it("deduplica chamadas concorrentes para a mesma chave de mensagem", async () => {
