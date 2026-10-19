@@ -8,10 +8,11 @@ const corsHeaders = {
 };
 
 type Body = {
-  action?: "chat" | "answer_microassessment" | "generate_next_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
+  action?: "chat" | "answer_microassessment" | "generate_next_microassessment" | "generate_initial_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
   topic_id?: string;
   conversation_id?: string | null;
   message?: string;
+  answer_context?: string;
   micro_assessment_id?: string;
   selected_option_index?: number;
   recovery_concept?: string;
@@ -876,10 +877,14 @@ async function generateAdaptiveMicroAssessment(args: {
   consecutiveIncorrect: number;
   weakestConcept: string | null;
   recentQuestions: string[];
+  purpose?: "initial" | "adaptive";
+  seed?: string;
 }): Promise<AdaptiveMicroAssessment | null> {
-  const adaptiveInstruction = args.wasCorrect
-    ? "O aluno acertou. A próxima questão deve aumentar a exigência cognitiva, usando a dificuldade solicitada. Não simplifique a ponto de repetir a questão anterior."
-    : "O aluno errou. Antes da nova questão, a mensagem deve reconstruir o conceito com linguagem clara e incluir um exemplo concreto correto. A nova questão deve testar novamente o conceito sem copiar a questão anterior.";
+  const adaptiveInstruction = args.purpose === "initial"
+    ? "O aluno acabou de ler uma explicação acadêmica e precisa de uma verificação breve da compreensão. Crie uma questão diagnóstica nova, diretamente ligada ao que foi explicado. Não escreva uma mensagem de correção de resposta anterior."
+    : args.wasCorrect
+      ? "O aluno acertou. A próxima questão deve aumentar a exigência cognitiva, usando a dificuldade solicitada. Não simplifique a ponto de repetir a questão anterior."
+      : "O aluno errou. Antes da nova questão, a mensagem deve reconstruir o conceito com linguagem clara e incluir um exemplo concreto correto. A nova questão deve testar novamente o conceito sem copiar a questão anterior.";
 
   const systemPrompt =
     "Você é o motor de aprendizagem adaptativa do Ensina-me.\n\n" +
@@ -902,7 +907,9 @@ async function generateAdaptiveMicroAssessment(args: {
     adaptiveInstruction +
     "\n\n" +
     "SITUAÇÃO ATUAL\n" +
-    "- Resultado anterior: " +
+    "- Finalidade: " + (args.purpose === "initial" ? "verificação inicial da explicação recém-apresentada" : "continuação adaptativa") +
+    "\n- Identificador de variação: " + (args.seed ?? "sem identificador") +
+    "\n- Resultado anterior: " +
     (args.wasCorrect ? "acerto" : "erro") +
     "\n- Acertos consecutivos: " +
     args.consecutiveCorrect +
@@ -940,8 +947,9 @@ async function generateAdaptiveMicroAssessment(args: {
             { role: "system", content: systemPrompt },
             {
               role: "user",
-              content:
-                args.wasCorrect
+              content: args.purpose === "initial"
+                ? "Com base na pergunta do aluno e na explicação incluídas no contexto, gere uma pergunta inédita para verificar a compreensão."
+                : args.wasCorrect
                   ? "Continue a sequência com uma mensagem breve de feedback e uma nova questão mais desafiadora."
                   : "Continue a sequência com uma explicação curta, um exemplo correto e uma nova questão de reforço.",
             },
@@ -1559,6 +1567,134 @@ Deno.serve(async (req: Request) => {
           ? recoveryQuestion.concept_tags
           : [concept],
       });
+    }
+
+    if (body.action === "generate_initial_microassessment") {
+      const topicId = body.topic_id?.trim();
+      const userQuestion = body.message?.trim();
+      const tutorAnswer = body.answer_context?.trim();
+      if (!topicId || !userQuestion || !tutorAnswer) {
+        return json({ error: "Tópico, pergunta e explicação são obrigatórios." }, 400);
+      }
+      if (userQuestion.length > 4000 || tutorAnswer.length > 12000) {
+        return json({ error: "O contexto da pergunta é longo demais." }, 400);
+      }
+
+      let conversationId = body.conversation_id?.trim() || null;
+      if (conversationId) {
+        const { data: conversation } = await supabase
+          .from("ai_conversations")
+          .select("id, topic_id")
+          .eq("id", conversationId)
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        if (!conversation || conversation.topic_id !== topicId) {
+          return json({ error: "Conversa não encontrada para este tópico." }, 404);
+        }
+      }
+
+      const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
+      if (!groqApiKey) {
+        return json({ error: "O Tutor não está configurado para gerar a pergunta." }, 503);
+      }
+
+      const [
+        { data: topic },
+        { data: material },
+        { data: previousQuestionRows },
+      ] = await Promise.all([
+        supabase.from("topics")
+          .select("id, name, description")
+          .eq("id", topicId).eq("published", true).maybeSingle(),
+        supabase.from("materials")
+          .select("id, title, introduction")
+          .eq("topic_id", topicId).eq("status", "published").maybeSingle(),
+        supabase.from("ai_micro_assessments")
+          .select("question_text")
+          .eq("user_id", userData.user.id).eq("topic_id", topicId)
+          .order("created_at", { ascending: false }).limit(30),
+      ]);
+
+      if (!topic) return json({ error: "Tópico não encontrado." }, 404);
+
+      const { data: sections } = material
+        ? await supabase.from("material_sections")
+            .select("title, content, position")
+            .eq("material_id", material.id)
+            .order("position", { ascending: true })
+        : { data: [] };
+
+      const recentQuestions = (previousQuestionRows ?? [])
+        .map((item: { question_text: string }) => item.question_text)
+        .filter((question: string) => typeof question === "string" && question.trim());
+
+      const academicContext = [
+        "TÓPICO: " + topic.name,
+        topic.description ? "DESCRIÇÃO: " + topic.description : "",
+        material ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "") : "",
+        ...(sections ?? []).map((section: { title: string; content: string }) =>
+          "SEÇÃO — " + section.title + "\n" + section.content),
+        "PERGUNTA DO ALUNO: " + userQuestion,
+        "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer,
+      ].filter(Boolean).join("\n\n");
+
+      // Try different generations if the provider returns invalid or repeated content.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const generated = await generateAdaptiveMicroAssessment({
+          apiKey: groqApiKey,
+          topicName: topic.name,
+          topicDescription: topic.description,
+          context: truncateText(academicContext, MAX_CONTEXT_CHARACTERS),
+          previousQuestion: "Nenhuma pergunta anterior desta explicação.",
+          previousTags: [],
+          wasCorrect: true,
+          nextDifficulty: "intermediate",
+          consecutiveCorrect: 0,
+          consecutiveIncorrect: 0,
+          weakestConcept: null,
+          recentQuestions,
+          purpose: "initial",
+          seed: crypto.randomUUID(),
+        });
+
+        if (!generated) continue;
+        if (recentQuestions.some((question) =>
+          isQuestionTooSimilar(generated.microassessment.question, question)
+        )) continue;
+
+        const { data: saved, error: saveError } = await supabase
+          .from("ai_micro_assessments")
+          .insert({
+            user_id: userData.user.id,
+            topic_id: topicId,
+            conversation_id: conversationId,
+            question_text: generated.microassessment.question,
+            options: generated.microassessment.options,
+            correct_option_index: generated.microassessment.correct_option_index,
+            explanation: generated.microassessment.explanation,
+            difficulty: generated.microassessment.difficulty,
+            concept_tags: generated.microassessment.concept_tags,
+          })
+          .select("id")
+          .single();
+
+        if (saveError || !saved) {
+          console.error("[Ensina-me] ai-tutor: não foi possível salvar verificação inicial", saveError?.message ?? "resultado vazio");
+          return json({ error: "A pergunta foi elaborada, mas não pôde ser salva." }, 500);
+        }
+
+        return json({
+          micro_assessment: {
+            id: saved.id,
+            question: generated.microassessment.question,
+            options: generated.microassessment.options,
+            difficulty: generated.microassessment.difficulty,
+            concept_tags: generated.microassessment.concept_tags,
+          },
+        });
+      }
+
+      return json({ error: "Não foi possível gerar uma pergunta inédita desta vez." }, 503);
     }
 
     if (body.action === "generate_next_microassessment") {
@@ -2739,6 +2875,7 @@ Deno.serve(async (req: Request) => {
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
+      should_generate_comprehension_check: shouldGenerateComprehensionCheck && !explicitlyDeclinesPractice,
       learning_observations: tutorResult.learningObservations,
       learning_action: learningAction,
       learning_signals: learningSignals,
