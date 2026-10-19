@@ -1194,6 +1194,16 @@ async function generateAdaptiveMicroAssessment(args: {
   }
 }
 
+function createTutorAdminClient() {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+  if (!serviceRoleKey) return null;
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
@@ -1661,7 +1671,11 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Não foi possível preparar uma questão de recuperação agora. Tente novamente em instantes." }, 503);
       }
 
-      const { data: saved, error: insertError } = await supabase
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        return json({ error: "O servidor não está configurado para salvar a questão." }, 503);
+      }
+      const { data: saved, error: insertError } = await adminClient
         .from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
@@ -1958,7 +1972,12 @@ Deno.serve(async (req: Request) => {
             isQuestionTooSimilar(question.question, previous)
           ),
           save: async (question) => {
-            const { data: saved, error: saveError } = await supabase
+            const adminClient = createTutorAdminClient();
+            if (!adminClient) {
+              console.error("[Ensina-me] ai-tutor: service role ausente; verificação inicial não salva.");
+              return null;
+            }
+            const { data: saved, error: saveError } = await adminClient
               .from("ai_micro_assessments")
               .insert({
                 user_id: userData.user.id,
@@ -1989,12 +2008,12 @@ Deno.serve(async (req: Request) => {
           error_code: "groq_429",
           assessment_id: null,
         });
-        return new Response(JSON.stringify({
-          error: "A IA atingiu temporariamente o limite de geração. Aguarde o intervalo informado antes de tentar novamente.",
-          retry_after_seconds: flowResult.retryAfterSeconds,
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(flowResult.retryAfterSeconds) },
+        // Falha na questão não deve interromper a aula nem expor limites internos do provedor.
+        // Mantemos o cooldown no backend, mas devolvemos uma resposta utilizável pela interface.
+        return json({
+          micro_assessment: null,
+          generation_deferred: true,
+          message: "Vamos continuar estudando este conteúdo por enquanto. Daqui a pouco, tentamos uma pergunta para conferir o que você aprendeu.",
         });
       }
 
@@ -2016,8 +2035,10 @@ Deno.serve(async (req: Request) => {
         return json({ error: "A pergunta foi elaborada, mas não pôde ser salva. A explicação principal foi preservada." }, 500);
       }
       return json({
-        error: "Não foi possível gerar uma questão inédita e válida agora. A explicação principal foi preservada; tente novamente em instantes.",
-      }, 503);
+        micro_assessment: null,
+        generation_deferred: true,
+        message: "Vamos seguir com a explicação. A pergunta de revisão pode ficar para depois, sem atrapalhar seus estudos.",
+      });
     }
     if (body.action === "generate_next_microassessment") {
       const assessmentId = body.micro_assessment_id?.trim();
@@ -2132,7 +2153,11 @@ Deno.serve(async (req: Request) => {
         console.warn("[Ensina-me] ai-tutor: não foi possível encerrar microavaliações pendentes anteriores", expireError.message);
       }
 
-      const { data: savedNext, error: nextInsertError } = await supabase.from("ai_micro_assessments")
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        return json({ next_micro_assessment: null, next_message: null });
+      }
+      const { data: savedNext, error: nextInsertError } = await adminClient.from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
           topic_id: assessment.topic_id,
@@ -2213,7 +2238,19 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const { data: assessment, error: assessmentError } = await supabase
+      // The answer key and explanation must never be readable through the student's
+      // publishable-key client. Use the service role only for this server-side read,
+      // and keep the authenticated user's ID in the filter as a second ownership check.
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+      if (!serviceRoleKey) {
+        return json({ error: "O servidor não está configurado para corrigir a resposta." }, 503);
+      }
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceRoleKey,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const { data: assessment, error: assessmentError } = await supabaseAdmin
         .from("ai_micro_assessments")
         .select(
           "id, topic_id, conversation_id, question_text, options, correct_option_index, explanation, difficulty, concept_tags, is_correct, selected_option_index, status",
@@ -2622,7 +2659,9 @@ Deno.serve(async (req: Request) => {
       "- Pode ser um fluxo, mapa conceitual ou comparação.\n" +
       "- Não use para saudações, respostas curtas ou quando o visual seria apenas decorativo.\n" +
       "- Use de 2 a 6 itens curtos e semanticamente precisos, derivados do contexto acadêmico fornecido.\n" +
-      "- Nunca invente informação para preencher o apoio visual.\n\n" +
+      "- Nunca invente informação para preencher o apoio visual.\n" +
+      "- PRIORIDADE DA MENSAGEM ATUAL: responda primeiro ao pedido mais recente do aluno. Não repita correções, feedbacks de alternativas ou avaliações anteriores se o aluno mudou de assunto.\n" +
+      "- Se o aluno perguntar explicitamente por uma imagem, ilustração ou figura do assunto em estudo, habilite visual_aid e prepare uma legenda/estrutura visual relevante para esse pedido; o sistema tentará anexar uma imagem com fonte e licença. Não responda com feedback de uma questão anterior. Se não houver imagem disponível, diga isso claramente e ofereça uma alternativa visual textual pertinente.\n\n" +
       "VÍDEO RECOMENDADO\n" +
       "- Avalie a PERGUNTA ATUAL do aluno, não apenas o tópico.\n" +
       "- video_recommendation.enabled=true somente quando um vídeo didático puder responder, esclarecer ou aprofundar diretamente a pergunta atual.\n" +
@@ -3002,6 +3041,37 @@ Deno.serve(async (req: Request) => {
     }
 
     const assistantMessage = tutorResult.message;
+    const normalizedCurrentMessage = userMessage
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+    const isCasualOrNavigationMessage =
+      /^(oi|ola|bom dia|boa tarde|boa noite|obrigad[oa]s?|valeu|ok|certo|entendi|sim|nao|menu|voltar|sair|tchau)[.!?\s]*$/.test(normalizedCurrentMessage);
+    const isSubstantiveLearningTurn =
+      !isCasualOrNavigationMessage &&
+      assistantMessage.trim().length >= 160 &&
+      !/^(obrigad[oa]s?|de nada|ola|oi|bom dia|boa tarde|boa noite)\b/i.test(assistantMessage.trim());
+
+    // Imagem e vídeo são parte natural da aula em respostas acadêmicas substantivas.
+    // Não dependemos do modelo lembrar de ligar esses recursos em cada turno.
+    if (isSubstantiveLearningTurn) {
+      tutorResult.visualAid.enabled = true;
+      tutorResult.visualAid.type = tutorResult.visualAid.type || "concept_map";
+      tutorResult.visualAid.title = tutorResult.visualAid.title || "Apoio visual: " + topic.name;
+      if (tutorResult.visualAid.items.length === 0) {
+        tutorResult.visualAid.items = [
+          "Tema em estudo: " + topic.name,
+          "Observe os conceitos centrais e como se relacionam.",
+        ];
+      }
+      tutorResult.visualAid.caption =
+        tutorResult.visualAid.caption || "Material ilustrativo relacionado ao tópico da aula.";
+      tutorResult.videoRecommendation = {
+        enabled: true,
+        reason: "Vídeo complementar para aprofundar o conteúdo de " + topic.name + ".",
+      };
+    }
     let generatedAssessment = tutorResult.microassessment;
 
     if (
@@ -3084,7 +3154,12 @@ Deno.serve(async (req: Request) => {
       generatedAssessment.correct_option_index <= 3 &&
       generatedAssessment.explanation.length > 0
     ) {
-      const { data: savedAssessment, error: assessmentInsertError } = await supabase
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        console.warn("[Ensina-me] ai-tutor: service role ausente; questão de compreensão não salva.");
+      }
+      const { data: savedAssessment, error: assessmentInsertError } = adminClient
+        ? await adminClient
         .from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
@@ -3098,7 +3173,8 @@ Deno.serve(async (req: Request) => {
           concept_tags: generatedAssessment.concept_tags,
         })
         .select("id")
-        .single();
+        .single()
+        : { data: null, error: new Error("Service role unavailable") };
 
       if (assessmentInsertError || !savedAssessment) {
         console.warn(

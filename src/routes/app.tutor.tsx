@@ -52,6 +52,7 @@ type Message = {
   microAssessment?: MicroAssessment | null;
   microAssessmentLoading?: boolean;
   microAssessmentError?: string | null;
+  microAssessmentDeferred?: string | null;
   learningNextStep?: unknown;
 };
 
@@ -905,6 +906,21 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
+    // Mostra a escolha imediatamente, sem esperar a rede. Se o servidor falhar,
+    // a seleção é revertida para permitir uma nova tentativa.
+    setMessages((current) => current.map((item, itemIndex) =>
+      itemIndex === messageIndex && item.microAssessment
+        ? {
+            ...item,
+            microAssessment: {
+              ...item.microAssessment,
+              selectedOptionIndex,
+            },
+          }
+        : item,
+    ));
+
+    try {
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "answer_microassessment",
@@ -914,6 +930,17 @@ function TutorPage() {
     });
 
     if (invokeError || data?.error) {
+      setMessages((current) => current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex: undefined,
+              },
+            }
+          : item,
+      ));
       setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
       setAnsweringAssessmentId(null);
       return;
@@ -980,6 +1007,23 @@ function TutorPage() {
           console.warn("[Ensina-me] Falha ao preparar a próxima questão.", followUpError);
         }
       })();
+    }
+    } catch (answerError) {
+      console.error("[Ensina-me] Falha ao corrigir resposta no Tutor.", answerError);
+      setMessages((current) => current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex: undefined,
+              },
+            }
+          : item,
+      ));
+      setError("A correção não foi concluída. Tente selecionar a alternativa novamente.");
+    } finally {
+      setAnsweringAssessmentId(null);
     }
   }
 
@@ -1064,11 +1108,18 @@ function TutorPage() {
           };
           let assessmentData: { micro_assessment?: Pick<MicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags"> } | null = null;
           let errorMessage: string | null = null;
+          let deferredMessage: string | null = null;
 
           for (let attempt = 0; attempt < 2; attempt += 1) {
             const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
             if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
               assessmentData = result.data;
+              break;
+            }
+            if (!result.error && result.data?.generation_deferred === true) {
+              deferredMessage = typeof result.data.message === "string"
+                ? result.data.message
+                : "Vamos continuar estudando este conteúdo por enquanto. Daqui a pouco, tentamos uma pergunta para conferir o que você aprendeu.";
               break;
             }
 
@@ -1120,17 +1171,25 @@ function TutorPage() {
                       ...item,
                       microAssessmentLoading: false,
                       microAssessmentError: null,
+                      microAssessmentDeferred: null,
                       microAssessment: {
                         ...assessmentData.micro_assessment,
                         revealed: false,
                         answered: false,
                       },
                     }
-                  : {
-                      ...item,
-                      microAssessmentLoading: false,
-                      microAssessmentError: errorMessage ??
-                        "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
+                  : deferredMessage
+                    ? {
+                        ...item,
+                        microAssessmentLoading: false,
+                        microAssessmentError: null,
+                        microAssessmentDeferred: deferredMessage,
+                      }
+                    : {
+                        ...item,
+                        microAssessmentLoading: false,
+                        microAssessmentError: errorMessage ??
+                          "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
                     },
             ),
           );
@@ -1198,6 +1257,11 @@ function TutorPage() {
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
                       Preparando uma pergunta inédita sobre esta explicação…
                     </p>
+                  </div>
+                )}
+                {message.role === "assistant" && message.microAssessmentDeferred && (
+                  <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 text-sm leading-6 text-[#334155]">
+                    {message.microAssessmentDeferred}
                   </div>
                 )}
                 {message.role === "assistant" && message.microAssessmentError && (
@@ -1277,7 +1341,9 @@ function TutorPage() {
                                     ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
                                     : answered && selected && !correct
                                       ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
-                                      : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
+                                      : selected
+                                        ? "border-[#0242D7] bg-[#0242D7] text-white ring-2 ring-[#0242D7]/25"
+                                        : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
                                 }
                               >
                                 <span className="mr-2 font-black">
