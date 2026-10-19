@@ -52,6 +52,7 @@ type Message = {
   microAssessment?: MicroAssessment | null;
   microAssessmentLoading?: boolean;
   microAssessmentError?: string | null;
+  microAssessmentDeferred?: string | null;
   learningNextStep?: unknown;
 };
 
@@ -1089,11 +1090,18 @@ function TutorPage() {
           };
           let assessmentData: { micro_assessment?: Pick<MicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags"> } | null = null;
           let errorMessage: string | null = null;
+          let deferredMessage: string | null = null;
 
           for (let attempt = 0; attempt < 2; attempt += 1) {
             const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
             if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
               assessmentData = result.data;
+              break;
+            }
+            if (!result.error && result.data?.generation_deferred === true) {
+              deferredMessage = typeof result.data.message === "string"
+                ? result.data.message
+                : "Vamos continuar estudando este conteúdo por enquanto. Daqui a pouco, tentamos uma pergunta para conferir o que você aprendeu.";
               break;
             }
 
@@ -1145,17 +1153,25 @@ function TutorPage() {
                       ...item,
                       microAssessmentLoading: false,
                       microAssessmentError: null,
+                      microAssessmentDeferred: null,
                       microAssessment: {
                         ...assessmentData.micro_assessment,
                         revealed: false,
                         answered: false,
                       },
                     }
-                  : {
-                      ...item,
-                      microAssessmentLoading: false,
-                      microAssessmentError: errorMessage ??
-                        "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
+                  : deferredMessage
+                    ? {
+                        ...item,
+                        microAssessmentLoading: false,
+                        microAssessmentError: null,
+                        microAssessmentDeferred: deferredMessage,
+                      }
+                    : {
+                        ...item,
+                        microAssessmentLoading: false,
+                        microAssessmentError: errorMessage ??
+                          "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
                     },
             ),
           );
@@ -1223,6 +1239,11 @@ function TutorPage() {
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
                       Preparando uma pergunta inédita sobre esta explicação…
                     </p>
+                  </div>
+                )}
+                {message.role === "assistant" && message.microAssessmentDeferred && (
+                  <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 text-sm leading-6 text-[#334155]">
+                    {message.microAssessmentDeferred}
                   </div>
                 )}
                 {message.role === "assistant" && message.microAssessmentError && (
