@@ -58,6 +58,48 @@ export function isValidInitialQuestion(question: InitialQuestionCandidate): bool
   return true;
 }
 
+
+export type AcademicSectionExcerpt = {
+  title: string;
+  content: string;
+  position?: number;
+};
+
+export function selectRelevantAcademicSections<T extends AcademicSectionExcerpt>(
+  sections: T[],
+  learnerContext: string,
+  maxSections = 2,
+): T[] {
+  const limit = Math.max(0, Math.min(3, Math.floor(maxSections)));
+  if (limit === 0 || sections.length === 0) return [];
+
+  const terms = new Set(
+    normalized(learnerContext)
+      .match(/[a-z0-9]+/g)
+      ?.filter((word) => word.length > 3) ?? [],
+  );
+  if (terms.size === 0) return sections.slice(0, limit);
+
+  return sections
+    .map((section, index) => {
+      const titleWords = normalized(section.title).match(/[a-z0-9]+/g) ?? [];
+      const contentWords = normalized(section.content).match(/[a-z0-9]+/g) ?? [];
+      let score = 0;
+      for (const word of titleWords) {
+        if (terms.has(word) && word.length > 3) score += 3;
+      }
+      for (const word of contentWords) {
+        if (terms.has(word) && word.length > 3) score += 1;
+      }
+      return { section, index, score };
+    })
+    .sort((a, b) => b.score - a.score
+      || (a.section.position ?? a.index) - (b.section.position ?? b.index)
+      || a.index - b.index)
+    .slice(0, limit)
+    .map(({ section }) => section);
+}
+
 export function retryAfterSecondsFromResponse(
   headers: Headers,
   providerMessage = "",
