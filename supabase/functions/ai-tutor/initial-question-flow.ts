@@ -151,20 +151,14 @@ export async function createInitialIdempotencyKey(args: {
   userId: string;
   topicId: string;
   conversationId: string | null;
-  clientRequestId?: string | null;
   userQuestion: string;
-  tutorAnswer: string;
 }): Promise<string> {
-  const requestIdentity = args.clientRequestId?.trim()
-    ? "message:" + args.clientRequestId.trim()
-    : "content:" + args.userQuestion.trim() + "\u0000" + args.tutorAnswer.trim();
+  const canonicalQuestion = args.userQuestion.trim().normalize("NFC").replace(/\s+/g, " ");
   const input = [
     args.userId,
     args.topicId,
     args.conversationId ?? "no-conversation",
-    requestIdentity,
-    args.userQuestion.trim(),
-    args.tutorAnswer.trim(),
+    canonicalQuestion,
   ].join("\u001f");
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
