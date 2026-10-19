@@ -1323,8 +1323,8 @@ function TutorPage() {
           </form>
         </section>
 
-        <aside className="tutor-reflection-shell rounded-2xl border border-border bg-card p-4 text-card-foreground sm:p-5">
-          <figure className="tutor-reflection-card flex min-h-[260px] flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5 text-card-foreground sm:min-h-[300px] sm:p-6">
+        <aside className="tutor-reflection-shell flex h-full min-h-0 flex-col rounded-2xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+          <figure className="tutor-reflection-card flex w-full min-h-0 flex-1 flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5 text-card-foreground sm:p-6">
             <p className="tutor-reflection-label text-[10px] font-black uppercase tracking-[0.14em] text-primary">
               {reflection.kind === "quote" ? "Palavras de um pensador" : "Uma ideia para levar com você"}
             </p>
@@ -1346,15 +1346,6 @@ function TutorPage() {
               )}
             </p>
           </figure>
-          {!courseNames.length && (
-            <Link to="/app/catalogo" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Adicionar curso</Link>
-          )}
-          {courseNames.length > 0 && !topicId && (
-            <Link to="/app/disciplinas" className="mt-5 inline-flex rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-black text-white">Escolher disciplina</Link>
-          )}
-          {topicId && recommendation?.discipline_id && (
-            <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: recommendation.discipline_id, topicId }} className="mt-5 inline-flex rounded-xl border border-border bg-background text-foreground hover:bg-accent px-4 py-2.5 text-sm font-black">Abrir tópico</Link>
-          )}
         </aside>
       </div>
     </section>
