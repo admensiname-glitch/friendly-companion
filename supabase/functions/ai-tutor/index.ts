@@ -638,80 +638,79 @@ function detectLearningAction(message: string): "simplify" | "practice" | "revie
 async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
   const groqApiKey = Deno.env.get("GROQ_API_KEY")?.trim();
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
-  let primaryResponse: Response | null = null;
-  let primaryError: unknown = null;
+  let geminiResponse: Response | null = null;
+  let geminiError: unknown = null;
 
-  // Do not call Groq with an empty or missing key. Gemini can serve as the
-  // primary provider when the project has no Groq quota/key configured.
-  if (groqApiKey) {
+  // Gemini is the primary provider. Groq remains available as a fallback.
+  if (geminiApiKey) {
     try {
-      const primaryHeaders = new Headers(init.headers);
-      primaryHeaders.set("Authorization", "Bearer " + groqApiKey);
-      primaryResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        ...init,
-        headers: primaryHeaders,
-      });
-      if (primaryResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(primaryResponse.status)) {
-        return primaryResponse;
+      const requestHeaders = new Headers(init.headers);
+      requestHeaders.set("Authorization", "Bearer " + geminiApiKey);
+      requestHeaders.set("Content-Type", "application/json");
+
+      let requestBody = init.body;
+      if (typeof requestBody === "string") {
+        try {
+          const parsed = JSON.parse(requestBody) as Record<string, unknown>;
+          parsed.model = "gemini-3.8-flash";
+          delete parsed.include_reasoning;
+          delete parsed.reasoning_effort;
+          if (typeof parsed.max_completion_tokens === "number") {
+            parsed.max_tokens = parsed.max_completion_tokens;
+            delete parsed.max_completion_tokens;
+          }
+          requestBody = JSON.stringify(parsed);
+        } catch {
+          // Preserve non-JSON bodies and let the provider report the error.
+        }
       }
-      console.warn("[Ensina-me] ai-tutor: Groq indisponível; tentando Gemini", primaryResponse.status);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        geminiResponse = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          { ...init, signal: controller.signal, headers: requestHeaders, body: requestBody },
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if (geminiResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(geminiResponse.status)) {
+        return geminiResponse;
+      }
+      console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse.status);
     } catch (error) {
-      primaryError = error;
-      console.warn("[Ensina-me] ai-tutor: falha de rede/timeout na Groq; tentando Gemini");
+      geminiError = error;
+      console.warn("[Ensina-me] ai-tutor: falha de rede/timeout no Gemini; tentando Groq");
     }
   }
 
-  if (!geminiApiKey) {
-    if (primaryResponse) return primaryResponse;
-    throw primaryError instanceof Error
-      ? primaryError
-      : new Error("Nenhum provedor disponível: configure GROQ_API_KEY ou GEMINI_API_KEY.");
+  if (!groqApiKey) {
+    if (geminiResponse) return geminiResponse;
+    throw geminiError instanceof Error
+      ? geminiError
+      : new Error("Nenhum provedor disponível: configure GEMINI_API_KEY ou GROQ_API_KEY.");
   }
 
   try {
-    const requestHeaders = new Headers(init.headers);
-    requestHeaders.set("Authorization", "Bearer " + geminiApiKey);
-    requestHeaders.set("Content-Type", "application/json");
-
-    let requestBody = init.body;
-    if (typeof requestBody === "string") {
-      try {
-        const parsed = JSON.parse(requestBody) as Record<string, unknown>;
-        parsed.model = "gemini-3.8-flash";
-        delete parsed.include_reasoning;
-        delete parsed.reasoning_effort;
-        if (typeof parsed.max_completion_tokens === "number") {
-          parsed.max_tokens = parsed.max_completion_tokens;
-          delete parsed.max_completion_tokens;
-        }
-        requestBody = JSON.stringify(parsed);
-      } catch {
-        // Preserve non-JSON bodies and let the provider report the error.
-      }
-    }
-
-    const fallbackController = new AbortController();
-    const fallbackTimeout = setTimeout(() => fallbackController.abort(), 15000);
-    let fallbackResponse: Response;
-    try {
-      fallbackResponse = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        { ...init, signal: fallbackController.signal, headers: requestHeaders, body: requestBody },
-      );
-    } finally {
-      clearTimeout(fallbackTimeout);
-    }
-    if (!fallbackResponse.ok) {
-      console.warn("[Ensina-me] ai-tutor: Gemini também falhou", fallbackResponse.status);
+    const groqHeaders = new Headers(init.headers);
+    groqHeaders.set("Authorization", "Bearer " + groqApiKey);
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      { ...init, headers: groqHeaders },
+    );
+    if (!groqResponse.ok) {
+      console.warn("[Ensina-me] ai-tutor: Groq também falhou", groqResponse.status);
     } else {
-      console.info("[Ensina-me] ai-tutor: resposta gerada pelo provedor Gemini");
+      console.info("[Ensina-me] ai-tutor: resposta gerada pelo provedor Groq (fallback)");
     }
-    return fallbackResponse;
-  } catch (fallbackError) {
-    console.error("[Ensina-me] ai-tutor: falha de rede no Gemini",
-      fallbackError instanceof Error ? fallbackError.message : "unknown error");
-    if (primaryResponse) return primaryResponse;
-    throw fallbackError;
+    return groqResponse;
+  } catch (groqError) {
+    console.error("[Ensina-me] ai-tutor: falha de rede no Groq",
+      groqError instanceof Error ? groqError.message : "unknown error");
+    if (geminiResponse) return geminiResponse;
+    throw groqError;
   }
 }
 
