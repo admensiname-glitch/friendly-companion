@@ -698,10 +698,19 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
   try {
     const groqHeaders = new Headers(init.headers);
     groqHeaders.set("Authorization", "Bearer " + groqApiKey);
-    const groqResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      { ...init, headers: groqHeaders },
-    );
+    // Give the fallback its own deadline. Reusing init.signal is unsafe here:
+    // the caller's timer may already have expired while Gemini was being tried.
+    const groqController = new AbortController();
+    const groqTimeout = setTimeout(() => groqController.abort(), 12000);
+    let groqResponse: Response;
+    try {
+      groqResponse = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        { ...init, signal: groqController.signal, headers: groqHeaders },
+      );
+    } finally {
+      clearTimeout(groqTimeout);
+    }
     if (!groqResponse.ok) {
       console.warn("[Ensina-me] ai-tutor: Groq também falhou", groqResponse.status);
     } else {
