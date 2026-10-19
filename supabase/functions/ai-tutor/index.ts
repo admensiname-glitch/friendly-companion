@@ -1989,12 +1989,12 @@ Deno.serve(async (req: Request) => {
           error_code: "groq_429",
           assessment_id: null,
         });
-        return new Response(JSON.stringify({
-          error: "A IA atingiu temporariamente o limite de geração. Aguarde o intervalo informado antes de tentar novamente.",
-          retry_after_seconds: flowResult.retryAfterSeconds,
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(flowResult.retryAfterSeconds) },
+        // Falha na questão não deve interromper a aula nem expor limites internos do provedor.
+        // Mantemos o cooldown no backend, mas devolvemos uma resposta utilizável pela interface.
+        return json({
+          micro_assessment: null,
+          generation_deferred: true,
+          message: "Vamos continuar estudando este conteúdo por enquanto. Daqui a pouco, tentamos uma pergunta para conferir o que você aprendeu.",
         });
       }
 
@@ -2016,8 +2016,10 @@ Deno.serve(async (req: Request) => {
         return json({ error: "A pergunta foi elaborada, mas não pôde ser salva. A explicação principal foi preservada." }, 500);
       }
       return json({
-        error: "Não foi possível gerar uma questão inédita e válida agora. A explicação principal foi preservada; tente novamente em instantes.",
-      }, 503);
+        micro_assessment: null,
+        generation_deferred: true,
+        message: "Vamos seguir com a explicação. A pergunta de revisão pode ficar para depois, sem atrapalhar seus estudos.",
+      });
     }
     if (body.action === "generate_next_microassessment") {
       const assessmentId = body.micro_assessment_id?.trim();
