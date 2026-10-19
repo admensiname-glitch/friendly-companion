@@ -1264,71 +1264,71 @@ function TutorSection({
             message,
             answerContext: data.message,
           });
-        let assessmentData: {
-          micro_assessment?: Pick<TutorMicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags">;
-        } | null = null;
-        let errorMessage: string | null = null;
+          let assessmentData: {
+            micro_assessment?: Pick<TutorMicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags">;
+          } | null = null;
+          let errorMessage: string | null = null;
 
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
-          if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
-            assessmentData = result.data;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
+              assessmentData = result.data;
+              break;
+            }
+
+            let responseStatus: number | null = null;
+            let retryAfterSeconds = 30;
+            let providerErrorMessage: string | null = null;
+            if (result.error && typeof result.error === "object" && "context" in result.error) {
+              const errorContext = result.error.context;
+              if (errorContext instanceof Response) {
+                responseStatus = errorContext.status;
+                const retryAfterHeader = Number(errorContext.headers.get("retry-after"));
+                if (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0) {
+                  retryAfterSeconds = Math.ceil(retryAfterHeader);
+                }
+                try {
+                  const errorBody = await errorContext.clone().json() as {
+                    error?: unknown;
+                    retry_after_seconds?: unknown;
+                  };
+                  if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
+                  if (typeof errorBody.retry_after_seconds === "number" && errorBody.retry_after_seconds > 0) {
+                    retryAfterSeconds = Math.ceil(errorBody.retry_after_seconds);
+                  }
+                } catch {
+                  // Some gateway failures do not include a JSON response body.
+                }
+              }
+            }
+
+            if (responseStatus === 429 && attempt === 0) {
+              errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
+              continue;
+            }
+
+            errorMessage = providerErrorMessage ?? result.data?.error ??
+              (responseStatus === 429
+                ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
+                : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
             break;
           }
 
-          let responseStatus: number | null = null;
-          let retryAfterSeconds = 30;
-          let providerErrorMessage: string | null = null;
-          if (result.error && typeof result.error === "object" && "context" in result.error) {
-            const errorContext = result.error.context;
-            if (errorContext instanceof Response) {
-              responseStatus = errorContext.status;
-              const retryAfterHeader = Number(errorContext.headers.get("retry-after"));
-              if (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0) {
-                retryAfterSeconds = Math.ceil(retryAfterHeader);
-              }
-              try {
-                const errorBody = await errorContext.clone().json() as {
-                  error?: unknown;
-                  retry_after_seconds?: unknown;
-                };
-                if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
-                if (typeof errorBody.retry_after_seconds === "number" && errorBody.retry_after_seconds > 0) {
-                  retryAfterSeconds = Math.ceil(errorBody.retry_after_seconds);
-                }
-              } catch {
-                // Some gateway failures do not include a JSON response body.
-              }
-            }
+          if (assessmentData?.micro_assessment) {
+            setMicroAssessment({
+              id: assessmentData.micro_assessment.id,
+              question: assessmentData.micro_assessment.question,
+              options: assessmentData.micro_assessment.options,
+              difficulty: assessmentData.micro_assessment.difficulty,
+              concept_tags: assessmentData.micro_assessment.concept_tags ?? [],
+            });
+            setMicroAssessmentError(null);
+          } else {
+            setMicroAssessmentError(errorMessage ??
+              "Não foi possível preparar uma pergunta inédita agora. A explicação foi preservada; tente novamente em instantes.");
           }
-
-          if (responseStatus === 429 && attempt === 0) {
-            errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
-            await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
-            continue;
-          }
-
-          errorMessage = providerErrorMessage ?? result.data?.error ??
-            (responseStatus === 429
-              ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
-              : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
-          break;
-        }
-
-        if (assessmentData?.micro_assessment) {
-          setMicroAssessment({
-            id: assessmentData.micro_assessment.id,
-            question: assessmentData.micro_assessment.question,
-            options: assessmentData.micro_assessment.options,
-            difficulty: assessmentData.micro_assessment.difficulty,
-            concept_tags: assessmentData.micro_assessment.concept_tags ?? [],
-          });
-          setMicroAssessmentError(null);
-        } else {
-          setMicroAssessmentError(errorMessage ??
-            "Não foi possível preparar uma pergunta inédita agora. A explicação foi preservada; tente novamente em instantes.");
-        }
-          setMicroAssessmentLoading(false);
+            setMicroAssessmentLoading(false);
         } catch {
           setMicroAssessmentError("A comunicação com o Tutor falhou durante a preparação da pergunta. A explicação foi preservada; tente novamente em instantes.");
           setMicroAssessmentLoading(false);
