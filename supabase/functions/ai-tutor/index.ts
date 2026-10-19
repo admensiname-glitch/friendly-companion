@@ -152,9 +152,7 @@ async function generateFormalEvaluationQuestions(args: {
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
+    const response = await fetchWithProviderFallback({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -633,6 +631,71 @@ function detectLearningAction(message: string): "simplify" | "practice" | "revie
   return "explore";
 }
 
+/**
+ * Uses Groq first and automatically retries transient provider failures with Gemini.
+ * Gemini is optional until GEMINI_API_KEY is configured in Supabase Edge Function secrets.
+ */
+async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
+  let primaryResponse: Response | null = null;
+  let primaryError: unknown = null;
+
+  try {
+    primaryResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", init);
+    if (primaryResponse.ok || ![429, 500, 502, 503, 504].includes(primaryResponse.status)) {
+      return primaryResponse;
+    }
+    console.warn("[Ensina-me] ai-tutor: Groq temporariamente indisponível; tentando Gemini", primaryResponse.status);
+  } catch (error) {
+    primaryError = error;
+    console.warn("[Ensina-me] ai-tutor: falha de rede/timeout na Groq; tentando Gemini");
+  }
+
+  if (!geminiApiKey) {
+    if (primaryResponse) return primaryResponse;
+    throw primaryError instanceof Error ? primaryError : new Error("Groq indisponível e GEMINI_API_KEY não configurada.");
+  }
+
+  try {
+    const requestHeaders = new Headers(init.headers);
+    requestHeaders.set("Authorization", "Bearer " + geminiApiKey);
+    requestHeaders.set("Content-Type", "application/json");
+
+    let requestBody = init.body;
+    if (typeof requestBody === "string") {
+      try {
+        const parsed = JSON.parse(requestBody) as Record<string, unknown>;
+        parsed.model = "gemini-3.8-flash";
+        // The OpenAI-compatible Gemini endpoint does not need Groq-specific flags.
+        delete parsed.include_reasoning;
+        if (typeof parsed.max_completion_tokens === "number") {
+          parsed.max_tokens = parsed.max_completion_tokens;
+          delete parsed.max_completion_tokens;
+        }
+        requestBody = JSON.stringify(parsed);
+      } catch {
+        // Preserve the original body if it is not JSON; the request will report the provider error.
+      }
+    }
+
+    const fallbackResponse = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      { ...init, headers: requestHeaders, body: requestBody },
+    );
+    if (!fallbackResponse.ok) {
+      console.warn("[Ensina-me] ai-tutor: Gemini fallback também falhou", fallbackResponse.status);
+    } else {
+      console.info("[Ensina-me] ai-tutor: resposta gerada pelo provedor de reserva Gemini");
+    }
+    return fallbackResponse;
+  } catch (fallbackError) {
+    console.error("[Ensina-me] ai-tutor: falha de rede no Gemini fallback",
+      fallbackError instanceof Error ? fallbackError.message : "unknown error");
+    if (primaryResponse) return primaryResponse;
+    throw fallbackError;
+  }
+}
+
 function extractOutputText(payload: unknown): string {
   if (!isRecord(payload) || !Array.isArray(payload.choices)) return "";
 
@@ -952,9 +1015,7 @@ async function generateAdaptiveMicroAssessment(args: {
   const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
+    const response = await fetchWithProviderFallback({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2622,9 +2683,7 @@ Deno.serve(async (req: Request) => {
     let groqResponse: Response;
     let payload: unknown;
     try {
-      groqResponse = await fetch(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
+      groqResponse = await fetchWithProviderFallback({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2788,9 +2847,7 @@ Deno.serve(async (req: Request) => {
           const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
 
           try {
-            const fallbackResponse = await fetch(
-              "https://api.groq.com/openai/v1/chat/completions",
-              {
+            const fallbackResponse = await fetchWithProviderFallback({
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
