@@ -1256,7 +1256,8 @@ function TutorSection({
       setMicroAssessmentLoading(true);
       setMicroAssessmentError(null);
       void (async () => {
-        const requestBody = buildInitialComprehensionCheckRequest({
+        try {
+          const requestBody = buildInitialComprehensionCheckRequest({
           topicId,
           conversationId: responseConversationId,
           userMessageId: localId,
@@ -1327,7 +1328,11 @@ function TutorSection({
           setMicroAssessmentError(errorMessage ??
             "Não foi possível preparar uma pergunta inédita agora. A explicação foi preservada; tente novamente em instantes.");
         }
-        setMicroAssessmentLoading(false);
+          setMicroAssessmentLoading(false);
+        } catch {
+          setMicroAssessmentError("A comunicação com o Tutor falhou durante a preparação da pergunta. A explicação foi preservada; tente novamente em instantes.");
+          setMicroAssessmentLoading(false);
+        }
       })();
     }
     setRecommendedAction(
