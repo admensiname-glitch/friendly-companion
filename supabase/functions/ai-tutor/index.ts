@@ -678,10 +678,18 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
       }
     }
 
-    const fallbackResponse = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      { ...init, headers: requestHeaders, body: requestBody },
-    );
+    // Use a fresh signal: the Groq timeout controller may already be aborted.
+    const fallbackController = new AbortController();
+    const fallbackTimeout = setTimeout(() => fallbackController.abort(), 15000);
+    let fallbackResponse: Response;
+    try {
+      fallbackResponse = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        { ...init, signal: fallbackController.signal, headers: requestHeaders, body: requestBody },
+      );
+    } finally {
+      clearTimeout(fallbackTimeout);
+    }
     if (!fallbackResponse.ok) {
       console.warn("[Ensina-me] ai-tutor: Gemini fallback também falhou", fallbackResponse.status);
     } else {
