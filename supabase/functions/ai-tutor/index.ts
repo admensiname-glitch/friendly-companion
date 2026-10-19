@@ -2873,7 +2873,18 @@ Deno.serve(async (req: Request) => {
                 },
                 body: JSON.stringify({
                   model: "openai/gpt-oss-20b",
-                  messages,
+                  // Groq requires the prompt itself to explicitly request JSON
+                  // when response_format=json_object is used. The strict-schema
+                  // attempt may be rejected, so preserve the same task while
+                  // making the retry compatible with JSON mode.
+                  messages: messages.map((message, index) =>
+                    index === 0 && message.role === "system"
+                      ? {
+                          ...message,
+                          content: message.content + "\\n\\nFormato obrigatório: responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois."
+                        }
+                      : message
+                  ),
                   max_completion_tokens: 1800,
                   temperature: 0.2,
                   reasoning_effort: "low",
