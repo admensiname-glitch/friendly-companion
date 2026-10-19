@@ -1,6 +1,3 @@
--- Harden exam RPC execution privileges.
--- The functions remain SECURITY DEFINER and enforce auth.uid() ownership checks.
--- Anonymous/public callers must not be able to execute them.
 DO $$
 DECLARE
   f text;

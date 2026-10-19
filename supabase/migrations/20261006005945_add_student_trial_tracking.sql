@@ -1,0 +1,1 @@
+alter table public.student_profiles add column if not exists trial_started_at timestamptz; alter table public.student_profiles add column if not exists trial_ends_at timestamptz; create index if not exists student_profiles_trial_started_at_idx on public.student_profiles (trial_started_at);

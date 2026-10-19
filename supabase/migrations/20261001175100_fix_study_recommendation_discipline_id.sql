@@ -1,6 +1,3 @@
--- Keep the study recommendation contract aligned with topic routes.
--- The client route expects public.disciplines.id, not student_disciplines.id.
-
 create or replace function public.get_student_study_recommendation()
 returns jsonb
 language plpgsql
@@ -23,17 +20,13 @@ begin
   join public.courses c on c.id=d.course_id and c.published
   join public.student_disciplines sd on sd.user_id=v_user_id
   join public.discipline_aliases a on a.discipline_id=d.id
-   and a.normalized_alias=translate(lower(trim(sd.discipline_name)),
-     'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
+   and a.normalized_alias=translate(lower(trim(sd.discipline_name)),'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
   where diff.user_id=v_user_id and diff.review_status<>'mastered'
-  order by case when diff.review_status='pending' then 0 else 1 end,
-           diff.last_occurrence desc,diff.count desc
+  order by case when diff.review_status='pending' then 0 else 1 end,diff.last_occurrence desc,diff.count desc
   limit 1;
 
   if v_topic.topic_id is not null then
-    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,
-      'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,
-      'reason','review','message','Há um ponto que merece ser retomado para consolidar o conhecimento.');
+    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,'reason','review','message','Há um ponto que merece ser retomado para consolidar o conhecimento.');
   end if;
 
   select t.id as topic_id,t.name as topic_name,d.name as discipline_name,d.id as discipline_id
@@ -44,23 +37,19 @@ begin
   join public.courses c on c.id=d.course_id and c.published
   join public.student_disciplines sd on sd.user_id=v_user_id
   join public.discipline_aliases a on a.discipline_id=d.id
-   and a.normalized_alias=translate(lower(trim(sd.discipline_name)),
-     'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
+   and a.normalized_alias=translate(lower(trim(sd.discipline_name)),'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
   where p.user_id=v_user_id and p.status='in_progress'
   order by p.updated_at desc
   limit 1;
 
   if v_topic.topic_id is not null then
-    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,
-      'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,
-      'reason','continue','message','Você já começou este tópico. Continue de onde parou.');
+    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,'reason','continue','message','Você já começou este tópico. Continue de onde parou.');
   end if;
 
   select t.id as topic_id,t.name as topic_name,d.name as discipline_name,d.id as discipline_id
   into v_topic
   from public.student_disciplines sd
-  join public.discipline_aliases a on a.normalized_alias=translate(lower(trim(sd.discipline_name)),
-     'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
+  join public.discipline_aliases a on a.normalized_alias=translate(lower(trim(sd.discipline_name)),'áàãâäéèêëíìîïóòõôöúùûüç','aaaaaeeeeiiiiooooouuuuc')
   join public.disciplines d on d.id=a.discipline_id and d.published
   join public.courses c on c.id=d.course_id and c.published
   join public.topics t on t.discipline_id=d.id and t.published
@@ -70,9 +59,7 @@ begin
   limit 1;
 
   if v_topic.topic_id is not null then
-    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,
-      'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,
-      'reason','start','message','Este é o próximo tópico ainda não iniciado no seu percurso.');
+    return jsonb_build_object('topic_id',v_topic.topic_id,'discipline_id',v_topic.discipline_id,'topic_name',v_topic.topic_name,'discipline_name',v_topic.discipline_name,'reason','start','message','Este é o próximo tópico ainda não iniciado no seu percurso.');
   end if;
 
   return jsonb_build_object('topic_id',null,'reason','none','message','Seu percurso está em dia.');

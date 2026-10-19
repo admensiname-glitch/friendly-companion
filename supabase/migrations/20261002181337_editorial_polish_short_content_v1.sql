@@ -1,5 +1,5 @@
--- Applied remotely as 20261002181337_editorial_polish_short_content_v1.
--- This migration records the editorial cleanup already performed on the remote project.
+
+begin;
 
 update public.materials m
 set introduction = case t.name
@@ -37,13 +37,20 @@ from public.topics t
 where t.id = m.topic_id
   and m.status = 'published'
   and t.name in (
-    'Planejamento e execução de projetos','Aprofundamento da atuação profissional',
-    'Relações étnico-raciais e escola','Problemas reais da prática pedagógica',
-    'Integração entre fundamentos e prática','Papel do coordenador pedagógico',
-    'Registro e análise da prática','Atuação em contextos educacionais diversos',
-    'Projeto de intervenção','Integração dos fundamentos da formação',
-    'Síntese e reflexão profissional','Transição para a atuação profissional',
-    'Reflexão profissional baseada em evidências','Participação em atividades pedagógicas'
+    'Planejamento e execução de projetos',
+    'Aprofundamento da atuação profissional',
+    'Relações étnico-raciais e escola',
+    'Problemas reais da prática pedagógica',
+    'Integração entre fundamentos e prática',
+    'Papel do coordenador pedagógico',
+    'Registro e análise da prática',
+    'Atuação em contextos educacionais diversos',
+    'Projeto de intervenção',
+    'Integração dos fundamentos da formação',
+    'Síntese e reflexão profissional',
+    'Transição para a atuação profissional',
+    'Reflexão profissional baseada em evidências',
+    'Participação em atividades pedagógicas'
   );
 
 update public.material_sections s
@@ -54,11 +61,20 @@ set title = case s.title
   when 'Para revisar' then 'Revisão ativa'
   else s.title
 end,
-content = regexp_replace(trim(s.content), '^Comece pela pergunta:\s*', '', 'i')
+content = regexp_replace(
+  trim(s.content),
+  '^Comece pela pergunta:\s*',
+  '',
+  'i'
+)
 from public.materials m
-where m.id = s.material_id and m.status = 'published';
+where m.id = s.material_id
+  and m.status = 'published';
 
 update public.material_sections s
 set content = trim(s.content)
 from public.materials m
-where m.id = s.material_id and m.status = 'published';
+where m.id = s.material_id
+  and m.status = 'published';
+
+commit;

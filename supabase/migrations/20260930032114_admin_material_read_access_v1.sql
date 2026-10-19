@@ -1,3 +1,4 @@
+
 create policy "Admins select all materials"
 on public.materials
 for select to authenticated

@@ -1,0 +1,1 @@
+select cron.schedule('ensina-me-pedagogia-question-quality-worker','30 seconds',$job$ select net.http_get(url:='https://gcnbekkfulppfbsrgksd.supabase.co/functions/v1/finalize-pedagogia-questions?limit=10',timeout_milliseconds:=25000) as request_id; $job$);

@@ -77,75 +77,57 @@ from (
     ('Alfabetização e letramento','https://ceale.fae.ufmg.br/glossarioceale/verbetes/alfabetizacao','BASE'),
     ('Alfabetização e letramento','https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento','COMPLEMENTAR'),
     ('Alfabetização e letramento','https://revistas.usp.br/ep/pt_BR/article/view/238390','COMPLEMENTAR'),
-
     ('Sistema de escrita alfabética','https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf','BASE'),
     ('Sistema de escrita alfabética','https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/','BASE'),
     ('Sistema de escrita alfabética','https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/','COMPLEMENTAR'),
-
     ('Consciência fonológica e relações grafofonêmicas','https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf','BASE'),
     ('Consciência fonológica e relações grafofonêmicas','https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/','BASE'),
     ('Consciência fonológica e relações grafofonêmicas','https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/','COMPLEMENTAR'),
-
     ('Leitura, escrita e práticas sociais','https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf','BASE'),
     ('Leitura, escrita e práticas sociais','https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento','BASE'),
     ('Leitura, escrita e práticas sociais','https://www.scielo.br/j/es/a/zG4cBvLkSZfcZnXfZGLzsXb/','COMPLEMENTAR'),
     ('Leitura, escrita e práticas sociais','https://revistas.usp.br/ep/pt_BR/article/view/238390','COMPLEMENTAR')
 ) as v(topic_name, canonical_url, role)
-join public.topics t
-  on t.name = v.topic_name
- and t.published = true
-join public.sources s
-  on s.canonical_url = v.canonical_url
+join public.topics t on t.name=v.topic_name and t.published=true
+join public.sources s on s.canonical_url=v.canonical_url
 where not exists (
-  select 1
-  from public.topic_sources ts
-  where ts.topic_id = t.id
-    and ts.source_id = s.id
+  select 1 from public.topic_sources ts where ts.topic_id=t.id and ts.source_id=s.id
 );
 
 insert into public.material_citations (material_id, source_id, citation_label)
-select
-  m.id,
-  s.id,
-  'Base acadêmica do tópico'
+select m.id, s.id, 'Base acadêmica do tópico'
 from public.materials m
-join public.topics t
-  on t.id = m.topic_id
- and t.published = true
-join public.sources s
-  on s.canonical_url = any (
-    case t.name
-      when 'Alfabetização e letramento' then array[
-        'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
-        'https://ceale.fae.ufmg.br/glossarioceale/verbetes/alfabetizacao',
-        'https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento',
-        'https://revistas.usp.br/ep/pt_BR/article/view/238390'
-      ]
-      when 'Sistema de escrita alfabética' then array[
-        'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
-        'https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/',
-        'https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/'
-      ]
-      when 'Consciência fonológica e relações grafofonêmicas' then array[
-        'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
-        'https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/',
-        'https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/'
-      ]
-      when 'Leitura, escrita e práticas sociais' then array[
-        'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
-        'https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento',
-        'https://www.scielo.br/j/es/a/zG4cBvLkSZfcZnXfZGLzsXb/',
-        'https://revistas.usp.br/ep/pt_BR/article/view/238390'
-      ]
-      else array[]::text[]
-    end
-  )
-where m.status = 'published'
+join public.topics t on t.id=m.topic_id and t.published=true
+join public.sources s on s.canonical_url = any (
+  case t.name
+    when 'Alfabetização e letramento' then array[
+      'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
+      'https://ceale.fae.ufmg.br/glossarioceale/verbetes/alfabetizacao',
+      'https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento',
+      'https://revistas.usp.br/ep/pt_BR/article/view/238390'
+    ]
+    when 'Sistema de escrita alfabética' then array[
+      'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
+      'https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/',
+      'https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/'
+    ]
+    when 'Consciência fonológica e relações grafofonêmicas' then array[
+      'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
+      'https://www.scielo.br/j/rcefac/a/s4ppdZRdyVTqMrWnJR9y5ds/',
+      'https://www.scielo.br/j/estpsi/a/dkDHRQB4HTV74sLJryFPNhf/'
+    ]
+    when 'Leitura, escrita e práticas sociais' then array[
+      'https://basenacionalcomum.mec.gov.br/images/BNCC_EI_EF_110518_versaofinal_site.pdf',
+      'https://ceale.fae.ufmg.br/glossarioceale/verbetes/letramento',
+      'https://www.scielo.br/j/es/a/zG4cBvLkSZfcZnXfZGLzsXb/',
+      'https://revistas.usp.br/ep/pt_BR/article/view/238390'
+    ]
+    else array[]::text[]
+  end
+)
+where m.status='published'
 and not exists (
-  select 1
-  from public.material_citations mc
-  where mc.material_id = m.id
-    and mc.source_id = s.id
+  select 1 from public.material_citations mc where mc.material_id=m.id and mc.source_id=s.id
 );
 
 commit;

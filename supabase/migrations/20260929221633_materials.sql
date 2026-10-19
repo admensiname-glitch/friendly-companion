@@ -124,7 +124,7 @@ BEGIN
   -- Insere material
   INSERT INTO materials (id, topic_id, title, introduction, status)
   VALUES (
-    gen_random_uuid(),
+    '84439dee-5451-47a7-9062-9a7664db631d'::uuid,
     planning_topic_id,
     'Planejamento do ensino: fundamentos e elementos',
     'O planejamento do ensino é uma prática intencional que organiza o trabalho pedagógico em relação a objetivos, conteúdos, métodos e avaliação. Em vez de agir apenas pela improvisação ou pelo hábito, o docente que planeja reflete previamente sobre o que deseja alcançar, o que será trabalhado, de que forma e como verificar se a aprendizagem ocorreu. Essa organização não é um exercício burocrático: é uma ferramenta que permite tomar decisões conscious about the educational process, considerando as condições concretas da prática e os saberes dos estudantes. Nesta disciplina, você conhecerá os elementos fundamentais do planejamento e poderá utilizá-los como referência para a organização de suas práticas de ensino.',

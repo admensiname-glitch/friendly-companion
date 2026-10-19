@@ -1,3 +1,4 @@
+
 create table public.student_material_section_progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -44,8 +45,6 @@ set search_path = public, pg_temp
 as $$
 declare
   v_user_id uuid := auth.uid();
-  v_material_id uuid;
-  v_topic_id uuid;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated';
@@ -55,37 +54,56 @@ begin
     raise exception 'student_role_required';
   end if;
 
-  select ms.material_id, m.topic_id
-    into v_material_id, v_topic_id
-  from public.material_sections ms
-  join public.materials m on m.id=ms.material_id
-  join public.topics t on t.id=m.topic_id
-  join public.disciplines d on d.id=t.discipline_id
-  join public.courses c on c.id=d.course_id
-  where ms.id=_section_id
-    and m.status='published'
-    and t.published
-    and d.published
-    and c.published;
-
-  if v_material_id is null then
+  if not exists (
+    select 1
+    from public.material_sections ms
+    join public.materials m on m.id = ms.material_id
+    join public.topics t on t.id = m.topic_id
+    join public.disciplines d on d.id = t.discipline_id
+    join public.courses c on c.id = d.course_id
+    where ms.id = _section_id
+      and m.status = 'published'
+      and t.published
+      and d.published
+      and c.published
+  ) then
     raise exception 'section_not_available';
   end if;
 
   insert into public.student_material_section_progress(user_id, section_id)
   values (v_user_id, _section_id)
   on conflict (user_id, section_id)
-  do update set completed_at=now();
+  do update set completed_at = now();
 
   return query
   select
-    (select count(*)::integer
-     from public.student_material_section_progress p
-     join public.material_sections ms on ms.id=p.section_id
-     where p.user_id=v_user_id and ms.material_id=v_material_id),
-    (select count(*)::integer
-     from public.material_sections ms
-     where ms.material_id=v_material_id);
+    (
+      select count(*)::integer
+      from public.student_material_section_progress p
+      where p.user_id = v_user_id
+        and p.section_id in (
+          select ms.id
+          from public.material_sections ms
+          join public.materials m on m.id=ms.material_id
+          where m.topic_id = (
+            select t2.id
+            from public.topics t2
+            join public.materials m2 on m2.topic_id=t2.id
+            join public.material_sections ms2 on ms2.material_id=m2.id
+            where ms2.id=_section_id
+          )
+          and m.id = (
+            select ms3.material_id from public.material_sections ms3 where ms3.id=_section_id
+          )
+        )
+    )::integer,
+    (
+      select count(*)::integer
+      from public.material_sections ms
+      where ms.material_id = (
+        select material_id from public.material_sections where id=_section_id
+      )
+    )::integer;
 end;
 $$;
 

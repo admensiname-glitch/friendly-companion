@@ -1,9 +1,10 @@
+
 do $$
 begin
   update public.material_sections ms
   set content =
     case ms.position
-      when 3 then 'No tópico "' || t.name || '", relacione os conceitos desta seção ao foco específico do tema. ' || coalesce(trim(t.description), 'Observe como os elementos centrais do tópico se articulam.')
+      when 3 then 'No tópico "' || t.name || '", relacione os conceitos desta seção ao foco específico do tema. ' || coalesce(trim(t.description), 'Observe como os elementos centrais do tópico se articulam.') 
       when 4 then 'Para visualizar "' || t.name || '", pense em uma situação concreta da área de "' || d.name || '" e identifique onde o conceito estudado aparece.'
       when 5 then 'Ao analisar "' || t.name || '", reúna evidências que permitam observar o conceito em situação e relacione essas evidências ao objetivo do estudo.'
       when 6 then 'Ao estudar "' || t.name || '", use o erro descrito nesta seção para distinguir uma simplificação inadequada de uma decisão pedagógica fundamentada.'
