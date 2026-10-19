@@ -2073,23 +2073,34 @@ html.dark .app-shell main .tutor-reflection-link {
   }
 }
 
-/* The reflection card must fill its frame, independent of which quote is selected. */
+/* Every reflection card fills the full height of its outer frame. */
+.app-shell main .mt-7.grid.gap-6.lg\\:grid-cols-\\[minmax\\(0\\,1\\.55fr\\)_minmax\\(320px\\,0\\.9fr\\)\\] {
+  align-items: stretch;
+}
+
 .app-shell main .tutor-reflection-shell {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
 .app-shell main .tutor-reflection-card {
+  box-sizing: border-box;
   flex: 1 1 auto;
   align-self: stretch;
   display: flex;
   flex-direction: column;
   justify-content: center;
   margin: 0;
-  min-height: 100%;
-  height: 100%;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 .app-shell main .tutor-reflection-card > .tutor-reflection-quote {
@@ -2099,4 +2110,5 @@ html.dark .app-shell main .tutor-reflection-link {
 .app-shell main .tutor-reflection-card > .tutor-reflection-source {
   margin-top: 0.75rem;
 }
+
 
