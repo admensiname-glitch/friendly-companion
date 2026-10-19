@@ -2073,3 +2073,30 @@ html.dark .app-shell main .tutor-reflection-link {
   }
 }
 
+/* The reflection card must fill its frame, independent of which quote is selected. */
+.app-shell main .tutor-reflection-shell {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 100%;
+}
+
+.app-shell main .tutor-reflection-card {
+  flex: 1 1 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+}
+
+.app-shell main .tutor-reflection-card > .tutor-reflection-quote {
+  flex: 0 0 auto;
+}
+
+.app-shell main .tutor-reflection-card > .tutor-reflection-source {
+  margin-top: 0.75rem;
+}
+
