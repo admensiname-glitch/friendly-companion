@@ -676,10 +676,12 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
         clearTimeout(timeout);
       }
 
-      if (geminiResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(geminiResponse.status)) {
+      if (geminiResponse.ok) {
         return geminiResponse;
       }
-      console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse.status);
+      // Any Gemini HTTP error falls back to Groq. A 400/404 can indicate an
+      // unsupported model or request format and must not break the whole Tutor.
+      console.warn("[Ensina-me] ai-tutor: Gemini retornou erro HTTP; tentando Groq", geminiResponse.status);
     } catch (error) {
       geminiError = error;
       console.warn("[Ensina-me] ai-tutor: falha de rede/timeout no Gemini; tentando Groq");
