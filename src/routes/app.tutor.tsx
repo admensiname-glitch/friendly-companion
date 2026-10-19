@@ -1150,7 +1150,7 @@ function TutorPage() {
       </header>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.9fr)]">
-        <section className="rounded-2xl border border-[#DCE5F0] bg-white shadow-[0_8px_28px_rgba(15,23,42,.05)]">
+        <section className="tutor-chat-shell rounded-2xl border border-border bg-card text-card-foreground shadow-[0_8px_28px_rgba(15,23,42,.05)]">
           <div className="min-h-[360px] space-y-4 p-5 sm:p-7">
             {loading ? (
               <div className="h-24 animate-pulse rounded-xl bg-[#F3F6FA]" />
@@ -1323,23 +1323,23 @@ function TutorPage() {
           </form>
         </section>
 
-        <aside className="rounded-2xl border border-border bg-card p-4 text-card-foreground sm:p-5">
-          <figure className="flex min-h-[260px] flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5 text-card-foreground sm:min-h-[300px] sm:p-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">
+        <aside className="tutor-reflection-shell rounded-2xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+          <figure className="tutor-reflection-card flex min-h-[260px] flex-col justify-center rounded-2xl border border-border bg-muted/40 p-5 text-card-foreground sm:min-h-[300px] sm:p-6">
+            <p className="tutor-reflection-label text-[10px] font-black uppercase tracking-[0.14em] text-primary">
               {reflection.kind === "quote" ? "Palavras de um pensador" : "Uma ideia para levar com você"}
             </p>
-            <blockquote className="mt-4 text-lg font-semibold leading-8 text-foreground sm:text-xl sm:leading-9">
+            <blockquote className="tutor-reflection-quote mt-4 text-lg font-semibold leading-8 text-foreground sm:text-xl sm:leading-9">
               {reflection.kind === "quote" ? `“${reflection.text}”` : reflection.text}
             </blockquote>
-            <figcaption className="mt-5 text-sm font-extrabold text-foreground">
+            <figcaption className="tutor-reflection-author mt-5 text-sm font-extrabold text-foreground">
               {reflection.author}
             </figcaption>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            <p className="tutor-reflection-source mt-2 text-xs leading-5 text-muted-foreground">
               {reflection.source}
               {reflection.sourceUrl && (
                 <>
                   {" · "}
-                  <a href={reflection.sourceUrl} target="_blank" rel="noreferrer" className="font-bold text-primary underline-offset-4 hover:underline">
+                  <a href={reflection.sourceUrl} target="_blank" rel="noreferrer" className="tutor-reflection-link font-bold text-primary underline-offset-4 hover:underline">
                     Consultar fonte ↗
                   </a>
                 </>
