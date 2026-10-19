@@ -45,6 +45,44 @@ function normalized(value: string): string {
     .toLocaleLowerCase();
 }
 
+
+/** Decode numeric character references as text and remove model-added choice prefixes. */
+export function normalizeQuestionOptionText(value: string): string {
+  const decoded = value.replace(
+    /&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));/gi,
+    (entity, hexadecimal: string | undefined, decimal: string | undefined) => {
+      const codePoint = Number.parseInt(hexadecimal ?? decimal ?? "", hexadecimal ? 16 : 10);
+      if (
+        !Number.isInteger(codePoint) ||
+        codePoint < 0 ||
+        codePoint > 0x10ffff ||
+        (codePoint >= 0xd800 && codePoint <= 0xdfff)
+      ) return entity;
+      return String.fromCodePoint(codePoint);
+    },
+  );
+  return decoded.trim().replace(/^(?:[A-D]|[1-4])\s*[.)\-:]\s+/i, "").trim();
+}
+
+/** Detect a confirmed photosynthesis misconception in the keyed answer or its explanation. */
+export function hasPhotosynthesisOxygenAttributionError(args: {
+  question: string;
+  correctOption: string;
+  explanation: string;
+}): boolean {
+  const combined = normalized(`${args.question} ${args.correctOption} ${args.explanation}`)
+    .replace(/₂/g, "2");
+  if (!/\b(fotossintese|photosynthesis|clorofila|calvin|nadph)\b/.test(combined)) return false;
+
+  return [args.correctOption, args.explanation].some((value) => {
+    const claim = normalized(value).replace(/₂/g, "2");
+    return /\b(fase escura|ciclo de calvin)\b/.test(claim)
+      && /\b(o2|oxigenio)\b/.test(claim)
+      && /\b(libera(?:r|do|da|ndo|cao)?|produz(?:ir|ido|ida|indo|cao)?|gera(?:r|do|da|ndo|cao)?|subproduto)\b/.test(claim)
+      && !/\b(nao|nunca|jamais)\b/.test(claim);
+  });
+}
+
 export function isValidInitialQuestion(question: InitialQuestionCandidate): boolean {
   if (typeof question.question !== "string" || question.question.trim().length < 8) return false;
   if (typeof question.explanation !== "string" || question.explanation.trim().length < 8) return false;
