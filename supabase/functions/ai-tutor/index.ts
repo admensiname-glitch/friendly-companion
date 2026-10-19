@@ -974,16 +974,13 @@ async function generateAdaptiveMicroAssessment(args: {
                     properties: {
                       enabled: { type: "boolean" },
                       question: { type: "string" },
+                      // Runtime validation below enforces four options and index 0–3.
                       options: {
-                          type: "array",
-                          minItems: 0,
-                          maxItems: 4,
-                          items: { type: "string" },
-                        },
+                        type: "array",
+                        items: { type: "string" },
+                      },
                       correct_option_index: {
                         type: "integer",
-                        minimum: 0,
-                        maximum: 3,
                       },
                       explanation: { type: "string" },
                       difficulty: {
@@ -992,8 +989,6 @@ async function generateAdaptiveMicroAssessment(args: {
                       },
                       concept_tags: {
                         type: "array",
-                        minItems: 0,
-                        maxItems: 3,
                         items: { type: "string" },
                       },
                     },
@@ -1017,11 +1012,18 @@ async function generateAdaptiveMicroAssessment(args: {
       },
     );
 
-    const payload = await response.json();
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
+      const providerError =
+        isRecord(payload) && isRecord(payload.error) ? payload.error : null;
+      const providerMessage =
+        providerError && typeof providerError.message === "string"
+          ? providerError.message.slice(0, 240)
+          : "detalhe do provedor indisponível";
       console.warn(
         "[Ensina-me] ai-tutor: falha ao gerar continuação adaptativa",
         response.status,
+        providerMessage,
       );
       return null;
     }
