@@ -2111,4 +2111,22 @@ html.dark .app-shell main .tutor-reflection-link {
   margin-top: 0.75rem;
 }
 
+/* Enforce the full-frame fit directly on the Tutor reflection elements. */
+.app-shell main .tutor-layout-grid > .tutor-reflection-shell {
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-self: stretch !important;
+}
+
+.app-shell main .tutor-layout-grid > .tutor-reflection-shell > .tutor-reflection-card {
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-self: stretch !important;
+  margin: 0 !important;
+}
 
