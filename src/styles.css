@@ -2074,7 +2074,7 @@ html.dark .app-shell main .tutor-reflection-link {
 }
 
 /* Every reflection card fills the full height of its outer frame. */
-.app-shell main .mt-7.grid.gap-6.lg\\:grid-cols-\\[minmax\\(0\\,1\\.55fr\\)_minmax\\(320px\\,0\\.9fr\\)\\] {
+.app-shell main .tutor-layout-grid {
   align-items: stretch;
 }
 
