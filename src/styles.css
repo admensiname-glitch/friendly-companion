@@ -2017,3 +2017,59 @@ html.dark .app-shell main .tutor-reflection-link {
   text-decoration-color: #91B7FF !important;
 }
 
+/* Keep the Tutor reflection perfectly fitted to its frame at every viewport size. */
+.app-shell main .tutor-reflection-shell {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.app-shell main .tutor-reflection-card {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: clamp(260px, 32vw, 440px);
+  height: auto;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.app-shell main .tutor-reflection-quote {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.app-shell main .tutor-reflection-author,
+.app-shell main .tutor-reflection-source {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1023px) {
+  .app-shell main .tutor-reflection-card {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell main .tutor-reflection-shell {
+    padding: 12px;
+  }
+
+  .app-shell main .tutor-reflection-card {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .app-shell main .tutor-reflection-quote {
+    font-size: clamp(1rem, 4.6vw, 1.25rem);
+    line-height: 1.65;
+  }
+}
+
