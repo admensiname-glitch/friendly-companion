@@ -998,6 +998,7 @@ function TutorPage() {
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
+    try {
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "chat",
@@ -1136,7 +1137,12 @@ function TutorPage() {
       }
     }
 
-    setSending(false);
+    } catch (sendError) {
+      console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
+      setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
