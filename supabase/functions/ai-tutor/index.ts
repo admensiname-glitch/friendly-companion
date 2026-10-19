@@ -2641,7 +2641,7 @@ Deno.serve(async (req: Request) => {
       "- O TÓPICO ACADÊMICO é apenas uma fronteira de segurança e fonte de precisão; ele NÃO deve substituir o foco da conversa.\n" +
       "- Se não houver histórico substantivo suficiente para identificar o que o aluno queria entender, não invente um foco e não escolha uma questão genérica do tópico; mantenha microassessment.enabled=false.\n" +
       "- Faça exatamente uma questão de múltipla escolha com 4 alternativas.\n" +
-      "- A alternativa correta deve ser inequivocamente correta com base na explicação e no contexto acadêmico.\n" +
+      "- A alternativa correta deve ser inequivocamente correta com base na explicação e no contexto acadêmico.\n- correct_option_index é um índice zero-based: use somente 0, 1, 2 ou 3; nunca use -1.\n" +
       "- Evite pistas óbvias, pegadinhas artificiais e ambiguidades.\n" +
       "- Quando uma microavaliação for gerada, NÃO repita a questão nem as alternativas no campo message; no texto, apenas convide o aluno a responder a questão apresentada abaixo.\n" +
       "- Explique o gabarito de forma curta e pedagógica.\n" +
@@ -2872,14 +2872,33 @@ Deno.serve(async (req: Request) => {
         /json.?schema|response_format|structured output|strict/i.test(providerError);
       if (shouldRetryWithoutSchema) {
         try {
-          const fallbackController = new AbortController();
-          const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
+          // Retry with a deliberately compact prompt. Reusing the full academic
+          // context plus a 1,800-token completion budget exceeded Groq's 8k TPM
+          // window in production, so the recovery request must be much smaller.
+          const compactFallbackMessages = [
+            {
+              role: "system",
+              content: [
+                "Você é o Tutor acadêmico do Ensina-me. Responda em português do Brasil, com precisão e clareza.",
+                "Retorne exclusivamente um objeto JSON válido, sem Markdown, com as chaves: message (string), learning_observations (array), shareable (boolean), visual_aid (objeto com enabled, type, title, items, caption), microassessment (objeto com enabled, question, options, correct_option_index, explanation, difficulty, concept_tags) e video_recommendation (objeto com enabled, reason).",
+                "Se gerar microavaliação: exatamente 4 alternativas não vazias, correct_option_index inteiro zero-based entre 0 e 3 (NUNCA -1), explicação correta e 1 a 3 concept_tags. Se não gerar: enabled=false, question=\"\", options=[], correct_option_index=0, explanation=\"\", concept_tags=[].",
+                "Se não houver base suficiente, explique o que é possível afirmar sem inventar fontes. Mantenha visual_aid.items com no máximo 6 itens e learning_observations com no máximo 4 itens.",
+                "CONTEXTO ACADÊMICO (resumo): " + safeContext.slice(0, 5000),
+                "HISTÓRICO RECENTE (resumo): " + conversationContext.slice(-1800),
+              ].join("\n\n"),
+            },
+            ...recentHistory.slice(-2).map((item) => ({
+              role: item.role,
+              content: item.content.slice(-900),
+            })),
+            { role: "user", content: userMessage.slice(-1200) },
+          ];
 
-          try {
-            // This retry is specifically a Groq JSON-mode compatibility retry.
-            // Do not route it through fetchWithProviderFallback, which would try Gemini
-            // again and could repeat the same provider/schema failure.
-            const fallbackResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          const requestCompactFallback = async () => {
+            const fallbackController = new AbortController();
+            const fallbackTimeout = setTimeout(() => fallbackController.abort(), 12000);
+            try {
+              const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -2887,53 +2906,65 @@ Deno.serve(async (req: Request) => {
                 },
                 body: JSON.stringify({
                   model: "openai/gpt-oss-20b",
-                  // Groq requires the prompt itself to explicitly request JSON
-                  // when response_format=json_object is used. The strict-schema
-                  // attempt may be rejected, so preserve the same task while
-                  // making the retry compatible with JSON mode.
-                  messages: messages.map((message, index) =>
-                    index === 0 && message.role === "system"
-                      ? {
-                          ...message,
-                          content: message.content + "\n\nFormato obrigatório: responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois."
-                        }
-                      : message
-                  ),
-                  max_completion_tokens: 1800,
+                  messages: compactFallbackMessages,
+                  max_completion_tokens: 700,
                   temperature: 0.2,
                   reasoning_effort: "low",
                   include_reasoning: false,
                   response_format: { type: "json_object" },
                 }),
                 signal: fallbackController.signal,
-              },
-            );
-
-            const fallbackPayload = await fallbackResponse.json();
-
-            if (fallbackResponse.ok) {
-              payload = fallbackPayload;
-            } else {
-              console.error(
-                "[Ensina-me] ai-tutor: fallback JSON também falhou",
-                JSON.stringify({
-                  status: fallbackResponse.status,
-                  request_id: fallbackResponse.headers.get("x-request-id"),
-                  message:
-                    isRecord(fallbackPayload) &&
-                    isRecord(fallbackPayload.error) &&
-                    typeof fallbackPayload.error.message === "string"
-                      ? fallbackPayload.error.message
-                      : "erro não especificado",
-                }),
-              );
+              });
+              const responsePayload = await response.json().catch(() => null);
+              return { response, payload: responsePayload };
+            } finally {
+              clearTimeout(fallbackTimeout);
             }
-          } finally {
-            clearTimeout(fallbackTimeout);
+          };
+
+          let fallbackAttempt = await requestCompactFallback();
+          // Honor a short provider retry window once. The prior code discarded
+          // Groq's Retry-After and immediately returned a generic 502.
+          if (!fallbackAttempt.response.ok && fallbackAttempt.response.status === 429) {
+            const retryMessage =
+              isRecord(fallbackAttempt.payload) &&
+              isRecord(fallbackAttempt.payload.error) &&
+              typeof fallbackAttempt.payload.error.message === "string"
+                ? fallbackAttempt.payload.error.message
+                : "";
+            const waitSeconds = retryAfterSecondsFromResponse(
+              fallbackAttempt.response.headers,
+              retryMessage,
+              2,
+            );
+            if (waitSeconds <= 10) {
+              await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000 + 150));
+              fallbackAttempt = await requestCompactFallback();
+            }
+          }
+
+          if (fallbackAttempt.response.ok && isRecord(fallbackAttempt.payload)) {
+            payload = fallbackAttempt.payload;
+            console.info("[Ensina-me] ai-tutor: recuperação JSON compacta concluída");
+          } else {
+            const fallbackError =
+              isRecord(fallbackAttempt.payload) && isRecord(fallbackAttempt.payload.error)
+                ? fallbackAttempt.payload.error
+                : null;
+            console.error(
+              "[Ensina-me] ai-tutor: fallback JSON compacto falhou",
+              JSON.stringify({
+                status: fallbackAttempt.response.status,
+                request_id: fallbackAttempt.response.headers.get("x-request-id"),
+                message: fallbackError && typeof fallbackError.message === "string"
+                  ? fallbackError.message
+                  : "erro não especificado",
+              }),
+            );
           }
         } catch (fallbackError) {
           console.error(
-            "[Ensina-me] ai-tutor: exceção no fallback JSON",
+            "[Ensina-me] ai-tutor: exceção no fallback JSON compacto",
             fallbackError instanceof Error ? fallbackError.message : "unknown error",
           );
         }
