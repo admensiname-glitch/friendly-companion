@@ -879,6 +879,7 @@ async function generateAdaptiveMicroAssessment(args: {
   recentQuestions: string[];
   purpose?: "initial" | "adaptive";
   seed?: string;
+  onRateLimit?: (retryAfterSeconds: number) => void;
 }): Promise<AdaptiveMicroAssessment | null> {
   const adaptiveInstruction = args.purpose === "initial"
     ? "O aluno acabou de ler uma explicação acadêmica e precisa de uma verificação breve da compreensão. Crie uma questão diagnóstica nova, diretamente ligada ao que foi explicado. Não escreva uma mensagem de correção de resposta anterior."
@@ -924,7 +925,10 @@ async function generateAdaptiveMicroAssessment(args: {
     "\n- Questão anterior: " +
     args.previousQuestion +
     "\n- Questões recentes a evitar: " +
-    (args.recentQuestions.join(" | ") || "nenhuma") +
+    (args.recentQuestions
+      .slice(0, args.purpose === "initial" ? 8 : 12)
+      .map((question) => question.slice(0, 220))
+      .join(" | ") || "nenhuma") +
     "\n\n" +
     "CONTEXTO ACADÊMICO\n" +
     args.context;
@@ -954,7 +958,7 @@ async function generateAdaptiveMicroAssessment(args: {
                   : "Continue a sequência com uma explicação curta, um exemplo correto e uma nova questão de reforço.",
             },
           ],
-          max_completion_tokens: 900,
+          max_completion_tokens: args.purpose === "initial" ? 550 : 900,
           temperature: 0.2,
           reasoning_effort: "low",
           include_reasoning: false,
@@ -1025,6 +1029,16 @@ async function generateAdaptiveMicroAssessment(args: {
         response.status,
         providerMessage,
       );
+      if (response.status === 429) {
+        const retryAfterHeader = Number(response.headers.get("retry-after"));
+        const retryAfterMatch = providerMessage.match(/try again in ([0-9.]+)s/i);
+        const parsedRetryAfter = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+          ? retryAfterHeader
+          : retryAfterMatch
+            ? Number(retryAfterMatch[1])
+            : 30;
+        args.onRateLimit?.(Math.max(1, Math.min(120, Math.ceil(parsedRetryAfter))));
+      }
       return null;
     }
 
@@ -1630,23 +1644,26 @@ Deno.serve(async (req: Request) => {
         .map((item: { question_text: string }) => item.question_text)
         .filter((question: string) => typeof question === "string" && question.trim());
 
-      const academicContext = [
-        "TÓPICO: " + topic.name,
-        topic.description ? "DESCRIÇÃO: " + topic.description : "",
-        material ? "MATERIAL: " + material.title + "\n" + (material.introduction ?? "") : "",
-        ...(sections ?? []).map((section: { title: string; content: string }) =>
-          "SEÇÃO — " + section.title + "\n" + section.content),
-        "PERGUNTA DO ALUNO: " + userQuestion,
-        "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer,
+      const initialContext = [
+        "TÓPICO: " + topic.name.slice(0, 240),
+        topic.description ? "DESCRIÇÃO: " + topic.description.slice(0, 500) : "",
+        material
+          ? "MATERIAL: " + material.title.slice(0, 240) + "\n" + (material.introduction ?? "").slice(0, 800)
+          : "",
+        ...(sections ?? []).slice(0, 4).map((section: { title: string; content: string }) =>
+          "SEÇÃO — " + section.title.slice(0, 160) + "\n" + section.content.slice(0, 350)),
+        "PERGUNTA DO ALUNO: " + userQuestion.slice(0, 1200),
+        "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer.slice(0, 1800),
       ].filter(Boolean).join("\n\n");
 
-      // Try different generations if the provider returns invalid or repeated content.
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      let rateLimitRetryAfterSeconds: number | null = null;
+      // A provider rate limit must stop immediate retries; keep generation attempts bounded.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         const generated = await generateAdaptiveMicroAssessment({
           apiKey: groqApiKey,
           topicName: topic.name,
           topicDescription: topic.description,
-          context: truncateText(academicContext, MAX_CONTEXT_CHARACTERS),
+          context: truncateText(initialContext, 6500),
           previousQuestion: "Nenhuma pergunta anterior desta explicação.",
           previousTags: [],
           wasCorrect: true,
@@ -1654,12 +1671,18 @@ Deno.serve(async (req: Request) => {
           consecutiveCorrect: 0,
           consecutiveIncorrect: 0,
           weakestConcept: null,
-          recentQuestions,
+          recentQuestions: recentQuestions.slice(0, 8).map((question: string) => question.slice(0, 220)),
           purpose: "initial",
           seed: crypto.randomUUID(),
+          onRateLimit: (seconds) => {
+            rateLimitRetryAfterSeconds = seconds;
+          },
         });
 
-        if (!generated) continue;
+        if (!generated) {
+          if (rateLimitRetryAfterSeconds !== null) break;
+          continue;
+        }
         if (recentQuestions.some((question) =>
           isQuestionTooSimilar(generated.microassessment.question, question)
         )) continue;
@@ -1696,6 +1719,12 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      if (rateLimitRetryAfterSeconds !== null) {
+        return json({
+          error: "A IA atingiu temporariamente o limite de geração. Aguarde alguns segundos; o Tutor tentará novamente automaticamente.",
+          retry_after_seconds: rateLimitRetryAfterSeconds,
+        }, 429);
+      }
       return json({ error: "Não foi possível gerar uma pergunta inédita desta vez." }, 503);
     }
 

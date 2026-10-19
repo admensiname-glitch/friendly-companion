@@ -527,8 +527,44 @@ function TutorPage() {
               assessmentData = result.data;
               break;
             }
-            errorMessage = result.data?.error ??
-              (result.error ? "Falha na comunicação com o Tutor." : "Não foi possível preparar a pergunta.");
+
+            let responseStatus: number | null = null;
+            let retryAfterSeconds = 30;
+            let providerErrorMessage: string | null = null;
+            if (result.error && typeof result.error === "object" && "context" in result.error) {
+              const errorContext = result.error.context;
+              if (errorContext instanceof Response) {
+                responseStatus = errorContext.status;
+                const retryAfterHeader = Number(errorContext.headers.get("retry-after"));
+                if (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0) {
+                  retryAfterSeconds = Math.ceil(retryAfterHeader);
+                }
+                try {
+                  const errorBody = await errorContext.clone().json() as {
+                    error?: unknown;
+                    retry_after_seconds?: unknown;
+                  };
+                  if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
+                  if (typeof errorBody.retry_after_seconds === "number" && errorBody.retry_after_seconds > 0) {
+                    retryAfterSeconds = Math.ceil(errorBody.retry_after_seconds);
+                  }
+                } catch {
+                  // Some gateway failures do not include a JSON response body.
+                }
+              }
+            }
+
+            if (responseStatus === 429 && attempt === 0) {
+              errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
+              await new Promise((resolve) => setTimeout(resolve, (retryAfterSeconds + 1) * 1000));
+              continue;
+            }
+
+            errorMessage = providerErrorMessage ?? result.data?.error ??
+              (responseStatus === 429
+                ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
+                : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
+            break;
           }
 
           setMessages((current) =>
