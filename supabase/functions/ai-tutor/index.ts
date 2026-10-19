@@ -1332,7 +1332,7 @@ Deno.serve(async (req: Request) => {
       });
 
       const evaluationGenerationArgs = {
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: truncateText(context, MAX_CONTEXT_CHARACTERS),
@@ -1610,7 +1610,7 @@ Deno.serve(async (req: Request) => {
 
       if (!recoveryQuestion) {
         const generated = await generateAdaptiveMicroAssessment({
-          apiKey: groqApiKey,
+          apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
           topicName: topic.name,
           topicDescription: topic.description,
           context: truncateText(context, 9000),
@@ -1921,7 +1921,7 @@ Deno.serve(async (req: Request) => {
           generate: async () => {
             let providerRetryAfter: number | null = null;
             const generated = await generateAdaptiveMicroAssessment({
-              apiKey: groqApiKey,
+              apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
               topicName: topic.name,
               topicDescription: topic.description,
               context: truncateText(initialContext, 6500),
@@ -2094,7 +2094,7 @@ Deno.serve(async (req: Request) => {
         .filter((question: string) => typeof question === "string" && question.trim());
 
       const generated = await generateAdaptiveMicroAssessment({
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: truncateText(context, MAX_CONTEXT_CHARACTERS),
@@ -2957,7 +2957,7 @@ Deno.serve(async (req: Request) => {
     ) {
       console.warn("[Ensina-me] ai-tutor: microavaliação repetida detectada; regenerando");
       const replacement = await generateAdaptiveMicroAssessment({
-        apiKey: groqApiKey,
+        apiKey: groqApiKey ?? Deno.env.get("GEMINI_API_KEY")?.trim() ?? "",
         topicName: topic.name,
         topicDescription: topic.description,
         context: safeContext,
