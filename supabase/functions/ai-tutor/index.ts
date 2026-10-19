@@ -2230,9 +2230,9 @@ Deno.serve(async (req: Request) => {
       hasSubstantiveConversationHistory;
 
     const priorQuestionGuard = recentMicroAssessmentQuestions.length
-      ? "\\n\\nQUESTÕES JÁ APRESENTADAS NESTE TÓPICO — NÃO REPITA NENHUMA, NEM COM PEQUENAS TROCAS DE PALAVRAS:\\n" +
-        recentMicroAssessmentQuestions.slice(0, 20).map((question, index) => (index + 1) + ". " + question).join("\\n") +
-        "\\nCrie uma questão genuinamente diferente, com outro cenário, operação mental ou aplicação do conceito."
+      ? "\n\nQUESTÕES JÁ APRESENTADAS NESTE TÓPICO — NÃO REPITA NENHUMA, NEM COM PEQUENAS TROCAS DE PALAVRAS:\n" +
+        recentMicroAssessmentQuestions.slice(0, 20).map((question, index) => (index + 1) + ". " + question).join("\n") +
+        "\nCrie uma questão genuinamente diferente, com outro cenário, operação mental ou aplicação do conceito."
       : "";
     const microAssessmentDirective =
       shouldGenerateComprehensionCheck && (!explicitlyDeclinesPractice)
