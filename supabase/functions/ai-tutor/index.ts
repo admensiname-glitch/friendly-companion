@@ -2881,7 +2881,7 @@ Deno.serve(async (req: Request) => {
                     index === 0 && message.role === "system"
                       ? {
                           ...message,
-                          content: message.content + "\\n\\nFormato obrigatório: responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois."
+                          content: message.content + "\n\nFormato obrigatório: responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois."
                         }
                       : message
                   ),
