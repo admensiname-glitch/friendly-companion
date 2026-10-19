@@ -1972,7 +1972,12 @@ Deno.serve(async (req: Request) => {
             isQuestionTooSimilar(question.question, previous)
           ),
           save: async (question) => {
-            const { data: saved, error: saveError } = await requestStore
+            const adminClient = createTutorAdminClient();
+            if (!adminClient) {
+              console.error("[Ensina-me] ai-tutor: service role ausente; verificação inicial não salva.");
+              return null;
+            }
+            const { data: saved, error: saveError } = await adminClient
               .from("ai_micro_assessments")
               .insert({
                 user_id: userData.user.id,
