@@ -116,7 +116,7 @@ export function selectRelevantAcademicSections<T extends AcademicSectionExcerpt>
       .match(/[a-z0-9]+/g)
       ?.filter((word) => word.length > 3) ?? [],
   );
-  if (terms.size === 0) return sections.slice(0, limit);
+  if (terms.size === 0) return [];
 
   return sections
     .map((section, index) => {
@@ -131,6 +131,7 @@ export function selectRelevantAcademicSections<T extends AcademicSectionExcerpt>
       }
       return { section, index, score };
     })
+    .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score
       || (a.section.position ?? a.index) - (b.section.position ?? b.index)
       || a.index - b.index)
