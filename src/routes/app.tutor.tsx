@@ -998,6 +998,7 @@ function TutorPage() {
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
+    try {
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "chat",
@@ -1052,6 +1053,7 @@ function TutorPage() {
       // Keep the explanation visible while a missing comprehension check is generated separately.
       if (needsQuestionFallback) {
         void (async () => {
+          try {
           const requestBody = {
             action: "generate_initial_microassessment",
             topic_id: topicId,
@@ -1132,11 +1134,30 @@ function TutorPage() {
                     },
             ),
           );
+          } catch (questionError) {
+            console.error("[Ensina-me] Falha inesperada ao gerar a pergunta inicial.", questionError);
+            setMessages((current) =>
+              current.map((item) =>
+                item.id === assistantMessageId
+                  ? {
+                      ...item,
+                      microAssessmentLoading: false,
+                      microAssessmentError: "Não foi possível preparar a pergunta agora. Tente novamente.",
+                    }
+                  : item,
+              ),
+            );
+          }
         })();
       }
     }
 
-    setSending(false);
+    } catch (sendError) {
+      console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
+      setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (

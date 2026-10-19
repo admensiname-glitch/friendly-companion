@@ -676,7 +676,9 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
         clearTimeout(timeout);
       }
 
-      if (geminiResponse.ok || ![401, 403, 429, 500, 502, 503, 504].includes(geminiResponse.status)) {
+      // Any non-2xx provider response must allow the configured fallback to run.
+      // In particular, 400 can mean a model/schema incompatibility, not a user error.
+      if (geminiResponse.ok) {
         return geminiResponse;
       }
       console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse.status);
@@ -696,10 +698,19 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
   try {
     const groqHeaders = new Headers(init.headers);
     groqHeaders.set("Authorization", "Bearer " + groqApiKey);
-    const groqResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      { ...init, headers: groqHeaders },
-    );
+    // Give the fallback its own deadline. Reusing init.signal is unsafe here:
+    // the caller's timer may already have expired while Gemini was being tried.
+    const groqController = new AbortController();
+    const groqTimeout = setTimeout(() => groqController.abort(), 12000);
+    let groqResponse: Response;
+    try {
+      groqResponse = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        { ...init, signal: groqController.signal, headers: groqHeaders },
+      );
+    } finally {
+      clearTimeout(groqTimeout);
+    }
     if (!groqResponse.ok) {
       console.warn("[Ensina-me] ai-tutor: Groq também falhou", groqResponse.status);
     } else {
@@ -2865,7 +2876,10 @@ Deno.serve(async (req: Request) => {
           const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
 
           try {
-            const fallbackResponse = await fetchWithProviderFallback({
+            // This retry is specifically a Groq JSON-mode compatibility retry.
+            // Do not route it through fetchWithProviderFallback, which would try Gemini
+            // again and could repeat the same provider/schema failure.
+            const fallbackResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -2873,7 +2887,18 @@ Deno.serve(async (req: Request) => {
                 },
                 body: JSON.stringify({
                   model: "openai/gpt-oss-20b",
-                  messages,
+                  // Groq requires the prompt itself to explicitly request JSON
+                  // when response_format=json_object is used. The strict-schema
+                  // attempt may be rejected, so preserve the same task while
+                  // making the retry compatible with JSON mode.
+                  messages: messages.map((message, index) =>
+                    index === 0 && message.role === "system"
+                      ? {
+                          ...message,
+                          content: message.content + "\n\nFormato obrigatório: responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois."
+                        }
+                      : message
+                  ),
                   max_completion_tokens: 1800,
                   temperature: 0.2,
                   reasoning_effort: "low",
