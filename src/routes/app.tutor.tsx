@@ -920,6 +920,7 @@ function TutorPage() {
         : item,
     ));
 
+    try {
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "answer_microassessment",
@@ -1006,6 +1007,12 @@ function TutorPage() {
           console.warn("[Ensina-me] Falha ao preparar a próxima questão.", followUpError);
         }
       })();
+    }
+    } catch (answerError) {
+      console.error("[Ensina-me] Falha ao corrigir resposta no Tutor.", answerError);
+      setError("A correção não foi concluída. Tente selecionar a alternativa novamente.");
+    } finally {
+      setAnsweringAssessmentId(null);
     }
   }
 
