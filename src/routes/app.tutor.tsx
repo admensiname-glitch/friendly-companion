@@ -367,13 +367,21 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "answer_microassessment",
-        micro_assessment_id: assessment.id,
-        selected_option_index: selectedOptionIndex,
-      },
-    });
+    let response: Awaited<ReturnType<typeof supabase.functions.invoke>>;
+    try {
+      response = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "answer_microassessment",
+          micro_assessment_id: assessment.id,
+          selected_option_index: selectedOptionIndex,
+        },
+      });
+    } catch {
+      setError("A correção demorou demais para responder. Tente novamente; sua resposta não foi confirmada.");
+      setAnsweringAssessmentId(null);
+      return;
+    }
+    const { data, error: invokeError } = response;
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
@@ -729,6 +737,13 @@ function TutorPage() {
                             );
                           })}
                         </div>
+
+                        {!message.microAssessment.answered && answeringAssessmentId === message.microAssessment.id && (
+                          <div role="status" aria-live="polite" className="mt-4 flex items-center gap-2 rounded-xl border border-[#CFE0FF] bg-[#F4F8FF] px-4 py-3 text-sm font-semibold text-[#0242D7]">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
+                            Corrigindo sua resposta…
+                          </div>
+                        )}
 
                         {message.microAssessment.answered && (
                           <div
