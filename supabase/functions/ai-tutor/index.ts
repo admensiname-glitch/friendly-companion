@@ -6,6 +6,8 @@ import {
   runInitialQuestionFlow,
   runInitialQuestionFlowOnce,
   selectRelevantAcademicSections,
+  normalizeQuestionOptionText,
+  hasPhotosynthesisOxygenAttributionError,
 } from "./initial-question-flow.ts";
 
 const corsHeaders = {
@@ -905,6 +907,11 @@ async function generateAdaptiveMicroAssessment(args: {
     "- Gere exatamente uma nova questão de múltipla escolha com 4 alternativas.\n" +
     "- A alternativa correta deve ser inequivocamente correta com base no contexto.\n" +
     "- Cada alternativa incorreta deve representar um erro conceitual plausível e distinto, sem pegadinhas ou distratores obviamente absurdos.\n" +
+    "- As alternativas devem ser mutuamente exclusivas: exatamente uma pode estar correta. Não use como distrator uma subetapa que também seja correta dentro de uma alternativa mais ampla.\n" +
+    "- Cada item de options deve conter apenas o texto da alternativa, sem prefixos como 'A.', '1.' ou entidades HTML/Markdown.\n" +
+    "- Confira a sequência causal e atribua cada produto ou subproduto à etapa em que realmente ocorre; não o desloque para o fim apenas pela ordem narrativa.\n" +
+    "- Em fotossíntese, o O₂ é liberado nas reações luminosas pela fotólise da água, nunca pelo Ciclo de Calvin/fase escura. O Ciclo de Calvin utiliza ATP e NADPH para fixar CO₂ e formar G3P, precursor de açúcares.\n" +
+    "- Se a explicação anterior contiver erro factual, corrija-o em vez de reproduzi-lo; priorize a precisão científica e o contexto acadêmico confiável.\n" +
     "- A explicação deve justificar a resposta com a relação conceitual precisa do contexto, não com elogios ou frases genéricas.\n" +
     "- Não repita nenhuma das questões recentes. Mude o contexto ou o modo de aplicação quando necessário.\n" +
     "- A mensagem não pode conter a nova questão nem as alternativas; a questão será exibida separadamente.\n" +
@@ -1047,16 +1054,28 @@ async function generateAdaptiveMicroAssessment(args: {
     if (!parsed?.message || !parsed.microassessment?.enabled) return null;
 
     const next = parsed.microassessment;
+    const normalizedOptions = Array.isArray(next.options)
+      ? next.options.map((option) => typeof option === "string" ? normalizeQuestionOptionText(option) : "")
+      : [];
     if (
       next.question.trim().length < 30 ||
-      next.options.length !== 4 ||
-      next.options.some((option) => option.trim().length < 8) ||
-      !uniqueNormalized(next.options) ||
+      normalizedOptions.length !== 4 ||
+      normalizedOptions.some((option) => option.length < 8) ||
+      !uniqueNormalized(normalizedOptions) ||
       !Number.isInteger(next.correct_option_index) ||
       next.correct_option_index < 0 ||
       next.correct_option_index > 3 ||
       next.explanation.trim().length < 25
     ) {
+      return null;
+    }
+
+    if (hasPhotosynthesisOxygenAttributionError({
+      question: next.question,
+      correctOption: normalizedOptions[next.correct_option_index] ?? "",
+      explanation: next.explanation,
+    })) {
+      console.warn("[Ensina-me] ai-tutor: questão recusada por atribuir incorretamente a liberação de O₂ ao Ciclo de Calvin");
       return null;
     }
 
@@ -1073,7 +1092,7 @@ async function generateAdaptiveMicroAssessment(args: {
           ? [args.weakestConcept]
           : args.previousTags.slice(0, 3);
 
-    return { message: parsed.message, microassessment: next };
+    return { message: parsed.message, microassessment: { ...next, options: normalizedOptions } };
   } catch (error) {
     console.warn(
       "[Ensina-me] ai-tutor: erro na continuação adaptativa",
