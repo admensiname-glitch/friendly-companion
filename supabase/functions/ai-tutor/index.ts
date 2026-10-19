@@ -1194,6 +1194,16 @@ async function generateAdaptiveMicroAssessment(args: {
   }
 }
 
+function createTutorAdminClient() {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+  if (!serviceRoleKey) return null;
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
@@ -1661,7 +1671,11 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Não foi possível preparar uma questão de recuperação agora. Tente novamente em instantes." }, 503);
       }
 
-      const { data: saved, error: insertError } = await supabase
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        return json({ error: "O servidor não está configurado para salvar a questão." }, 503);
+      }
+      const { data: saved, error: insertError } = await adminClient
         .from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
@@ -1958,7 +1972,7 @@ Deno.serve(async (req: Request) => {
             isQuestionTooSimilar(question.question, previous)
           ),
           save: async (question) => {
-            const { data: saved, error: saveError } = await supabase
+            const { data: saved, error: saveError } = await requestStore
               .from("ai_micro_assessments")
               .insert({
                 user_id: userData.user.id,
@@ -2134,7 +2148,11 @@ Deno.serve(async (req: Request) => {
         console.warn("[Ensina-me] ai-tutor: não foi possível encerrar microavaliações pendentes anteriores", expireError.message);
       }
 
-      const { data: savedNext, error: nextInsertError } = await supabase.from("ai_micro_assessments")
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        return json({ next_micro_assessment: null, next_message: null });
+      }
+      const { data: savedNext, error: nextInsertError } = await adminClient.from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
           topic_id: assessment.topic_id,
@@ -3131,7 +3149,12 @@ Deno.serve(async (req: Request) => {
       generatedAssessment.correct_option_index <= 3 &&
       generatedAssessment.explanation.length > 0
     ) {
-      const { data: savedAssessment, error: assessmentInsertError } = await supabase
+      const adminClient = createTutorAdminClient();
+      if (!adminClient) {
+        console.warn("[Ensina-me] ai-tutor: service role ausente; questão de compreensão não salva.");
+      }
+      const { data: savedAssessment, error: assessmentInsertError } = adminClient
+        ? await adminClient
         .from("ai_micro_assessments")
         .insert({
           user_id: userData.user.id,
@@ -3145,7 +3168,8 @@ Deno.serve(async (req: Request) => {
           concept_tags: generatedAssessment.concept_tags,
         })
         .select("id")
-        .single();
+        .single()
+        : { data: null, error: new Error("Service role unavailable") };
 
       if (assessmentInsertError || !savedAssessment) {
         console.warn(
