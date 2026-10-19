@@ -56,6 +56,7 @@ describe("Tutor initial micro-assessment flow", () => {
       userId: "student-1",
       topicId: "topic-1",
       conversationId: "conversation-1",
+      clientRequestId: "student-message-1",
       userQuestion: "  O que é fotossíntese?   Explique de forma simples. ",
     };
     const first = await createInitialIdempotencyKey(base);
@@ -67,8 +68,13 @@ describe("Tutor initial micro-assessment flow", () => {
       ...base,
       conversationId: "conversation-2",
     });
+    const otherMessage = await createInitialIdempotencyKey({
+      ...base,
+      clientRequestId: "student-message-2",
+    });
     expect(first).toBe(repeated);
     expect(first).not.toBe(otherConversation);
+    expect(first).not.toBe(otherMessage);
   });
 
   it("deduplica chamadas concorrentes para a mesma chave de mensagem", async () => {
