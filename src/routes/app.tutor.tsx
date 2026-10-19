@@ -37,6 +37,7 @@ type MicroAssessment = {
 };
 
 type Message = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   shareable?: boolean;
@@ -47,6 +48,8 @@ type Message = {
     video?: TopicVideo | null;
   } | null;
   microAssessment?: MicroAssessment | null;
+  microAssessmentLoading?: boolean;
+  microAssessmentError?: string | null;
   learningNextStep?: unknown;
 };
 
@@ -479,9 +482,14 @@ function TutorPage() {
           }
         : clientVisualFallback;
 
+      const assistantMessageId = crypto.randomUUID();
+      const needsQuestionFallback =
+        data.should_generate_comprehension_check === true && !data.micro_assessment;
+
       setMessages((current) => [
         ...current,
         {
+          id: assistantMessageId,
           role: "assistant",
           content: data.message,
           shareable: data.shareable === true,
@@ -494,9 +502,60 @@ function TutorPage() {
                 answered: false,
               }
             : null,
+          microAssessmentLoading: needsQuestionFallback,
+          microAssessmentError: null,
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
+
+      // Keep the explanation visible while a missing comprehension check is generated separately.
+      if (needsQuestionFallback) {
+        void (async () => {
+          const requestBody = {
+            action: "generate_initial_microassessment",
+            topic_id: topicId,
+            conversation_id: data.conversation_id ?? conversationId,
+            message,
+            answer_context: data.message,
+          };
+          let assessmentData: { micro_assessment?: Pick<MicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags"> } | null = null;
+          let errorMessage: string | null = null;
+
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
+            if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
+              assessmentData = result.data;
+              break;
+            }
+            errorMessage = result.data?.error ??
+              (result.error ? "Falha na comunicação com o Tutor." : "Não foi possível preparar a pergunta.");
+          }
+
+          setMessages((current) =>
+            current.map((item) =>
+              item.id !== assistantMessageId
+                ? item
+                : assessmentData?.micro_assessment
+                  ? {
+                      ...item,
+                      microAssessmentLoading: false,
+                      microAssessmentError: null,
+                      microAssessment: {
+                        ...assessmentData.micro_assessment,
+                        revealed: false,
+                        answered: false,
+                      },
+                    }
+                  : {
+                      ...item,
+                      microAssessmentLoading: false,
+                      microAssessmentError: errorMessage ??
+                        "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
+                    },
+            ),
+          );
+        })();
+      }
     }
 
     setSending(false);
@@ -525,13 +584,27 @@ function TutorPage() {
             ) : null}
 
             {messages.map((message, index) => (
-              <div key={`${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-4 text-sm leading-6 text-[#273547]" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
+              <div key={message.id ?? `${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-4 text-sm leading-6 text-[#273547]" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
                 {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : message.content}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
                 )}
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
+                )}
+                {message.role === "assistant" && message.microAssessmentLoading && (
+                  <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
+                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#334155]">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
+                      Preparando uma pergunta inédita sobre esta explicação…
+                    </p>
+                  </div>
+                )}
+                {message.role === "assistant" && message.microAssessmentError && (
+                  <div role="alert" className="mt-5 rounded-2xl border border-[#FECACA] bg-white p-4 text-sm text-[#B42318]">
+                    {message.microAssessmentError}
+                  </div>
                 )}
                 {message.role === "assistant" && message.microAssessment && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
