@@ -905,6 +905,20 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
+    // Mostra a escolha imediatamente, sem esperar a rede. Se o servidor falhar,
+    // a seleção é revertida para permitir uma nova tentativa.
+    setMessages((current) => current.map((item, itemIndex) =>
+      itemIndex === messageIndex && item.microAssessment
+        ? {
+            ...item,
+            microAssessment: {
+              ...item.microAssessment,
+              selectedOptionIndex,
+            },
+          }
+        : item,
+    ));
+
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "answer_microassessment",
@@ -914,6 +928,17 @@ function TutorPage() {
     });
 
     if (invokeError || data?.error) {
+      setMessages((current) => current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex: undefined,
+              },
+            }
+          : item,
+      ));
       setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
       setAnsweringAssessmentId(null);
       return;
@@ -1277,7 +1302,9 @@ function TutorPage() {
                                     ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
                                     : answered && selected && !correct
                                       ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
-                                      : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
+                                      : selected
+                                        ? "border-[#0242D7] bg-[#0242D7] text-white ring-2 ring-[#0242D7]/25"
+                                        : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
                                 }
                               >
                                 <span className="mr-2 font-black">
