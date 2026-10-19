@@ -5,6 +5,7 @@ import {
   retryAfterSecondsFromResponse,
   runInitialQuestionFlow,
   runInitialQuestionFlowOnce,
+  selectRelevantAcademicSections,
 } from "./initial-question-flow.ts";
 
 const corsHeaders = {
@@ -1592,6 +1593,9 @@ Deno.serve(async (req: Request) => {
       if (!topicId || !userQuestion || !tutorAnswer) {
         return json({ error: "Tópico, pergunta e explicação são obrigatórios." }, 400);
       }
+      if (!body.idempotency_key?.trim() || body.idempotency_key.trim().length > 128) {
+        return json({ error: "Identificador da mensagem é obrigatório para gerar a verificação." }, 400);
+      }
       if (userQuestion.length > 4000 || tutorAnswer.length > 12000) {
         return json({ error: "O contexto da pergunta é longo demais." }, 400);
       }
@@ -1644,14 +1648,19 @@ Deno.serve(async (req: Request) => {
         .map((item: { question_text: string }) => item.question_text)
         .filter((question: string) => typeof question === "string" && question.trim());
 
+      const relevantSections = selectRelevantAcademicSections(
+        sections ?? [],
+        userQuestion + "\n" + tutorAnswer + "\n" + topic.name + "\n" + (topic.description ?? ""),
+        2,
+      );
       const initialContext = [
         "TÓPICO: " + topic.name.slice(0, 240),
         topic.description ? "DESCRIÇÃO: " + topic.description.slice(0, 500) : "",
         material
           ? "MATERIAL: " + material.title.slice(0, 240) + "\n" + (material.introduction ?? "").slice(0, 800)
           : "",
-        ...(sections ?? []).slice(0, 4).map((section: { title: string; content: string }) =>
-          "SEÇÃO — " + section.title.slice(0, 160) + "\n" + section.content.slice(0, 350)),
+        ...relevantSections.map((section: { title: string; content: string }) =>
+          "TRECHO RELEVANTE — " + section.title.slice(0, 160) + "\n" + section.content.slice(0, 450)),
         "PERGUNTA DO ALUNO: " + userQuestion.slice(0, 1200),
         "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer.slice(0, 1800),
       ].filter(Boolean).join("\n\n");
@@ -1660,7 +1669,7 @@ Deno.serve(async (req: Request) => {
         userId: userData.user.id,
         topicId,
         conversationId,
-        clientRequestId: body.idempotency_key ?? "",
+        clientRequestId: body.idempotency_key.trim(),
         userQuestion,
       });
       const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
