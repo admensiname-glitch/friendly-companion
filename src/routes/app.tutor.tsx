@@ -516,7 +516,6 @@ function TutorPage() {
             action: "generate_initial_microassessment",
             topic_id: topicId,
             conversation_id: data.conversation_id ?? conversationId,
-            idempotency_key: assistantMessageId,
             message,
             answer_context: data.message,
           };
