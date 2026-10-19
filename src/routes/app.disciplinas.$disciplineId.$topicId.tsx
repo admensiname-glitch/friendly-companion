@@ -1258,12 +1258,12 @@ function TutorSection({
       void (async () => {
         try {
           const requestBody = buildInitialComprehensionCheckRequest({
-          topicId,
-          conversationId: responseConversationId,
-          userMessageId: localId,
-          message,
-          answerContext: data.message,
-        });
+            topicId,
+            conversationId: responseConversationId,
+            userMessageId: localId,
+            message,
+            answerContext: data.message,
+          });
         let assessmentData: {
           micro_assessment?: Pick<TutorMicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags">;
         } | null = null;
