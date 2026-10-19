@@ -1010,6 +1010,17 @@ function TutorPage() {
     }
     } catch (answerError) {
       console.error("[Ensina-me] Falha ao corrigir resposta no Tutor.", answerError);
+      setMessages((current) => current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex: undefined,
+              },
+            }
+          : item,
+      ));
       setError("A correção não foi concluída. Tente selecionar a alternativa novamente.");
     } finally {
       setAnsweringAssessmentId(null);
