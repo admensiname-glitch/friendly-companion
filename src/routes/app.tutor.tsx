@@ -456,7 +456,8 @@ function TutorPage() {
     setSending(true);
     setError(null);
     setInput("");
-    setMessages((current) => [...current, { role: "user", content: message }]);
+    const userMessageId = crypto.randomUUID();
+    setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
 
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
@@ -516,6 +517,7 @@ function TutorPage() {
             action: "generate_initial_microassessment",
             topic_id: topicId,
             conversation_id: data.conversation_id ?? conversationId,
+            idempotency_key: userMessageId,
             message,
             answer_context: data.message,
           };
