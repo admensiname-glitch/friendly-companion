@@ -3004,6 +3004,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const assistantMessage = tutorResult.message;
+    // Reconhece pedidos explícitos de imagem no backend, sem depender da decisão
+    // probabilística do modelo de habilitar visual_aid.
+    const normalizedCurrentMessage = userMessage
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "");
+    const explicitlyRequestsImage =
+      /\\b(imagem|imagens|ilustracao|ilustracoes|figura|figuras|foto|fotos)\\b/.test(normalizedCurrentMessage);
+    if (explicitlyRequestsImage) {
+      tutorResult.visualAid.enabled = true;
+      tutorResult.visualAid.type = "concept_map";
+      tutorResult.visualAid.title = "Imagem de apoio: " + topic.name;
+      if (tutorResult.visualAid.items.length === 0) {
+        tutorResult.visualAid.items = [
+          "Tema solicitado: " + topic.name,
+          "A imagem deve representar visualmente esse tema.",
+        ];
+      }
+      tutorResult.visualAid.caption = "Imagem relacionada ao tópico em estudo, com fonte e licença verificáveis.";
+    }
     let generatedAssessment = tutorResult.microassessment;
 
     if (
