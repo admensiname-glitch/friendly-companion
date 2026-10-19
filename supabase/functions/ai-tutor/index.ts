@@ -1,5 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  createInitialIdempotencyKey,
+  retryAfterSecondsFromResponse,
+  runInitialQuestionFlow,
+  runInitialQuestionFlowOnce,
+} from "./initial-question-flow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +17,7 @@ type Body = {
   action?: "chat" | "answer_microassessment" | "generate_next_microassessment" | "generate_initial_microassessment" | "start_formal_evaluation" | "generate_recovery_question";
   topic_id?: string;
   conversation_id?: string | null;
+  idempotency_key?: string;
   message?: string;
   answer_context?: string;
   micro_assessment_id?: string;
@@ -1030,14 +1037,7 @@ async function generateAdaptiveMicroAssessment(args: {
         providerMessage,
       );
       if (response.status === 429) {
-        const retryAfterHeader = Number(response.headers.get("retry-after"));
-        const retryAfterMatch = providerMessage.match(/try again in ([0-9.]+)s/i);
-        const parsedRetryAfter = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
-          ? retryAfterHeader
-          : retryAfterMatch
-            ? Number(retryAfterMatch[1])
-            : 30;
-        args.onRateLimit?.(Math.max(1, Math.min(120, Math.ceil(parsedRetryAfter))));
+        args.onRateLimit?.(retryAfterSecondsFromResponse(response.headers, providerMessage));
       }
       return null;
     }
@@ -1656,78 +1656,252 @@ Deno.serve(async (req: Request) => {
         "EXPLICAÇÃO JÁ APRESENTADA PELO TUTOR: " + tutorAnswer.slice(0, 1800),
       ].filter(Boolean).join("\n\n");
 
-      let rateLimitRetryAfterSeconds: number | null = null;
-      // A provider rate limit must stop immediate retries; keep generation attempts bounded.
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const generated = await generateAdaptiveMicroAssessment({
-          apiKey: groqApiKey,
-          topicName: topic.name,
-          topicDescription: topic.description,
-          context: truncateText(initialContext, 6500),
-          previousQuestion: "Nenhuma pergunta anterior desta explicação.",
-          previousTags: [],
-          wasCorrect: true,
-          nextDifficulty: "intermediate",
-          consecutiveCorrect: 0,
-          consecutiveIncorrect: 0,
-          weakestConcept: null,
-          recentQuestions: recentQuestions.slice(0, 8).map((question: string) => question.slice(0, 220)),
-          purpose: "initial",
-          seed: crypto.randomUUID(),
-          onRateLimit: (seconds) => {
-            rateLimitRetryAfterSeconds = seconds;
+      const requestKey = await createInitialIdempotencyKey({
+        userId: userData.user.id,
+        topicId,
+        conversationId,
+        clientRequestId: body.idempotency_key,
+        userQuestion,
+        tutorAnswer,
+      });
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+      if (!serviceRoleKey) {
+        return json({ error: "O controle seguro de geração do Tutor está temporariamente indisponível." }, 503);
+      }
+      const requestStore = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        serviceRoleKey,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const lockNow = new Date();
+      const lockNowIso = lockNow.toISOString();
+      const processingLease = new Date(lockNow.getTime() + 90_000).toISOString();
+      const newRequest = await requestStore.from("ai_tutor_generation_requests").insert({
+        user_id: userData.user.id,
+        idempotency_key: requestKey,
+        topic_id: topicId,
+        conversation_id: conversationId,
+        state: "processing",
+        lease_expires_at: processingLease,
+        updated_at: lockNowIso,
+      }).select("user_id").maybeSingle();
+
+      let ownsGenerationRequest = !newRequest.error;
+      if (newRequest.error && newRequest.error.code !== "23505") {
+        console.error("[Ensina-me] ai-tutor: falha ao registrar idempotência", newRequest.error.message);
+        return json({ error: "Não foi possível iniciar a verificação de compreensão com segurança." }, 503);
+      }
+
+      if (!ownsGenerationRequest) {
+        const { data: existingRequest, error: existingRequestError } = await requestStore
+          .from("ai_tutor_generation_requests")
+          .select("state, assessment_id, lease_expires_at")
+          .eq("user_id", userData.user.id)
+          .eq("idempotency_key", requestKey)
+          .maybeSingle();
+
+        if (existingRequestError || !existingRequest) {
+          console.error("[Ensina-me] ai-tutor: não foi possível ler a chave de idempotência", existingRequestError?.message ?? "registro ausente");
+          return json({ error: "Não foi possível confirmar o estado da verificação." }, 503);
+        }
+
+        let existingState = existingRequest.state as string;
+        let existingLease = Date.parse(existingRequest.lease_expires_at as string);
+        if (existingState === "completed" && existingRequest.assessment_id) {
+          const { data: savedAssessment, error: savedAssessmentError } = await supabase
+            .from("ai_micro_assessments")
+            .select("id, question_text, options, difficulty, concept_tags")
+            .eq("id", existingRequest.assessment_id)
+            .eq("user_id", userData.user.id)
+            .eq("topic_id", topicId)
+            .maybeSingle();
+          if (savedAssessmentError) {
+            return json({ error: "A verificação já foi gerada, mas não foi possível recuperá-la agora." }, 503);
+          }
+          if (savedAssessment && Array.isArray(savedAssessment.options)) {
+            return json({
+              micro_assessment: {
+                id: savedAssessment.id,
+                question: savedAssessment.question_text,
+                options: savedAssessment.options,
+                difficulty: savedAssessment.difficulty,
+                concept_tags: savedAssessment.concept_tags ?? [],
+              },
+            });
+          }
+          existingState = "failed";
+          existingLease = Date.now();
+          await requestStore.from("ai_tutor_generation_requests").update({
+            state: "failed",
+            assessment_id: null,
+            error_code: "completed_assessment_missing",
+            lease_expires_at: new Date(existingLease).toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq("user_id", userData.user.id).eq("idempotency_key", requestKey).eq("state", "completed");
+        }
+
+        const nowMs = Date.now();
+        if (existingState === "rate_limited" && existingLease > nowMs) {
+          const retryAfterSeconds = Math.max(1, Math.ceil((existingLease - nowMs) / 1000));
+          return new Response(JSON.stringify({
+            error: "A geração desta pergunta ainda está no intervalo de espera do provedor.",
+            retry_after_seconds: retryAfterSeconds,
+          }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(retryAfterSeconds) } });
+        }
+        if (existingState === "processing" && existingLease > nowMs) {
+          return json({
+            error: "A pergunta desta mensagem já está sendo preparada. Aguarde a conclusão da primeira solicitação.",
+            in_progress: true,
+            retry_after_seconds: Math.max(1, Math.ceil((existingLease - nowMs) / 1000)),
+          }, 409);
+        }
+
+        const reclaimable = existingState === "failed"
+          || existingState === "rate_limited"
+          || existingState === "processing";
+        if (!reclaimable) {
+          return json({ error: "A solicitação já foi processada; envie uma nova mensagem para gerar outra verificação." }, 409);
+        }
+        const reclaimed = await requestStore.from("ai_tutor_generation_requests").update({
+          state: "processing",
+          assessment_id: null,
+          error_code: null,
+          lease_expires_at: processingLease,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", userData.user.id)
+          .eq("idempotency_key", requestKey)
+          .eq("state", existingState)
+          .lte("lease_expires_at", new Date(nowMs).toISOString())
+          .select("user_id")
+          .maybeSingle();
+
+        if (reclaimed.error) {
+          console.error("[Ensina-me] ai-tutor: falha ao reivindicar retry idempotente", reclaimed.error.message);
+          return json({ error: "Não foi possível liberar a nova tentativa com segurança." }, 503);
+        }
+        if (!reclaimed.data) {
+          return json({
+            error: "A verificação desta mensagem já está sendo processada por outra solicitação.",
+            in_progress: true,
+            retry_after_seconds: 2,
+          }, 409);
+        }
+        ownsGenerationRequest = true;
+      }
+
+      if (!ownsGenerationRequest) {
+        return json({ error: "A verificação desta mensagem já foi iniciada." }, 409);
+      }
+
+      const updateGenerationRequest = async (
+        state: "processing" | "rate_limited" | "completed" | "failed",
+        patch: Record<string, unknown> = {},
+      ) => {
+        const { error: updateError } = await requestStore
+          .from("ai_tutor_generation_requests")
+          .update({ state, ...patch, updated_at: new Date().toISOString() })
+          .eq("user_id", userData.user.id)
+          .eq("idempotency_key", requestKey);
+        if (updateError) {
+          console.error("[Ensina-me] ai-tutor: falha ao finalizar chave de idempotência", updateError.message);
+        }
+      };
+
+      const flowResult = await runInitialQuestionFlowOnce(
+        userData.user.id + ":" + requestKey,
+        () => runInitialQuestionFlow({
+          maxAttempts: 2,
+          generate: async () => {
+            let providerRetryAfter: number | null = null;
+            const generated = await generateAdaptiveMicroAssessment({
+              apiKey: groqApiKey,
+              topicName: topic.name,
+              topicDescription: topic.description,
+              context: truncateText(initialContext, 6500),
+              previousQuestion: "Nenhuma pergunta anterior desta explicação.",
+              previousTags: [],
+              wasCorrect: true,
+              nextDifficulty: "intermediate",
+              consecutiveCorrect: 0,
+              consecutiveIncorrect: 0,
+              weakestConcept: null,
+              recentQuestions: recentQuestions.slice(0, 8).map((question: string) => question.slice(0, 220)),
+              purpose: "initial",
+              seed: crypto.randomUUID(),
+              onRateLimit: (seconds) => {
+                providerRetryAfter = seconds;
+              },
+            });
+            return {
+              question: generated?.microassessment ?? null,
+              retryAfterSeconds: providerRetryAfter,
+            };
           },
+          isDuplicate: (question) => recentQuestions.some((previous) =>
+            isQuestionTooSimilar(question.question, previous)
+          ),
+          save: async (question) => {
+            const { data: saved, error: saveError } = await supabase
+              .from("ai_micro_assessments")
+              .insert({
+                user_id: userData.user.id,
+                topic_id: topicId,
+                conversation_id: conversationId,
+                question_text: question.question,
+                options: question.options,
+                correct_option_index: question.correct_option_index,
+                explanation: question.explanation,
+                difficulty: question.difficulty,
+                concept_tags: question.concept_tags,
+              })
+              .select("id")
+              .single();
+            if (saveError || !saved) {
+              console.error("[Ensina-me] ai-tutor: não foi possível salvar verificação inicial", saveError?.message ?? "resultado vazio");
+              return null;
+            }
+            return { id: saved.id };
+          },
+        }),
+      );
+
+      if (flowResult.kind === "rate_limited") {
+        const cooldownUntil = new Date(Date.now() + flowResult.retryAfterSeconds * 1000).toISOString();
+        await updateGenerationRequest("rate_limited", {
+          lease_expires_at: cooldownUntil,
+          error_code: "groq_429",
+          assessment_id: null,
         });
-
-        if (!generated) {
-          if (rateLimitRetryAfterSeconds !== null) break;
-          continue;
-        }
-        if (recentQuestions.some((question) =>
-          isQuestionTooSimilar(generated.microassessment.question, question)
-        )) continue;
-
-        const { data: saved, error: saveError } = await supabase
-          .from("ai_micro_assessments")
-          .insert({
-            user_id: userData.user.id,
-            topic_id: topicId,
-            conversation_id: conversationId,
-            question_text: generated.microassessment.question,
-            options: generated.microassessment.options,
-            correct_option_index: generated.microassessment.correct_option_index,
-            explanation: generated.microassessment.explanation,
-            difficulty: generated.microassessment.difficulty,
-            concept_tags: generated.microassessment.concept_tags,
-          })
-          .select("id")
-          .single();
-
-        if (saveError || !saved) {
-          console.error("[Ensina-me] ai-tutor: não foi possível salvar verificação inicial", saveError?.message ?? "resultado vazio");
-          return json({ error: "A pergunta foi elaborada, mas não pôde ser salva." }, 500);
-        }
-
-        return json({
-          micro_assessment: {
-            id: saved.id,
-            question: generated.microassessment.question,
-            options: generated.microassessment.options,
-            difficulty: generated.microassessment.difficulty,
-            concept_tags: generated.microassessment.concept_tags,
-          },
+        return new Response(JSON.stringify({
+          error: "A IA atingiu temporariamente o limite de geração. Aguarde o intervalo informado antes de tentar novamente.",
+          retry_after_seconds: flowResult.retryAfterSeconds,
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(flowResult.retryAfterSeconds) },
         });
       }
 
-      if (rateLimitRetryAfterSeconds !== null) {
-        return json({
-          error: "A IA atingiu temporariamente o limite de geração. Aguarde alguns segundos; o Tutor tentará novamente automaticamente.",
-          retry_after_seconds: rateLimitRetryAfterSeconds,
-        }, 429);
+      if (flowResult.kind === "saved") {
+        await updateGenerationRequest("completed", {
+          assessment_id: flowResult.microAssessment.id,
+          lease_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          error_code: null,
+        });
+        return json({ micro_assessment: flowResult.microAssessment });
       }
-      return json({ error: "Não foi possível gerar uma pergunta inédita desta vez." }, 503);
+
+      await updateGenerationRequest("failed", {
+        assessment_id: null,
+        lease_expires_at: new Date().toISOString(),
+        error_code: flowResult.reason,
+      });
+      if (flowResult.reason === "save_failed") {
+        return json({ error: "A pergunta foi elaborada, mas não pôde ser salva. A explicação principal foi preservada." }, 500);
+      }
+      return json({
+        error: "Não foi possível gerar uma questão inédita e válida agora. A explicação principal foi preservada; tente novamente em instantes.",
+      }, 503);
     }
-
     if (body.action === "generate_next_microassessment") {
       const assessmentId = body.micro_assessment_id?.trim();
       if (!assessmentId) return json({ error: "Microavaliação é obrigatória." }, 400);
