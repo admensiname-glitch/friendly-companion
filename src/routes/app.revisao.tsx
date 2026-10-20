@@ -569,7 +569,7 @@ function ReviewPage() {
                           </p>
                         </div>
                         <span className="text-xs font-bold text-[#667487] dark:text-[#AAB7C7]">
-                          {item.count}x
+                          <Odometer value={item.count} suffix="x" />
                         </span>
                       </div>
                     ))}
