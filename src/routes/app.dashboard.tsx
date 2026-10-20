@@ -1,7 +1,9 @@
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Odometer } from "@/components/motion/odometer";
+import { revealLeft } from "@/components/motion/reveal";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: AppDashboard,
