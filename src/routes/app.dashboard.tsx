@@ -116,21 +116,24 @@ function Icon({
 }
 
 function ProgressRing({ value, size = 76 }: { value: number; size?: number }) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
     <div
-      className="relative shrink-0 rounded-full"
-      style={{
-        width: size,
-        height: size,
-        background: `conic-gradient(#0242D7 ${value * 3.6}deg, #E8EEF6 0deg)`,
-      }}
+      className="ens-ring relative shrink-0 rounded-full"
+      style={{ width: size, height: size, "--ring-angle": `${(armed ? value : 0) * 3.6}deg` } as CSSProperties}
       aria-label={`Progresso de ${value}%`}
       role="img"
     >
-      <div
-        className="absolute inset-[6px] flex items-center justify-center rounded-full bg-white dark:bg-[#172437]"
-      >
-        <span className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">{value}%</span>
+      <div className="absolute inset-[6px] flex items-center justify-center rounded-full bg-white dark:bg-[#172437]">
+        <span className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">
+          <Odometer value={value} suffix="%" />
+        </span>
       </div>
     </div>
   );
