@@ -1098,16 +1098,23 @@ function TutorPage() {
               }
             }
 
-            if (responseStatus === 429 && attempt === 0) {
-              errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
-              await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
+            const retryableFailure = responseStatus === 429 ||
+              (responseStatus !== null && responseStatus >= 500) ||
+              (Boolean(result.error) && responseStatus === null);
+
+            if (attempt === 0 && retryableFailure) {
+              // Retry once for transient provider/gateway failures. The answer is already
+              // rendered and must remain usable even when the optional exercise fails.
+              const delayMs = responseStatus === 429
+                ? retryDelayMs(retryAfterSeconds)
+                : 800;
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
               continue;
             }
 
-            errorMessage = providerErrorMessage ?? result.data?.error ??
-              (responseStatus === 429
-                ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
-                : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
+            errorMessage = responseStatus === 429
+              ? "A atividade de compreensão está temporariamente indisponível. Sua explicação continua disponível."
+              : "Não foi possível preparar a atividade de compreensão agora. Sua explicação continua disponível.";
             break;
           }
 
@@ -1201,9 +1208,9 @@ function TutorPage() {
                   </div>
                 )}
                 {message.role === "assistant" && message.microAssessmentError && (
-                  <div role="alert" className="mt-5 rounded-2xl border border-[#FECACA] bg-white p-4 text-sm text-[#B42318]">
-                    {message.microAssessmentError}
-                  </div>
+                  <p role="status" className="mt-4 text-sm leading-6 text-muted-foreground">
+                    A explicação acima continua disponível. A atividade de compreensão não pôde ser preparada agora; você pode continuar conversando com o Tutor.
+                  </p>
                 )}
                 {message.role === "assistant" && message.microAssessment && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
