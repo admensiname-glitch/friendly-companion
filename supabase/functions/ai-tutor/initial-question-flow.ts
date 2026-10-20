@@ -33,7 +33,7 @@ type InitialQuestionFlowArgs = {
   waitBeforeRetry?: (attempt: number) => Promise<void>;
 };
 
-const MAX_INITIAL_GENERATION_ATTEMPTS = 2;
+const MAX_INITIAL_GENERATION_ATTEMPTS = 3;
 const activeInitialQuestionFlights = new Map<string, Promise<unknown>>();
 
 function normalized(value: string): string {
