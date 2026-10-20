@@ -388,7 +388,7 @@ function ReviewPage() {
                 Seu ritmo
               </p>
               <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[#172334] dark:text-[#F0F5FA]">
-                {totalSignals}
+                <Odometer value={totalSignals} />
               </p>
               <p className="mt-1 text-xs leading-5 text-[#7A8796] dark:text-[#96A6B8]">
                 ocorrências de dificuldade registradas
