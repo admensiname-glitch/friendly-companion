@@ -1927,7 +1927,7 @@ Deno.serve(async (req: Request) => {
       const flowResult = await runInitialQuestionFlowOnce(
         userData.user.id + ":" + requestKey,
         () => runInitialQuestionFlow({
-          maxAttempts: 2,
+          maxAttempts: 3,
           generate: async () => {
             let providerRetryAfter: number | null = null;
             const generated = await generateAdaptiveMicroAssessment({
