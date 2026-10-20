@@ -444,7 +444,7 @@ function ReviewPage() {
               </h2>
             </div>
             <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8999AB]">
-              {microReviews.length} no total
+              <Odometer value={microReviews.length} /> no total
             </span>
           </div>
 
