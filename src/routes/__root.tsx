@@ -129,18 +129,15 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
-  // Hide each native system bar explicitly. Some Android builds can leave the
-  // bottom navigation bar visible when only the generic hide request is used.
+  // Keep the Android status bar visible while hiding only the bottom navigation bar.
+  // The app shell uses CSS safe-area insets to keep content clear of the status bar.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     let active = true;
     const hideNativeSystemBars = async () => {
       try {
-        await Promise.all([
-          SystemBars.hide({ bar: SystemBarType.StatusBar, animation: "NONE" }),
-          SystemBars.hide({ bar: SystemBarType.NavigationBar, animation: "NONE" }),
-        ]);
+        await SystemBars.hide({ bar: SystemBarType.NavigationBar, animation: "NONE" });
       } catch {
         // The web experience must remain usable if the native API is unavailable.
       }
