@@ -1,7 +1,9 @@
 import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Odometer } from "@/components/motion/odometer";
+import { revealLeft } from "@/components/motion/reveal";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: AppDashboard,
@@ -114,21 +116,24 @@ function Icon({
 }
 
 function ProgressRing({ value, size = 76 }: { value: number; size?: number }) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
     <div
-      className="relative shrink-0 rounded-full"
-      style={{
-        width: size,
-        height: size,
-        background: `conic-gradient(#0242D7 ${value * 3.6}deg, #E8EEF6 0deg)`,
-      }}
+      className="ens-ring relative shrink-0 rounded-full"
+      style={{ width: size, height: size, "--ring-angle": `${(armed ? value : 0) * 3.6}deg` } as CSSProperties}
       aria-label={`Progresso de ${value}%`}
       role="img"
     >
-      <div
-        className="absolute inset-[6px] flex items-center justify-center rounded-full bg-white dark:bg-[#172437]"
-      >
-        <span className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">{value}%</span>
+      <div className="absolute inset-[6px] flex items-center justify-center rounded-full bg-white dark:bg-[#172437]">
+        <span className="text-sm font-black text-[#172334] dark:text-[#E7EDF5]">
+          <Odometer value={value} suffix="%" />
+        </span>
       </div>
     </div>
   );
@@ -569,9 +574,9 @@ function AppDashboard() {
           </div>
         </div>
         <div className="grid grid-cols-3 divide-x divide-[#E6EBF2] dark:divide-[#2B3A4F]">
-          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Domina</p><p className="mt-2 text-2xl font-black text-[#187A59] dark:text-[#7ED4AE]">{brainCounts.mastered}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
-          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Revisar</p><p className="mt-2 text-2xl font-black text-[#B86B13] dark:text-[#E8B66C]">{brainCounts.review}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
-          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Dificuldade</p><p className="mt-2 text-2xl font-black text-[#B42318] dark:text-[#F28B82]">{brainCounts.difficulty}</p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Domina</p><p className="mt-2 text-2xl font-black text-[#187A59] dark:text-[#7ED4AE]"><Odometer value={brainCounts.mastered} /></p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Revisar</p><p className="mt-2 text-2xl font-black text-[#B86B13] dark:text-[#E8B66C]"><Odometer value={brainCounts.review} /></p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
+          <div className="p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.1em] text-[#7A8796]">Dificuldade</p><p className="mt-2 text-2xl font-black text-[#B42318] dark:text-[#F28B82]"><Odometer value={brainCounts.difficulty} /></p><p className="mt-1 text-xs text-[#7A8796]">assuntos</p></div>
         </div>
         {brainTopics[0] && (
           <div className="m-4 rounded-[15px] bg-[#F7F9FC] p-4 dark:bg-[#172437] sm:m-5">
@@ -593,14 +598,14 @@ function AppDashboard() {
         </div>
         <div className="mt-4 space-y-3">
           {focusedResumeTopics.length > 0 ? (
-            focusedResumeTopics.map((topic) => (
-              <Link key={topic.topic_id} to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }} className="app-card group flex items-center gap-4 p-4 sm:p-5 transition-transform hover:-translate-y-px">
+            focusedResumeTopics.map((topic, index) => (
+              <Link key={topic.topic_id} ref={revealLeft(index)} to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: topic.discipline_id, topicId: topic.topic_id }} className="app-card group flex items-center gap-4 p-4 sm:p-5 transition-transform hover:-translate-y-px">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="book" className="h-[19px] w-[19px]" /></div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black text-[#273547] dark:text-[#E1E9F2]">{topic.topic_name}</p>
                   <p className="mt-0.5 truncate text-xs font-semibold text-[#8A96A5] dark:text-[#8B9CAE]">{topic.discipline_name}</p>
                   <p className="mt-2 truncate text-xs font-bold text-[#0242D7] dark:text-[#78A9FF]">{topic.section_title ? <>Parou em: <span className="font-black">{topic.section_title}</span></> : `Parou na parte ${topic.last_position + 1}`}</p>
-                  <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E9EEF5] dark:bg-[#293A50]"><div className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]" style={{ width: `${topic.progress}%` }} /></div><span className="text-[10px] font-black text-[#718096] dark:text-[#98A9BB]">{topic.progress}%</span></div>
+                  <div className="mt-2 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E9EEF5] dark:bg-[#293A50]"><div className="h-full rounded-full bg-[#0242D7] dark:bg-[#6EA6FF]" style={{ width: `${topic.progress}%` }} /></div><span className="text-[10px] font-black text-[#718096] dark:text-[#98A9BB]"><Odometer value={topic.progress} suffix="%" /></span></div>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#0242D7] px-3 py-2 text-xs font-black text-white">Continuar <Icon name="arrow" className="h-3.5 w-3.5" /></span>
               </Link>
@@ -630,9 +635,10 @@ function AppDashboard() {
           </div>
         ) : disciplineProgress.length > 0 ? (
           <div className="mt-3 grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {disciplineProgress.slice(0, 4).map((discipline) => (
+            {disciplineProgress.slice(0, 4).map((discipline, index) => (
               <Link
                 key={discipline.discipline_id}
+                ref={revealLeft(index)}
                 to="/app/disciplinas/$disciplineId"
                 params={{ disciplineId: discipline.discipline_id }}
                 className="app-card group flex min-w-0 w-full max-w-full items-center gap-3 overflow-hidden p-4 box-border"
@@ -676,15 +682,15 @@ function AppDashboard() {
 
       <section className="mt-6 pb-3 sm:mt-10">
         <div className="grid grid-cols-3 gap-2">
-          <Link to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
+          <Link ref={revealLeft(0)} to="/app/estude-agora" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1A2D49] dark:text-[#78A9FF]"><Icon name="spark" className="h-4 w-4" /></span>
             <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">O que estudar agora</span>
           </Link>
-          <Link to="/app/prova" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
+          <Link ref={revealLeft(1)} to="/app/prova" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F1F8F4] text-[#16804A] dark:bg-[#153025] dark:text-[#70D3A1]"><Icon name="book" className="h-4 w-4" /></span>
             <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Praticar</span>
           </Link>
-          <Link to="/app/revisao" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
+          <Link ref={revealLeft(2)} to="/app/revisao" className="app-card flex min-h-[82px] flex-col items-center justify-center gap-2 p-3 text-center">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF5E8] text-[#B86B13] dark:bg-[#302516] dark:text-[#E8B66C]"><Icon name="review" className="h-4 w-4" /></span>
             <span className="text-[11px] font-black text-[#475569] dark:text-[#C6D1DE]">Revisar</span>
           </Link>

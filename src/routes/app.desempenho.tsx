@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Odometer } from "@/components/motion/odometer";
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -83,10 +84,10 @@ function PerformancePage() {
       <>
           <div className="mt-6 grid border-y border-[#DCE5F0] dark:border-[#2B3A4F] sm:grid-cols-5">
             {[
-              ["Tópicos concluídos", summary?.topics_completed ?? 0],
-              ["Média", summary?.average_score == null ? "—" : summary.average_score + "%"],
-              ["Melhor resultado", summary?.best_score == null ? "—" : summary.best_score + "%"],
-              ["Revisões", summary?.pending_review ?? 0],
+              ["Tópicos concluídos", <Odometer value={summary?.topics_completed ?? 0} />],
+              ["Média", <Odometer value={summary?.average_score} suffix="%" />],
+              ["Melhor resultado", <Odometer value={summary?.best_score} suffix="%" />],
+              ["Revisões", <Odometer value={summary?.pending_review ?? 0} />],
               ["Domínio", domainLabel],
             ].map(([label, value]) => (
               <div
@@ -133,7 +134,7 @@ function PerformancePage() {
             <h2 id="evolution-heading" className="mt-1 text-xl font-bold text-[#172334] dark:text-[#E7EDF5]">Seu desempenho conta uma história, não só uma nota.</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               <div><p className="text-xs text-[#7A8796]">Domínio atual</p><p className="mt-1 text-2xl font-black text-[#172334] dark:text-[#E7EDF5]">{domainLabel}</p></div>
-              <div><p className="text-xs text-[#7A8796]">Tendência recente</p><p className={`mt-1 text-2xl font-black ${recentTrend == null ? "text-[#172334]" : recentTrend >= 0 ? "text-[#187A59]" : "text-[#B42318]"}`}>{recentTrend == null ? "—" : `${recentTrend > 0 ? "+" : ""}${recentTrend}%`}</p></div>
+              <div><p className="text-xs text-[#7A8796]">Tendência recente</p><p className={`mt-1 text-2xl font-black ${recentTrend == null ? "text-[#172334]" : recentTrend >= 0 ? "text-[#187A59]" : "text-[#B42318]"}`}><Odometer value={recentTrend} suffix="%" showPlus /></p></div>
               <div><p className="text-xs text-[#7A8796]">Leitura</p><p className="mt-1 text-sm font-bold leading-6 text-[#475569] dark:text-[#C5D0DE]">{recentTrend != null && recentTrend > 0 ? "Você está avançando nas avaliações mais recentes." : recentTrend != null && recentTrend < 0 ? "Vale revisar os tópicos que perderam desempenho." : "Continue praticando para criar uma tendência confiável."}</p></div>
             </div>
           </section>
@@ -182,9 +183,9 @@ function PerformancePage() {
 
             <div className="mt-4 grid border-y border-[#E4EAF1] dark:border-[#2B3A4F] sm:grid-cols-3">
               {[
-                ["Microavaliações", summary?.micro_questions_attempted ?? 0],
-                ["Acertos", summary?.micro_questions_correct ?? 0],
-                ["Aproveitamento", summary?.micro_accuracy == null ? "—" : summary.micro_accuracy + "%"],
+                ["Microavaliações", <Odometer value={summary?.micro_questions_attempted ?? 0} />],
+                ["Acertos", <Odometer value={summary?.micro_questions_correct ?? 0} />],
+                ["Aproveitamento", <Odometer value={summary?.micro_accuracy} suffix="%" />],
               ].map(([label, value]) => (
                 <div
                   key={String(label)}
@@ -259,7 +260,7 @@ function PerformancePage() {
                     className="grid gap-4 border-b border-[#E4EAF1] py-5 last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[64px_minmax(0,1fr)_auto] sm:items-center"
                   >
                     <span className="text-xl font-bold text-[#0242D7] dark:text-[#7DB0FF]">
-                      {Math.round(evaluation.score)}%
+                      <Odometer value={Math.round(evaluation.score)} suffix="%" />
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs text-[#8A96A5] dark:text-[#8797AA]">

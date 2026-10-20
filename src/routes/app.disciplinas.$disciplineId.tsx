@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { revealLeft } from "@/components/motion/reveal";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,7 +32,7 @@ function TopicsList({topics,officialDisciplineId,learningState}:{topics:Topic[];
         const progress=state?.progress??0;
         const statusLabel=state?.review_count&&state.review_count>0?"Revisar":state?.best_score!==null&&state?.best_score!==undefined?"Avaliado":state?.status==="in_progress"?"Em andamento":progress>=100?"Concluído":"Não iniciado";
         const statusClass=state?.review_count&&state.review_count>0?"bg-[#FFF7E8] text-[#A15D0B]":progress>=100?"bg-[#ECFDF3] text-[#187A59]":"bg-[#F3F5F8] text-[#657385]";
-        return <Link key={topic.id} to="/app/disciplinas/$disciplineId/$topicId" params={{disciplineId:officialDisciplineId,topicId:topic.id}} className="surface-card surface-card-hover group block rounded-2xl p-4 focus-visible:outline-none sm:p-5">
+        return <Link key={topic.id} ref={revealLeft(index)} to="/app/disciplinas/$disciplineId/$topicId" params={{disciplineId:officialDisciplineId,topicId:topic.id}} className="surface-card surface-card-hover group block rounded-2xl p-4 focus-visible:outline-none sm:p-5">
           <div className="flex items-start gap-4">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F7FA] text-xs font-bold text-[#8793A0]">{String(index+1).padStart(2,"0")}</span>
             <div className="min-w-0 flex-1">

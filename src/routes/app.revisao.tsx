@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Odometer } from "@/components/motion/odometer";
 import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -387,7 +388,7 @@ function ReviewPage() {
                 Seu ritmo
               </p>
               <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[#172334] dark:text-[#F0F5FA]">
-                {totalSignals}
+                <Odometer value={totalSignals} />
               </p>
               <p className="mt-1 text-xs leading-5 text-[#7A8796] dark:text-[#96A6B8]">
                 ocorrências de dificuldade registradas
@@ -443,7 +444,7 @@ function ReviewPage() {
               </h2>
             </div>
             <span className="text-xs font-semibold text-[#7A8796] dark:text-[#8999AB]">
-              {microReviews.length} no total
+              <Odometer value={microReviews.length} /> no total
             </span>
           </div>
 
@@ -568,7 +569,7 @@ function ReviewPage() {
                           </p>
                         </div>
                         <span className="text-xs font-bold text-[#667487] dark:text-[#AAB7C7]">
-                          {item.count}x
+                          <Odometer value={item.count} suffix="x" />
                         </span>
                       </div>
                     ))}

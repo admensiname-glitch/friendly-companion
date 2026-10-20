@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Odometer } from "@/components/motion/odometer";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -159,7 +160,7 @@ function StudyNowPage() {
             <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3">
               <div>
                 <p className="text-xs text-[#7A8796] dark:text-[#96A6B8]">Estudo hoje</p>
-                <p className="mt-1 text-lg font-bold text-[#273547] dark:text-[#E0E8F1]">{todayStudy?.minutes ?? 0} min</p>
+                <p className="mt-1 text-lg font-bold text-[#273547] dark:text-[#E0E8F1]"><Odometer value={todayStudy?.minutes ?? 0} suffix=" min" /></p>
               </div>
               <p className="max-w-xl text-xs leading-5 text-[#7A8796] dark:text-[#96A6B8]">
                 A recomendação considera os sinais de aprendizagem registrados pelo Ensina-me. Ela pode mudar conforme você pratica.

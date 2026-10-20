@@ -2130,3 +2130,73 @@ html.dark .app-shell main .tutor-reflection-link {
   margin: 0 !important;
 }
 
+/* ========================================================================== */
+/* Ensina-me motion (PR 1): Odometer, entrada dos cards e anel de progresso     */
+/* ========================================================================== */
+
+/* Odometer: o texto "fantasma" reserva o espaço exato; as colunas rolam por cima. */
+.odo {
+  position: relative;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+.odo-ghost { visibility: hidden; }
+.odo-reels {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  visibility: hidden;
+}
+.odo[data-ready="false"] .odo-ghost { visibility: visible; }
+.odo[data-ready="true"] .odo-reels { visibility: visible; }
+.odo-cell { display: block; height: 100%; overflow: hidden; }
+.odo-strip {
+  display: block;
+  height: 1000%;
+  transform: translateY(calc(var(--odo-n, 0) * -10%));
+  transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.odo-glyph { display: flex; height: 10%; align-items: center; justify-content: center; }
+.odo-static { display: flex; height: 100%; align-items: center; white-space: pre; }
+
+/* Entrada dos cards pela esquerda (ver src/components/motion/reveal.ts). */
+[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateX(-100vw);
+  will-change: transform, opacity;
+}
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+  will-change: transform, opacity;
+  /* !important: .app-shell main a.app-card já define uma transition mais específica. */
+  transition:
+    transform 650ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--reveal-i, 0) * 60ms),
+    opacity 400ms ease-out calc(var(--reveal-i, 0) * 60ms) !important;
+}
+
+/* Anel de progresso do dashboard: o ângulo anima via propriedade registrada. */
+@property --ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.ens-ring {
+  background: conic-gradient(#0242D7 var(--ring-angle), #E8EEF6 0deg);
+  transition: --ring-angle 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Reduzir movimento: sem movimento, estado final imediato. */
+@media (prefers-reduced-motion: reduce) {
+  .odo-strip {
+    transform: translateY(calc(var(--odo-final, 0) * -10%));
+    transition: none;
+  }
+  [data-reveal="pending"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .ens-ring { transition: none; }
+}

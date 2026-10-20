@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Odometer } from "@/components/motion/odometer";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -299,7 +300,7 @@ function ExamPage() {
         <h1 id="exam-result" className="mt-2 text-3xl font-bold text-[#172334] sm:text-4xl">Prova concluída</h1>
         <div className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-6 sm:p-8">
           <p className="text-sm font-semibold text-[#687688]">Seu resultado</p>
-          <div className="flex flex-wrap items-end gap-4"><p className="text-5xl font-bold text-[#0242D7]">{Math.round(result.score)}%</p></div>
+          <div className="flex flex-wrap items-end gap-4"><p className="text-5xl font-bold text-[#0242D7]"><Odometer value={Math.round(result.score)} suffix="%" /></p></div>
           <p className="mt-2 text-sm text-[#687688]">{result.correct_answers} de {result.total_questions} corretas · {result.answered_questions} respondidas</p>
           {!!result.topic_breakdown?.length && (
             <div className="mt-7">
