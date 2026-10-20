@@ -905,6 +905,22 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
+    // Reflect the student's choice immediately; keep it visible if the server rejects
+    // the write so the student can retry without losing the selected alternative.
+    setMessages((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment?.id === assessment.id
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex,
+              },
+            }
+          : item,
+      ),
+    );
+
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "answer_microassessment",
@@ -1277,7 +1293,9 @@ function TutorPage() {
                                     ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
                                     : answered && selected && !correct
                                       ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
-                                      : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
+                                      : selected && !answered
+                                        ? "border-[#0242D7] bg-[#0242D7] text-white ring-2 ring-[#0242D7]/20"
+                                        : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
                                 }
                               >
                                 <span className="mr-2 font-black">
