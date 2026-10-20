@@ -66,7 +66,7 @@ type TopicVideo = {
 };
 
 function formatTutorFeedbackExplanation(explanation: string): string {
-  return explanation.replace(/\\b(alternativa)\\s+([1-4])\\b/gi, (_match, label: string, number: string) => {
+  return explanation.replace(/\b(alternativa)\s+([1-4])\b/gi, (_match, label: string, number: string) => {
     return `${label} ${String.fromCharCode(64 + Number(number))}`;
   });
 }
