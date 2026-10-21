@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { DirectPage } from "@/components/DirectDemo";
+import { DirectPage } from "@/routes/app.direct";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app/comunidade")({ component: CommunityPage });
