@@ -105,10 +105,10 @@ Deno.serve(async (req: Request) => {
     const token = input.token?.trim();
     if (!token || token.length > 4096) return json(400, { error: "Token FCM inválido." });
     const { error } = await db.from("push_subscriptions").upsert({
-      user_id: user.id, channel: "android_fcm", endpoint: "fcm:" + token,
+      user_id: user.id, channel: "android_fcm", fcm_token: token, endpoint: null,
       p256dh: null, auth_key: null, user_agent: req.headers.get("user-agent")?.slice(0, 500) || "Capacitor Android",
       active: true, updated_at: new Date().toISOString(),
-    }, { onConflict: "endpoint" });
+    }, { onConflict: "fcm_token" });
     if (error) return json(500, { error: "Não foi possível registrar o token nativo: " + error.message });
     const { error: prefError } = await db.from("notification_preferences").upsert({ user_id: user.id, push_enabled: true, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
     if (prefError) return json(500, { error: "Token registrado, mas a preferência falhou." });
@@ -143,14 +143,15 @@ Deno.serve(async (req: Request) => {
     }
     const { data: pref } = await db.from("notification_preferences").select("push_enabled").eq("user_id", user.id).maybeSingle();
     if (!pref?.push_enabled) return json(403, { error: "Ative as notificações antes de enviar o teste." });
-    const { data: subs, error } = await db.from("push_subscriptions").select("id,endpoint").eq("user_id", user.id).eq("channel", "android_fcm").eq("active", true);
+    const { data: subs, error } = await db.from("push_subscriptions").select("id,fcm_token").eq("user_id", user.id).eq("channel", "android_fcm").eq("active", true);
     if (error) return json(500, { error: "Falha ao consultar dispositivos Android." });
     if (!subs?.length) return json(404, { error: "Nenhum token Android registrado. Instale o APK com FCM e abra o app primeiro." });
     let sent = 0;
     const failures: string[] = [];
     for (const sub of subs) {
       try {
-        await sendFcm(sa, sub.endpoint.replace(/^fcm:/, ""), "Ensina-me — teste nativo", "As notificações nativas estão conectadas.", "/app/perfil");
+        if (!sub.fcm_token) throw new Error("Token FCM ausente no registro Android.");
+        await sendFcm(sa, sub.fcm_token, "Ensina-me — teste nativo", "As notificações nativas estão conectadas.", "/app/perfil");
         sent++;
       } catch (e) {
         const detail = String(e).slice(0, 350);
