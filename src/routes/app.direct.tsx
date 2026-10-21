@@ -669,7 +669,7 @@ export function DirectPage() {
                 <button type="button" onClick={() => changeView("settings")} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-sm hover:bg-[#F6F8FB] sm:flex dark:border-[#333] dark:hover:bg-[#171717]" title="Privacidade e segurança" aria-label="Privacidade e segurança">⋯</button>
               </header>
               {demoMode && <div className="shrink-0 border-b border-[#E5EAF1] bg-[#EFF6FF] px-4 py-2 text-xs font-semibold text-[#1D4ED8] dark:border-[#252525] dark:bg-[#101010] dark:text-white">Modo de demonstração gratuito: as alterações são locais nesta sessão e não são enviadas a estudantes reais nem ao banco.</div>}
-              <div className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-5">
+              <div className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-5" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
                 {messages.length === 0 ? <div className="m-auto flex h-full max-w-sm flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-[#171717]">☏</div><h3 className="mt-4 text-lg font-black">Esta conversa está pronta</h3><p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Envie a primeira mensagem para começar.</p></div> : messages.map((message) => (
                   <div key={message.id} className={"flex " + (message.sender_id === userId ? "justify-end" : "justify-start")}>
                     <div className={"max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#D9FDD3] text-[#183B2D] dark:bg-[#183629] dark:text-white" : "rounded-bl-md bg-white text-[#172334] dark:bg-[#171717] dark:text-white")}>
@@ -695,7 +695,7 @@ export function DirectPage() {
                 </form>
               </div>
             </> : (
-              <div className="direct-message-wallpaper flex min-h-[420px] flex-1 flex-col items-center justify-center p-7 text-center lg:min-h-0">
+              <div className="direct-message-wallpaper flex min-h-[420px] flex-1 flex-col items-center justify-center p-7 text-center lg:min-h-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm dark:bg-[#171717]">✉</div>
                 <h2 className="mt-4 text-xl font-black">Suas conversas, em um só lugar</h2>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Escolha uma conversa à esquerda ou pesquise pelo código de amizade de um estudante para iniciar uma solicitação.</p>
