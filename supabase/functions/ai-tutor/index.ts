@@ -1009,6 +1009,10 @@ async function generateAdaptiveMicroAssessment(args: {
     "- A mensagem não pode conter a nova questão nem as alternativas; a questão será exibida separadamente.\n" +
     "- concept_tags deve ter de 1 a 3 conceitos, priorizando o conceito frágil quando indicado.\n" +
     "- difficulty deve ser exatamente a dificuldade solicitada.\n\n" +
+    "FORMATO DE SAÍDA OBRIGATÓRIO\n" +
+    "Responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois. Use exatamente as chaves message e microassessment.\n" +
+    "message deve ser uma frase curta de transição que não revele a questão nem as alternativas.\n" +
+    "microassessment deve conter enabled=true, question (enunciado), options (exatamente 4 strings de alternativas distintas), correct_option_index (inteiro de 0 a 3), explanation, difficulty e concept_tags (de 1 a 3 strings).\n\n" +
     "PRECISÃO EM ALFABETIZAÇÃO E LINGUAGEM\n" +
     "- Não confunda consciência fonológica, consciência fonêmica, fonema, sílaba, rima, aliteração, grafema e relação grafofonêmica.\n" +
     "- Em exemplos de rima, confirme a semelhança sonora relevante na terminação; compartilhar apenas uma vogal final não basta.\n\n" +
@@ -1067,55 +1071,9 @@ async function generateAdaptiveMicroAssessment(args: {
           temperature: 0.2,
           reasoning_effort: "low",
           include_reasoning: false,
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "ensina_me_adaptive_microassessment",
-              strict: true,
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  message: { type: "string" },
-                  microassessment: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      enabled: { type: "boolean" },
-                      question: { type: "string" },
-                      // Runtime validation below enforces four options and index 0–3.
-                      options: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                      correct_option_index: {
-                        type: "integer",
-                      },
-                      explanation: { type: "string" },
-                      difficulty: {
-                        type: "string",
-                        enum: ["introductory", "intermediate", "advanced"],
-                      },
-                      concept_tags: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                    },
-                    required: [
-                      "enabled",
-                      "question",
-                      "options",
-                      "correct_option_index",
-                      "explanation",
-                      "difficulty",
-                      "concept_tags",
-                    ],
-                  },
-                },
-                required: ["message", "microassessment"],
-              },
-            },
-          },
+          // Use JSON mode for this adaptive micro-assessment. Groq rejects the current strict schema
+          // with HTTP 400 in production; server-side validation below still checks all fields.
+          response_format: { type: "json_object" },
         }),
         signal: controller.signal,
       },
@@ -1927,7 +1885,7 @@ Deno.serve(async (req: Request) => {
       const flowResult = await runInitialQuestionFlowOnce(
         userData.user.id + ":" + requestKey,
         () => runInitialQuestionFlow({
-          maxAttempts: 2,
+          maxAttempts: 3,
           generate: async () => {
             let providerRetryAfter: number | null = null;
             const generated = await generateAdaptiveMicroAssessment({

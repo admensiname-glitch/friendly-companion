@@ -38,6 +38,14 @@ type MicroAssessment = {
   explanation?: string;
 };
 
+type ComprehensionCheckRequest = {
+  topicId: string;
+  conversationId: string | null;
+  idempotencyKey: string;
+  message: string;
+  answerContext: string;
+};
+
 type Message = {
   id?: string;
   role: "user" | "assistant";
@@ -50,6 +58,8 @@ type Message = {
     video?: TopicVideo | null;
   } | null;
   microAssessment?: MicroAssessment | null;
+  comprehensionCheckOffered?: boolean;
+  comprehensionCheckRequest?: ComprehensionCheckRequest | null;
   microAssessmentLoading?: boolean;
   microAssessmentError?: string | null;
   learningNextStep?: unknown;
@@ -905,6 +915,22 @@ function TutorPage() {
     setAnsweringAssessmentId(assessment.id);
     setError(null);
 
+    // Reflect the student's choice immediately; keep it visible if the server rejects
+    // the write so the student can retry without losing the selected alternative.
+    setMessages((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === messageIndex && item.microAssessment?.id === assessment.id
+          ? {
+              ...item,
+              microAssessment: {
+                ...item.microAssessment,
+                selectedOptionIndex,
+              },
+            }
+          : item,
+      ),
+    );
+
     const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
       body: {
         action: "answer_microassessment",
@@ -983,6 +1009,107 @@ function TutorPage() {
     }
   }
 
+  async function requestComprehensionQuestion(
+    messageId: string,
+    request: ComprehensionCheckRequest,
+  ) {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === messageId
+          ? {
+              ...item,
+              comprehensionCheckOffered: false,
+              microAssessmentLoading: true,
+              microAssessmentError: null,
+            }
+          : item,
+      ),
+    );
+
+    try {
+      const result = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          action: "generate_initial_microassessment",
+          topic_id: request.topicId,
+          conversation_id: request.conversationId,
+          idempotency_key: request.idempotencyKey,
+          message: request.message,
+          answer_context: request.answerContext,
+        },
+      });
+
+      if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === messageId
+              ? {
+                  ...item,
+                  microAssessmentLoading: false,
+                  microAssessmentError: null,
+                  comprehensionCheckRequest: null,
+                  microAssessment: {
+                    ...result.data.micro_assessment,
+                    revealed: true,
+                    answered: false,
+                  },
+                }
+              : item,
+          ),
+        );
+        return;
+      }
+
+      let responseStatus: number | null = null;
+      let providerErrorMessage: string | null = null;
+      if (result.error && typeof result.error === "object" && "context" in result.error) {
+        const errorContext = result.error.context;
+        if (errorContext instanceof Response) {
+          responseStatus = errorContext.status;
+          try {
+            const errorBody = await errorContext.clone().json() as { error?: unknown };
+            if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
+          } catch {
+            // Gateway errors can arrive without a JSON body.
+          }
+        }
+      }
+
+      const errorMessage = providerErrorMessage ?? result.data?.error ??
+        (responseStatus === 429
+          ? "A geração atingiu um limite temporário. Aguarde um pouco e tente novamente."
+          : result.error
+            ? "A comunicação com o Tutor falhou. Tente novamente."
+            : "Não foi possível preparar a pergunta inédita. Tente novamente.");
+
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === messageId
+            ? {
+                ...item,
+                microAssessmentLoading: false,
+                microAssessmentError: errorMessage,
+                comprehensionCheckRequest: request,
+              }
+            : item,
+        ),
+      );
+    } catch (questionError) {
+      console.error("[Ensina-me] Falha ao gerar a questão após consentimento.", questionError);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === messageId
+            ? {
+                ...item,
+                microAssessmentLoading: false,
+                microAssessmentError: "Não foi possível preparar a pergunta agora. Tente novamente.",
+                comprehensionCheckRequest: request,
+              }
+            : item,
+        ),
+      );
+    }
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
@@ -1025,8 +1152,17 @@ function TutorPage() {
         : clientVisualFallback;
 
       const assistantMessageId = crypto.randomUUID();
-      const needsQuestionFallback =
-        data.should_generate_comprehension_check === true && !data.micro_assessment;
+      const shouldOfferQuestion = data.should_generate_comprehension_check === true;
+      const comprehensionCheckRequest: ComprehensionCheckRequest | null =
+        shouldOfferQuestion && !data.micro_assessment
+          ? {
+              topicId,
+              conversationId: data.conversation_id ?? conversationId,
+              idempotencyKey: userMessageId,
+              message,
+              answerContext: data.message,
+            }
+          : null;
 
       setMessages((current) => [
         ...current,
@@ -1044,112 +1180,13 @@ function TutorPage() {
                 answered: false,
               }
             : null,
-          microAssessmentLoading: needsQuestionFallback,
+          comprehensionCheckOffered: shouldOfferQuestion,
+          comprehensionCheckRequest,
+          microAssessmentLoading: false,
           microAssessmentError: null,
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
-
-      // Keep the explanation visible while a missing comprehension check is generated separately.
-      if (needsQuestionFallback) {
-        void (async () => {
-          try {
-          const requestBody = {
-            action: "generate_initial_microassessment",
-            topic_id: topicId,
-            conversation_id: data.conversation_id ?? conversationId,
-            idempotency_key: userMessageId,
-            message,
-            answer_context: data.message,
-          };
-          let assessmentData: { micro_assessment?: Pick<MicroAssessment, "id" | "question" | "options" | "difficulty" | "concept_tags"> } | null = null;
-          let errorMessage: string | null = null;
-
-          for (let attempt = 0; attempt < 2; attempt += 1) {
-            const result = await supabase.functions.invoke("ai-tutor", { body: requestBody });
-            if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
-              assessmentData = result.data;
-              break;
-            }
-
-            let responseStatus: number | null = null;
-            let retryAfterSeconds = 30;
-            let providerErrorMessage: string | null = null;
-            if (result.error && typeof result.error === "object" && "context" in result.error) {
-              const errorContext = result.error.context;
-              if (errorContext instanceof Response) {
-                responseStatus = errorContext.status;
-                const retryAfterHeader = Number(errorContext.headers.get("retry-after"));
-                if (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0) {
-                  retryAfterSeconds = Math.ceil(retryAfterHeader);
-                }
-                try {
-                  const errorBody = await errorContext.clone().json() as {
-                    error?: unknown;
-                    retry_after_seconds?: unknown;
-                  };
-                  if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
-                  if (typeof errorBody.retry_after_seconds === "number" && errorBody.retry_after_seconds > 0) {
-                    retryAfterSeconds = Math.ceil(errorBody.retry_after_seconds);
-                  }
-                } catch {
-                  // Some gateway failures do not include a JSON response body.
-                }
-              }
-            }
-
-            if (responseStatus === 429 && attempt === 0) {
-              errorMessage = `O serviço de IA atingiu o limite temporário. Vou tentar novamente em cerca de ${retryAfterSeconds} segundos.`;
-              await new Promise((resolve) => setTimeout(resolve, retryDelayMs(retryAfterSeconds)));
-              continue;
-            }
-
-            errorMessage = providerErrorMessage ?? result.data?.error ??
-              (responseStatus === 429
-                ? "O limite temporário de geração da IA continua ativo. Aguarde um minuto e tente novamente."
-                : result.error ? "A comunicação com o Tutor falhou. Tente novamente em instantes." : "Não foi possível preparar a pergunta.");
-            break;
-          }
-
-          setMessages((current) =>
-            current.map((item) =>
-              item.id !== assistantMessageId
-                ? item
-                : assessmentData?.micro_assessment
-                  ? {
-                      ...item,
-                      microAssessmentLoading: false,
-                      microAssessmentError: null,
-                      microAssessment: {
-                        ...assessmentData.micro_assessment,
-                        revealed: false,
-                        answered: false,
-                      },
-                    }
-                  : {
-                      ...item,
-                      microAssessmentLoading: false,
-                      microAssessmentError: errorMessage ??
-                        "Não foi possível preparar uma pergunta inédita agora. Peça outra pergunta para tentar novamente.",
-                    },
-            ),
-          );
-          } catch (questionError) {
-            console.error("[Ensina-me] Falha inesperada ao gerar a pergunta inicial.", questionError);
-            setMessages((current) =>
-              current.map((item) =>
-                item.id === assistantMessageId
-                  ? {
-                      ...item,
-                      microAssessmentLoading: false,
-                      microAssessmentError: "Não foi possível preparar a pergunta agora. Tente novamente.",
-                    }
-                  : item,
-              ),
-            );
-          }
-        })();
-      }
     }
 
     } catch (sendError) {
@@ -1191,6 +1228,63 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
+                {message.role === "assistant" && message.comprehensionCheckOffered && (
+                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-[#172334]">
+                      Quer responder a uma questão sobre esta explicação para conferir se realmente aprendeu?
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!message.id) return;
+                          if (message.microAssessment) {
+                            setMessages((current) =>
+                              current.map((item) =>
+                                item.id === message.id
+                                  ? {
+                                      ...item,
+                                      comprehensionCheckOffered: false,
+                                      microAssessment: item.microAssessment
+                                        ? { ...item.microAssessment, revealed: true }
+                                        : null,
+                                    }
+                                  : item,
+                              ),
+                            );
+                          } else if (message.comprehensionCheckRequest) {
+                            void requestComprehensionQuestion(message.id, message.comprehensionCheckRequest);
+                          }
+                        }}
+                        className="rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-black text-white transition hover:opacity-95"
+                      >
+                        Sim, quero responder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMessages((current) =>
+                            current.map((item) =>
+                              item.id === message.id
+                                ? {
+                                    ...item,
+                                    comprehensionCheckOffered: false,
+                                    comprehensionCheckRequest: null,
+                                    microAssessment: null,
+                                    microAssessmentError: null,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="rounded-xl border border-[#DCE5F0] bg-white px-4 py-3 text-sm font-bold text-[#334155] hover:bg-[#F8FAFC]"
+                      >
+                        Agora não
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {message.role === "assistant" && message.microAssessmentLoading && (
                   <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
@@ -1202,7 +1296,16 @@ function TutorPage() {
                 )}
                 {message.role === "assistant" && message.microAssessmentError && (
                   <div role="alert" className="mt-5 rounded-2xl border border-[#FECACA] bg-white p-4 text-sm text-[#B42318]">
-                    {message.microAssessmentError}
+                    <p>{message.microAssessmentError}</p>
+                    {message.id && message.comprehensionCheckRequest && (
+                      <button
+                        type="button"
+                        onClick={() => void requestComprehensionQuestion(message.id!, message.comprehensionCheckRequest!)}
+                        className="mt-3 rounded-lg border border-[#FECACA] px-3 py-2 font-bold text-[#B42318] hover:bg-[#FEF3F2]"
+                      >
+                        Tentar gerar novamente
+                      </button>
+                    )}
                   </div>
                 )}
                 {message.role === "assistant" && message.microAssessment && (
@@ -1277,7 +1380,9 @@ function TutorPage() {
                                     ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
                                     : answered && selected && !correct
                                       ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
-                                      : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
+                                      : selected && !answered
+                                        ? "border-[#0242D7] bg-[#0242D7] text-white ring-2 ring-[#0242D7]/20"
+                                        : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
                                 }
                               >
                                 <span className="mr-2 font-black">

@@ -50,7 +50,7 @@ describe("Tutor initial micro-assessment flow", () => {
     expect(retryAfterSecondsFromResponse(new Headers(), "Please try again in 24.5s.")).toBe(25);
   });
 
-  it("limita a geração a duas tentativas e aplica espera entre falhas", async () => {
+  it("limita a geração a três tentativas e aplica espera entre falhas", async () => {
     let attempts = 0;
     const waits: number[] = [];
     const result = await runInitialQuestionFlow({
@@ -63,8 +63,8 @@ describe("Tutor initial micro-assessment flow", () => {
       isDuplicate: () => false,
       save: async () => ({ id: "should-not-save" }),
     });
-    expect(attempts).toBe(2);
-    expect(waits).toEqual([1]);
+    expect(attempts).toBe(3);
+    expect(waits).toEqual([1, 2]);
     expect(result.kind).toBe("unavailable");
   });
 
