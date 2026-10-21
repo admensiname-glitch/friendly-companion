@@ -501,3 +501,12 @@ create trigger direct_messages_bump_conversation
 after insert on public.direct_messages
 for each row execute function direct_private.bump_conversation_last_message();
 
+
+
+-- The request RPC is the only allowed path to create requests; this enforces
+-- recipient opt-outs and per-person permissions even for modified clients.
+revoke insert on public.direct_requests from authenticated;
+
+-- Until dedicated edit/delete RPCs are exposed, messages are immutable from clients.
+revoke update on public.direct_messages from authenticated;
+
