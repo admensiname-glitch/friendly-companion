@@ -47,6 +47,46 @@ type TopicVideo = {
   duration_label: string | null;
 };
 
+function buildTutorShareUrl(message: Message, topicId: string | null, disciplineId: string | null) {
+  const params = new URLSearchParams();
+  params.set("share_tutor", "1");
+  params.set("share_text", message.content.slice(0, 12000));
+  if (topicId) params.set("topic_id", topicId);
+  if (disciplineId) params.set("discipline_id", disciplineId);
+
+  const image = message.visualAid?.image;
+  if (message.visualAid?.enabled && image?.enabled && image.url) {
+    params.set("share_image_url", image.url);
+    params.set("share_image_alt", image.title || message.visualAid.title);
+    if (image.sourceUrl) params.set("share_image_source_url", image.sourceUrl);
+    if (image.license) params.set("share_image_license", image.license);
+    if (image.attribution) params.set("share_image_attribution", image.attribution);
+  }
+
+  if (message.visualAid?.enabled) {
+    params.set("share_visual_aid", JSON.stringify({
+      enabled: true,
+      type: message.visualAid.type,
+      title: message.visualAid.title,
+      items: message.visualAid.items,
+      caption: message.visualAid.caption,
+    }));
+  }
+
+  const video = message.videoRecommendation?.enabled ? message.videoRecommendation.video : null;
+  if (video?.embed_url) {
+    params.set("share_video_embed_url", video.embed_url);
+    params.set("share_video_url", video.video_url);
+    params.set("share_video_title", video.title);
+    if (video.description) params.set("share_video_description", video.description);
+    if (video.channel_name) params.set("share_video_channel", video.channel_name);
+    if (video.duration_label) params.set("share_video_duration", video.duration_label);
+    if (message.videoRecommendation?.reason) params.set("share_video_reason", message.videoRecommendation.reason);
+  }
+
+  return `/app/comunidade?${params.toString()}`;
+}
+
 type TutorReflection = {
   id: string;
   kind: "quote" | "reflection";
@@ -983,7 +1023,7 @@ function TutorPage() {
                 )}
                 {message.role === "assistant" && message.shareable === true && (
                   <a
-                    href={`/app/comunidade?share_text=${encodeURIComponent(message.content.slice(0, 1900))}${topicId ? `&topic_id=${encodeURIComponent(topicId)}` : ""}${recommendation?.discipline_id ? `&discipline_id=${encodeURIComponent(recommendation.discipline_id)}` : ""}`}
+                    href={buildTutorShareUrl(message, topicId, recommendation?.discipline_id ?? null)}
                     className="mt-3 inline-flex text-xs font-bold text-[#0242D7] hover:underline"
                   >
                     Compartilhar esta explicação

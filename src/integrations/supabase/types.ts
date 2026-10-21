@@ -547,6 +547,19 @@ export type Database = {
           is_official: boolean
           official_until: string | null
           topic_id: string | null
+          tutor_image_url: string | null
+          tutor_image_alt: string | null
+          tutor_image_source_url: string | null
+          tutor_image_license: string | null
+          tutor_image_attribution: string | null
+          tutor_visual_aid: Json | null
+          tutor_video_url: string | null
+          tutor_video_embed_url: string | null
+          tutor_video_title: string | null
+          tutor_video_description: string | null
+          tutor_video_channel_name: string | null
+          tutor_video_duration_label: string | null
+          tutor_video_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -564,6 +577,19 @@ export type Database = {
           is_official?: boolean
           official_until?: string | null
           topic_id?: string | null
+          tutor_image_url?: string | null
+          tutor_image_alt?: string | null
+          tutor_image_source_url?: string | null
+          tutor_image_license?: string | null
+          tutor_image_attribution?: string | null
+          tutor_visual_aid?: Json | null
+          tutor_video_url?: string | null
+          tutor_video_embed_url?: string | null
+          tutor_video_title?: string | null
+          tutor_video_description?: string | null
+          tutor_video_channel_name?: string | null
+          tutor_video_duration_label?: string | null
+          tutor_video_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -581,6 +607,19 @@ export type Database = {
           is_official?: boolean
           official_until?: string | null
           topic_id?: string | null
+          tutor_image_url?: string | null
+          tutor_image_alt?: string | null
+          tutor_image_source_url?: string | null
+          tutor_image_license?: string | null
+          tutor_image_attribution?: string | null
+          tutor_visual_aid?: Json | null
+          tutor_video_url?: string | null
+          tutor_video_embed_url?: string | null
+          tutor_video_title?: string | null
+          tutor_video_description?: string | null
+          tutor_video_channel_name?: string | null
+          tutor_video_duration_label?: string | null
+          tutor_video_reason?: string | null
           updated_at?: string
         }
         Relationships: [
