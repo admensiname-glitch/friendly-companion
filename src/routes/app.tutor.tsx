@@ -50,7 +50,7 @@ type TopicVideo = {
 function buildTutorShareUrl(message: Message, topicId: string | null, disciplineId: string | null) {
   const params = new URLSearchParams();
   params.set("share_tutor", "1");
-  params.set("share_text", message.content.slice(0, 1900));
+  params.set("share_text", message.content.slice(0, 12000));
   if (topicId) params.set("topic_id", topicId);
   if (disciplineId) params.set("discipline_id", disciplineId);
 
