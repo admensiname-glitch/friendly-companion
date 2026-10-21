@@ -15,6 +15,7 @@ const initialSettings: DirectSettings = { allow_requests: true, show_online_stat
 const dateLabel = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 function DirectPage() {
+  const [demoMode] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "1");
   const [userId, setUserId] = useState("");
   const [tab, setTab] = useState<"individual" | "groups" | "requests" | "settings" | "suggestion">("individual");
   const [showArchived, setShowArchived] = useState(false);
@@ -53,6 +54,18 @@ function DirectPage() {
 
   const load = useCallback(async (currentUserId?: string) => {
     setLoading(true); setError("");
+    if (demoMode) {
+      const demoUser = "demo-student";
+      const demoConversation: Conversation = { id: "demo-conversation", kind: "individual", title: "Mariana Costa", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() };
+      setUserId(demoUser);
+      setRequests([{ id: "demo-request", sender_id: "demo-mariana", recipient_id: demoUser, status: "pending", created_at: new Date().toISOString(), other_name: "Mariana Costa" }]);
+      setConversations([demoConversation, { id: "demo-group", kind: "group", title: "Pedagogia • Turma 2026", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() }]);
+      setMemberPreferences({ "demo-conversation": { archived_at: null, pinned_at: new Date().toISOString(), hidden_at: null }, "demo-group": { archived_at: null, pinned_at: null, hidden_at: null } });
+      setSettings(initialSettings);
+      setBlockedUsers([]); setRestrictedRequesters([]);
+      setLoading(false);
+      return;
+    }
     const sessionResult = await supabase.auth.getSession();
     const id = currentUserId || sessionResult.data.session?.user.id;
     if (!id) { setError("Sua sessão expirou. Entre novamente para acessar o Direct."); setLoading(false); return; }
@@ -92,7 +105,7 @@ function DirectPage() {
       if (!saved.error && saved.data) setSettings(saved.data as DirectSettings);
     }
     setLoading(false);
-  }, []);
+  }, [demoMode]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -110,6 +123,15 @@ function DirectPage() {
 
   async function searchPeople(value: string) {
     setSearch(value); setError("");
+    if (demoMode) {
+      const demoPeople: Person[] = [
+        { user_id: "demo-mariana", display_name: "Mariana Costa", avatar_url: null, allow_requests: true },
+        { user_id: "demo-joao", display_name: "João Pedro", avatar_url: null, allow_requests: true },
+        { user_id: "demo-ana", display_name: "Ana Beatriz", avatar_url: null, allow_requests: true },
+      ];
+      setPeople(value.trim().length < 2 ? [] : demoPeople.filter((p) => p.display_name.toLowerCase().includes(value.toLowerCase()) && !conversations.some((c) => c.title === p.display_name)));
+      return;
+    }
     if (value.trim().length < 2) { setPeople([]); return; }
     const { data, error: searchError } = await supabase.rpc("direct_find_people", { search_text: value.trim() });
     if (searchError) { setError("Não foi possível pesquisar estudantes agora."); setPeople([]); return; }
@@ -117,6 +139,12 @@ function DirectPage() {
   }
 
   async function sendRequest(person: Person) {
+    if (demoMode) {
+      setRequests((items) => [...items, { id: crypto.randomUUID(), sender_id: userId, recipient_id: person.user_id, status: "pending", created_at: new Date().toISOString(), other_name: person.display_name }]);
+      setPeople((items) => items.filter((p) => p.user_id !== person.user_id));
+      setNotice("Solicitação de demonstração enviada. Nenhuma mensagem foi enviada a uma pessoa real.");
+      return;
+    }
     setBusy(true); setError(""); setNotice("");
     const { data: requestId, error: insertError } = await supabase.rpc("direct_send_request", { recipient_user_id: person.user_id });
     setBusy(false);
@@ -128,6 +156,14 @@ function DirectPage() {
   }
 
   async function acceptRequest(request: RequestRow) {
+    if (demoMode) {
+      const conversation: Conversation = { id: `demo-conversation-${request.id}`, kind: "individual", title: request.other_name || "Estudante", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() };
+      setRequests((items) => items.filter((item) => item.id !== request.id));
+      setConversations((items) => [conversation, ...items]);
+      setTab("individual"); setNotice("Solicitação aceita no modo de demonstração.");
+      await openConversation(conversation);
+      return;
+    }
     setBusy(true); setError(""); setNotice("");
     const { data: acceptedConversationId, error: acceptError } = await supabase.rpc("direct_accept_request", { request_id: request.id });
     setBusy(false);
@@ -140,6 +176,7 @@ function DirectPage() {
   }
 
   async function cancelRequest(request: RequestRow) {
+    if (demoMode) { setRequests((items) => items.filter((item) => item.id !== request.id)); setNotice("Solicitação cancelada na demonstração."); return; }
     setBusy(true); setError("");
     const { error: cancelError } = await supabase.from("direct_requests").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", request.id).eq("sender_id", userId).eq("status", "pending");
     setBusy(false);
@@ -149,6 +186,16 @@ function DirectPage() {
 
   const openConversation = useCallback(async (conversation: Conversation) => {
     setActiveConversation(conversation); setError("");
+    if (demoMode) {
+      const now = new Date();
+      setMessages([
+        { id: "demo-message-1", conversation_id: conversation.id, sender_id: conversation.id === "demo-group" ? "demo-joao" : "demo-mariana", message_type: "text", body: conversation.kind === "group" ? "Pessoal, alguém revisou o material de alfabetização?" : "Oi! Você conseguiu revisar o conteúdo de hoje?", created_at: new Date(now.getTime() - 3600000).toISOString() },
+        { id: "demo-message-2", conversation_id: conversation.id, sender_id: userId, message_type: "text", body: "Sim! Podemos compartilhar nossas anotações por aqui.", created_at: new Date(now.getTime() - 1800000).toISOString() },
+      ]);
+      setGroupNotificationsEnabled(true); setReadReceipts([]);
+      setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null);
+      return;
+    }
     const { data, error: messageError } = await supabase.from("direct_messages").select("id,conversation_id,sender_id,message_type,body,media_path,duration_seconds,deleted_for_everyone_at,created_at").eq("conversation_id", conversation.id).order("created_at", { ascending: true }).limit(200);
     if (messageError) { setError("Não foi possível carregar as mensagens desta conversa."); return; }
     if (conversation.kind === "group") {
@@ -179,10 +226,11 @@ function DirectPage() {
       setVoiceDraftConversationId(conversation.id); setRecordingSeconds(draft.duration_seconds ?? 0);
     }
     await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null, should_pin: null, mark_read: true });
-  }, [userId]);
+  }, [demoMode, userId]);
 
   async function deleteMessage(messageId: string) {
     if (!activeConversation) return;
+    if (demoMode) { setMessages((items) => items.filter((m) => m.id !== messageId)); setNotice("Mensagem removida na demonstração."); return; }
     setBusy(true); setError(""); setNotice("");
     const { data: deleteMode, error: deleteError } = await supabase.rpc("direct_delete_message", { target_message_id: messageId });
     setBusy(false);
@@ -193,6 +241,11 @@ function DirectPage() {
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
+    if (demoMode) {
+      if (!activeConversation || !messageText.trim()) return;
+      setMessages((items) => [...items, { id: crypto.randomUUID(), conversation_id: activeConversation.id, sender_id: userId, message_type: "text", body: messageText.trim(), created_at: new Date().toISOString() }]);
+      setMessageText(""); setNotice("Mensagem adicionada localmente na demonstração."); return;
+    }
     if (!activeConversation || !messageText.trim()) return;
     setBusy(true); setError("");
     const { data: sentMessage, error: sendError } = await supabase.from("direct_messages").insert({ conversation_id: activeConversation.id, sender_id: userId, message_type: "text", body: messageText.trim() }).select("id").single();
@@ -206,6 +259,12 @@ function DirectPage() {
 
   async function createGroup(event: FormEvent) {
     event.preventDefault();
+    if (demoMode) {
+      if (!groupTitle.trim()) return;
+      const group: Conversation = { id: crypto.randomUUID(), kind: "group", title: groupTitle.trim(), last_message_at: new Date().toISOString(), created_at: new Date().toISOString() };
+      setConversations((items) => [group, ...items]); setGroupTitle(""); setSelectedMembers([]);
+      setNotice("Grupo criado localmente na demonstração."); setTab("groups"); return;
+    }
     setBusy(true); setError(""); setNotice("");
     const { data, error: groupError } = await supabase.rpc("direct_create_group", { group_title: groupTitle.trim(), member_ids: selectedMembers });
     setBusy(false);
@@ -228,6 +287,10 @@ function DirectPage() {
 
   async function submitSuggestion(event: FormEvent) {
     event.preventDefault();
+    if (demoMode) {
+      if (!confirmNoPersonalData || !suggestionText.trim()) { setError("Confirme que a sugestão não contém dados pessoais."); return; }
+      setSuggestionText(""); setConfirmNoPersonalData(false); setNotice("Sugestão simulada recebida. Nada foi enviado ao servidor."); return;
+    }
     if (!confirmNoPersonalData || !suggestionText.trim()) return;
     setBusy(true); setError(""); setNotice("");
     const { error: suggestionError } = await supabase.from("direct_anonymous_suggestions").insert({ suggestion_text: suggestionText.trim() });
@@ -333,6 +396,7 @@ function DirectPage() {
   }
 
   async function saveGroupNotifications(enabled: boolean) {
+    if (demoMode) { setGroupNotificationsEnabled(enabled); setNotice("Preferência do grupo salva localmente na demonstração."); return; }
     if (!activeConversation || activeConversation.kind !== "group") return;
     setGroupNotificationsEnabled(enabled); setError(""); setNotice("Aguardando sincronização…");
     const { error: preferenceError } = await supabase.from("direct_group_notification_preferences").upsert({
@@ -344,6 +408,10 @@ function DirectPage() {
 
   async function updateConversationPreference(kind: "archive" | "pin", enabled: boolean) {
     if (!activeConversation) return;
+    if (demoMode) {
+      setMemberPreferences((current) => ({ ...current, [activeConversation.id]: { archived_at: kind === "archive" ? (enabled ? new Date().toISOString() : null) : current[activeConversation.id]?.archived_at ?? null, pinned_at: kind === "pin" ? (enabled ? new Date().toISOString() : null) : current[activeConversation.id]?.pinned_at ?? null, hidden_at: null } }));
+      setNotice("Preferência atualizada localmente na demonstração."); return;
+    }
     setBusy(true); setError(""); setNotice("");
     const args = {
       target_conversation_id: activeConversation.id,
@@ -360,6 +428,7 @@ function DirectPage() {
   }
 
   async function blockPerson(personId: string) {
+    if (demoMode) { setBlockedUsers((items) => [...items, { blocked_id: personId, created_at: new Date().toISOString() }]); setNotice("Pessoa bloqueada na demonstração."); return; }
     setBusy(true); setError(""); setNotice("");
     const { error: blockError } = await supabase.rpc("direct_block_user", { target_user_id: personId });
     setBusy(false);
@@ -370,6 +439,7 @@ function DirectPage() {
   }
 
   async function reallowRequester(personId: string) {
+    if (demoMode) { setRestrictedRequesters((items) => items.filter((p) => p.requester_id !== personId)); setNotice("Permissão restaurada na demonstração."); return; }
     setBusy(true); setError(""); setNotice("");
     const { error: permissionError } = await supabase.rpc("direct_set_request_permission", { requester_user_id: personId, is_allowed: true });
     setBusy(false);
@@ -379,6 +449,7 @@ function DirectPage() {
   }
 
   async function unblockPerson(personId: string) {
+    if (demoMode) { setBlockedUsers((items) => items.filter((p) => p.blocked_id !== personId)); setNotice("Pessoa desbloqueada na demonstração."); return; }
     setBusy(true); setError(""); setNotice("");
     const { error: unblockError } = await supabase.rpc("direct_unblock_user", { target_user_id: personId });
     setBusy(false);
