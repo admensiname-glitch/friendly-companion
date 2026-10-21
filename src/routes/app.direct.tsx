@@ -96,6 +96,18 @@ function DirectPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase.channel(`direct-requests-${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_requests", filter: `recipient_id=eq.${userId}` }, () => {
+        setNotice("Você recebeu uma nova solicitação de conversa no Ensina-me.");
+        void load(userId);
+      }).subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [userId, load]);
+
+
+
   async function searchPeople(value: string) {
     setSearch(value); setError("");
     if (value.trim().length < 2) { setPeople([]); return; }
@@ -106,9 +118,10 @@ function DirectPage() {
 
   async function sendRequest(person: Person) {
     setBusy(true); setError(""); setNotice("");
-    const { error: insertError } = await supabase.rpc("direct_send_request", { recipient_user_id: person.user_id });
+    const { data: requestId, error: insertError } = await supabase.rpc("direct_send_request", { recipient_user_id: person.user_id });
     setBusy(false);
     if (insertError) { setError(insertError.code === "23505" ? "Já existe uma solicitação ou conversa para essa pessoa." : "Não foi possível enviar a solicitação. Verifique se você já pode conversar com essa pessoa."); return; }
+    if (requestId) void supabase.functions.invoke("push-notifications", { body: { action: "direct-notify-request", request_id: requestId } });
     setNotice("Solicitação enviada. As mensagens só serão liberadas após o aceite.");
     setPeople((current) => current.filter((p) => p.user_id !== person.user_id));
     await load(userId);
@@ -182,9 +195,10 @@ function DirectPage() {
     event.preventDefault();
     if (!activeConversation || !messageText.trim()) return;
     setBusy(true); setError("");
-    const { error: sendError } = await supabase.from("direct_messages").insert({ conversation_id: activeConversation.id, sender_id: userId, message_type: "text", body: messageText.trim() });
+    const { data: sentMessage, error: sendError } = await supabase.from("direct_messages").insert({ conversation_id: activeConversation.id, sender_id: userId, message_type: "text", body: messageText.trim() }).select("id").single();
     setBusy(false);
     if (sendError) { setError("A mensagem não foi enviada. O áudio/texto foi mantido no campo para você tentar novamente."); return; }
+    if (sentMessage?.id) void supabase.functions.invoke("push-notifications", { body: { action: "direct-notify-message", message_id: sentMessage.id } });
     setMessageText("");
     await openConversation(activeConversation);
     await load(userId);
@@ -303,14 +317,15 @@ function DirectPage() {
       if (uploadError) { setBusy(false); setError("O áudio foi mantido neste campo, mas não foi enviado. Tente novamente."); return; }
     }
     if (!path) { setBusy(false); return; }
-    const { error: sendError } = await supabase.from("direct_messages").insert({
+    const { data: sentMessage, error: sendError } = await supabase.from("direct_messages").insert({
       conversation_id: activeConversation.id, sender_id: userId, message_type: "voice", media_path: path, duration_seconds: recordingSeconds
-    });
+    }).select("id").single();
     if (sendError) {
       setBusy(false);
       setError("O áudio foi preservado no armazenamento, mas a mensagem não foi enviada. Tente novamente.");
       return;
     }
+    if (sentMessage?.id) void supabase.functions.invoke("push-notifications", { body: { action: "direct-notify-message", message_id: sentMessage.id } });
     if (voiceDraftId) await supabase.from("direct_voice_drafts").delete().eq("id", voiceDraftId).eq("user_id", userId);
     setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null); setRecordingSeconds(0); setBusy(false);
     await openConversation(activeConversation);
