@@ -157,15 +157,24 @@ export function DirectPage() {
       setFriendCodeLookup(false);
       return;
     }
+    // Perfil fictício isolado para validar o Direct sem criar uma conta falsa no banco de produção.
+    if (code === "A7B4C9") {
+      setPeople([{ user_id: "demo-alexandre", display_name: "Alexandre (teste)", avatar_url: null, allow_requests: true }]);
+      setNotice("Perfil fictício de teste encontrado. Use “Abrir chat de teste” para experimentar sem gravar dados no banco.");
+      setFriendCodeLookup(false);
+      return;
+    }
     const { data, error: lookupError } = await supabase.rpc("direct_find_by_friend_code", { friend_code_input: code });
     setFriendCodeLookup(false);
     if (lookupError) {
-      setError(lookupError.message?.toLowerCase().includes("rate limit") ? "Muitas tentativas. Aguarde alguns minutos e tente novamente." : "Não foi possível consultar esse código agora.");
+      setError(lookupError.message?.toLowerCase().includes("rate limit")
+        ? "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+        : "Não foi possível consultar os estudantes agora. Tente novamente em instantes.");
       return;
     }
     const matches = (data ?? []) as Person[];
     setPeople(matches);
-    if (matches.length === 0) setError("Nenhum estudante encontrado com esse código, ou ele não está recebendo solicitações.");
+    if (matches.length === 0) setError("Não encontramos estudante com esse código. Confira os seis caracteres e tente novamente.");
   }
 
   async function openTestChat(person: Person) {
@@ -177,7 +186,8 @@ export function DirectPage() {
   }
 
   async function sendRequest(person: Person) {
-    if (demoMode) {
+    if (demoMode || person.user_id === "demo-alexandre") {
+      if (!demoMode) { window.location.search = "?directTest=1"; return; }
       setRequests((items) => [...items, { id: crypto.randomUUID(), sender_id: userId, recipient_id: person.user_id, status: "pending", created_at: new Date().toISOString(), other_name: person.display_name }]);
       setPeople((items) => items.filter((p) => p.user_id !== person.user_id));
       setNotice("Solicitação de demonstração enviada. Nenhuma mensagem foi enviada a uma pessoa real.");
@@ -537,7 +547,7 @@ export function DirectPage() {
         </div>
       </header>
 
-      {(error || notice) && <div role={error ? "alert" : "status"} className={`mb-4 rounded-xl border px-4 py-3 text-sm ${error ? "border-[#F0B4B4] bg-red-50 text-red-800" : "border-[#CFE0FF] dark:border-[#333333] bg-[#F4F8FF] dark:bg-[#111111] text-blue-900"}`}>{error || notice}</div>}
+      {(error || notice) && <div role={error ? "alert" : "status"} className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium leading-relaxed shadow-sm ${error ? "border-[#E7A4A4] bg-[#FFF1F1] text-[#7F1D1D] dark:border-[#7F3030] dark:bg-[#2B1111] dark:text-[#FFE4E4]" : "border-[#B8CCFF] bg-[#EEF4FF] text-[#173A8A] dark:border-[#454545] dark:bg-[#171717] dark:text-white"}`}><span aria-hidden="true" className="mt-0.5 shrink-0">{error ? "!" : "✓"}</span><p className="min-w-0 break-words">{error || notice}</p></div>}
 
       <div className="mb-5 flex gap-2 overflow-x-auto border-b border-border pb-2">
         {([{id:"individual",label:"Individuais"},{id:"groups",label:"Grupos"},{id:"requests",label:`Solicitações ${received.length ? `(${received.length})` : ""}`},{id:"settings",label:"Privacidade"},{id:"suggestion",label:"Sugestões"}] as const).map((item) =>
@@ -561,7 +571,7 @@ export function DirectPage() {
                 {people.length > 0 && <div className="mt-3 divide-y divide-border">{people.map((person) => <div key={person.user_id} className="flex items-center gap-3 py-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F4F8FF] text-sm font-semibold text-[#0242D7]">{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-full w-full object-cover" /> : person.display_name.slice(0,1).toUpperCase()}</div>
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{person.display_name}</p><p className="text-xs text-muted-foreground">Estudante do Ensina-me</p></div>
-                  {tab === "individual" ? <div className="flex gap-1"><button disabled={busy} onClick={() => void sendRequest(person)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{demoMode ? "Enviar solicitação (teste)" : "Enviar solicitação"}</button>{demoMode && person.user_id === "demo-alexandre" && <button type="button" onClick={() => void openTestChat(person)} className="rounded-lg border border-[#0242D7] px-3 py-2 text-xs font-semibold text-[#0242D7]">Abrir chat de teste</button>}{!(demoMode && person.user_id === "demo-alexandre") && <button disabled={busy} onClick={() => void blockPerson(person.user_id)} className="rounded-lg border border-border px-2 py-2 text-xs">Bloquear</button>}</div> : <input aria-label={`Adicionar ${person.display_name} ao grupo`} type="checkbox" checked={selectedMembers.includes(person.user_id)} onChange={(e) => setSelectedMembers((old) => e.target.checked ? [...old, person.user_id] : old.filter((id) => id !== person.user_id))} className="h-4 w-4 accent-blue-700" />}
+                  {tab === "individual" ? <div className="flex gap-1"><button disabled={busy} onClick={() => void sendRequest(person)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{demoMode || person.user_id === "demo-alexandre" ? "Enviar solicitação (teste)" : "Enviar solicitação"}</button>{person.user_id === "demo-alexandre" && <button type="button" onClick={() => { if (!demoMode) { window.location.search = "?directTest=1"; return; } void openTestChat(person); }} className="rounded-lg border border-[#0242D7] px-3 py-2 text-xs font-semibold text-[#0242D7]">Abrir chat de teste</button>}{person.user_id !== "demo-alexandre" && <button disabled={busy} onClick={() => void blockPerson(person.user_id)} className="rounded-lg border border-border px-2 py-2 text-xs">Bloquear</button>}</div> : <input aria-label={`Adicionar ${person.display_name} ao grupo`} type="checkbox" checked={selectedMembers.includes(person.user_id)} onChange={(e) => setSelectedMembers((old) => e.target.checked ? [...old, person.user_id] : old.filter((id) => id !== person.user_id))} className="h-4 w-4 accent-blue-700" />}
                 </div>)}</div>}
               </div>
               {tab === "groups" && <form onSubmit={createGroup} className="rounded-2xl border border-border bg-card p-4">
