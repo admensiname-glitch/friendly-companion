@@ -42,6 +42,8 @@ export function DirectPage() {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [settings, setSettings] = useState<DirectSettings>(initialSettings);
   const [search, setSearch] = useState("");
+  const [myFriendCode, setMyFriendCode] = useState("");
+  const [friendCodeLookup, setFriendCodeLookup] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [groupTitle, setGroupTitle] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -58,6 +60,7 @@ export function DirectPage() {
       const demoUser = "demo-student";
       const demoConversation: Conversation = { id: "demo-conversation", kind: "individual", title: "Mariana Costa", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() };
       setUserId(demoUser);
+      setMyFriendCode("G1B2R3");
       setRequests([{ id: "demo-request", sender_id: "demo-mariana", recipient_id: demoUser, status: "pending", created_at: new Date().toISOString(), other_name: "Mariana Costa" }]);
       setConversations([demoConversation, { id: "demo-group", kind: "group", title: "Pedagogia • Turma 2026", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() }]);
       setMemberPreferences({ "demo-conversation": { archived_at: null, pinned_at: new Date().toISOString(), hidden_at: null }, "demo-group": { archived_at: null, pinned_at: null, hidden_at: null } });
@@ -70,6 +73,8 @@ export function DirectPage() {
     const id = currentUserId || sessionResult.data.session?.user.id;
     if (!id) { setError("Sua sessão expirou. Entre novamente para acessar o Direct."); setLoading(false); return; }
     setUserId(id);
+    const { data: ownFriendCode } = await supabase.rpc("direct_my_friend_code");
+    if (typeof ownFriendCode === "string") setMyFriendCode(ownFriendCode);
     const [requestResult, memberResult, blocksResult, permissionsResult, settingsResult] = await Promise.all([
       supabase.from("direct_requests").select("id,sender_id,recipient_id,status,created_at").in("status", ["pending"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("direct_conversation_members").select("conversation_id,archived_at,pinned_at,hidden_at").eq("user_id", id),
@@ -122,21 +127,44 @@ export function DirectPage() {
 
 
   async function searchPeople(value: string) {
-    setSearch(value); setError("");
-    if (demoMode) {
-      const demoPeople: Person[] = [
-        { user_id: "demo-mariana", display_name: "Mariana Costa", avatar_url: null, allow_requests: true },
-        { user_id: "demo-joao", display_name: "João Pedro", avatar_url: null, allow_requests: true },
-        { user_id: "demo-ana", display_name: "Ana Beatriz", avatar_url: null, allow_requests: true },
-        { user_id: "demo-alexandre", display_name: "Alexandre (teste)", avatar_url: null, allow_requests: true },
-      ];
-      setPeople(value.trim().length < 2 ? [] : demoPeople.filter((p) => p.display_name.toLowerCase().includes(value.toLowerCase()) && !conversations.some((c) => c.title === p.display_name)));
+    const normalized = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    setSearch(normalized);
+    setError("");
+    setNotice("");
+    setPeople([]);
+  }
+
+  async function findFriendByCode(event?: FormEvent) {
+    event?.preventDefault();
+    const code = search.toUpperCase().trim();
+    if (!/^[A-Z][0-9][A-Z][0-9][A-Z][0-9]$/.test(code)) {
+      setError("Digite um código válido com seis caracteres alternados entre letra e número.");
       return;
     }
-    if (value.trim().length < 2) { setPeople([]); return; }
-    const { data, error: searchError } = await supabase.rpc("direct_find_people", { search_text: value.trim() });
-    if (searchError) { setError("Não foi possível pesquisar estudantes agora."); setPeople([]); return; }
-    setPeople((data ?? []) as Person[]);
+    setFriendCodeLookup(true);
+    setError("");
+    setNotice("");
+    setPeople([]);
+    if (demoMode) {
+      const demoCodes: Record<string, Person> = {
+        A7B4C9: { user_id: "demo-alexandre", display_name: "Alexandre (teste)", avatar_url: null, allow_requests: true },
+        M2C8D5: { user_id: "demo-mariana", display_name: "Mariana Costa", avatar_url: null, allow_requests: true },
+      };
+      const person = demoCodes[code];
+      setPeople(person && !conversations.some((conversation) => conversation.title === person.display_name) ? [person] : []);
+      if (!person) setError("Nenhum estudante encontrado com esse código de amizade.");
+      setFriendCodeLookup(false);
+      return;
+    }
+    const { data, error: lookupError } = await supabase.rpc("direct_find_by_friend_code", { friend_code_input: code });
+    setFriendCodeLookup(false);
+    if (lookupError) {
+      setError(lookupError.message?.toLowerCase().includes("rate limit") ? "Muitas tentativas. Aguarde alguns minutos e tente novamente." : "Não foi possível consultar esse código agora.");
+      return;
+    }
+    const matches = (data ?? []) as Person[];
+    setPeople(matches);
+    if (matches.length === 0) setError("Nenhum estudante encontrado com esse código, ou ele não está recebendo solicitações.");
   }
 
   async function openTestChat(person: Person) {
@@ -521,9 +549,14 @@ export function DirectPage() {
           <section className="space-y-4">
             {(tab === "individual" || tab === "groups") && <>
               <div className="rounded-2xl border border-border bg-card p-4">
-                <label className="mb-2 block text-sm font-semibold" htmlFor="direct-search">Encontrar estudantes</label>
-                <input id="direct-search" value={search} onChange={(e) => void searchPeople(e.target.value)} placeholder="Digite um nome (mín. 2 letras)" className="w-full rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#CFE0FF] dark:focus:ring-[#333333]" />
-                <p className="mt-2 text-xs text-muted-foreground">Solicitações só liberam mensagens depois que a outra pessoa aceitar.</p>
+                <form onSubmit={findFriendByCode}>
+                  <label className="mb-2 block text-sm font-semibold" htmlFor="direct-search">Encontrar estudantes por código</label>
+                  <div className="flex gap-2">
+                    <input id="direct-search" value={search} onChange={(e) => void searchPeople(e.target.value)} placeholder="Ex.: A7B4C9" autoCapitalize="characters" autoComplete="off" maxLength={6} className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-3 text-sm uppercase tracking-widest outline-none focus:border-[#0242D7] focus:ring-2 focus:ring-[#CFE0FF] dark:focus:ring-[#333333]" />
+                    <button type="submit" disabled={friendCodeLookup || search.length !== 6} className="rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{friendCodeLookup ? "Buscando…" : "Buscar"}</button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Digite o código de amizade de seis caracteres. Mensagens só serão liberadas após o aceite da solicitação.</p>
+                </form>
                 {people.length > 0 && <div className="mt-3 divide-y divide-border">{people.map((person) => <div key={person.user_id} className="flex items-center gap-3 py-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F4F8FF] text-sm font-semibold text-[#0242D7]">{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-full w-full object-cover" /> : person.display_name.slice(0,1).toUpperCase()}</div>
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{person.display_name}</p><p className="text-xs text-muted-foreground">Estudante do Ensina-me</p></div>
@@ -561,7 +594,7 @@ export function DirectPage() {
               <div className="border-t border-border p-3"><div className="mb-3 flex flex-wrap items-center gap-2">{demoMode && <label className="cursor-pointer rounded-xl border border-border px-3 py-2 text-sm">Anexar imagem<input type="file" accept="image/*" className="hidden" onChange={(e) => { void attachTestImage(e.target.files?.[0]); e.currentTarget.value = ""; }} /></label>}{!recording ? <button type="button" disabled={busy} onClick={() => void startVoiceRecording()} className="rounded-xl border border-border px-3 py-2 text-sm">Gravar áudio</button> : <button type="button" onClick={stopVoiceRecording} className="rounded-xl border border-[#F0B4B4] px-3 py-2 text-sm text-red-700">Parar gravação · {recordingSeconds}s</button>}{(voiceDraft || voiceDraftPath) && <><span className="text-xs text-muted-foreground">Rascunho de áudio · {recordingSeconds}s</span>{voiceDraftUrl && <audio controls src={voiceDraftUrl} className="max-w-full" />}<button type="button" disabled={busy} onClick={() => void sendVoiceMessage()} className="rounded-xl bg-[#0242D7] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Enviar áudio</button><button type="button" disabled={busy} onClick={async () => { if (voiceDraftPath) await supabase.storage.from("direct-voice").remove([voiceDraftPath]); if (voiceDraftId) await supabase.from("direct_voice_drafts").delete().eq("id", voiceDraftId).eq("user_id", userId); setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null); setRecordingSeconds(0); }} className="rounded-xl border border-border px-3 py-2 text-sm">Descartar</button></>}</div><form onSubmit={sendMessage}><div className="flex items-end gap-2"><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} maxLength={5000} rows={2} placeholder="Escreva uma mensagem…" className="min-h-[48px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-[#0242D7]" /><button disabled={busy || !messageText.trim()} className="rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Enviar</button></div></form></div>
             </> : (tab === "individual" || tab === "groups") ? <div className="flex h-full min-h-[440px] flex-col items-center justify-center p-8 text-center"><div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F4F8FF] text-3xl">💬</div><h2 className="text-xl font-semibold">Suas conversas, em um só lugar</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Selecione uma conversa à esquerda ou pesquise um estudante para iniciar uma solicitação.</p><div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3 text-left"><div className="rounded-xl border border-border p-3"><p className="font-semibold">{individuals.length}</p><p className="text-xs text-muted-foreground">Conversas individuais</p></div><div className="rounded-xl border border-border p-3"><p className="font-semibold">{groups.length}</p><p className="text-xs text-muted-foreground">Grupos</p></div></div></div> : null}
 
-            {tab === "settings" && <div className="p-5 sm:p-7"><h2 className="text-xl font-semibold">Privacidade e segurança</h2><p className="mb-5 mt-2 text-sm text-muted-foreground">As alterações são sincronizadas com sua conta.</p><div className="divide-y divide-border">{([
+            {tab === "settings" && <div className="p-5 sm:p-7"><h2 className="text-xl font-semibold">Privacidade e segurança</h2><p className="mb-5 mt-2 text-sm text-muted-foreground">As alterações são sincronizadas com sua conta.</p><div className="mb-6 rounded-2xl border border-border bg-muted/30 p-4"><h3 className="font-semibold">Meu código de amizade</h3><p className="mt-1 text-xs text-muted-foreground">Compartilhe este código para que colegas encontrem seu perfil sem pesquisar seu nome.</p><div className="mt-3 flex items-center gap-2"><code className="flex-1 rounded-lg bg-background px-3 py-3 text-center text-lg font-bold tracking-[0.25em]">{myFriendCode || "Carregando…"}</code><button type="button" disabled={!myFriendCode} onClick={() => { void navigator.clipboard?.writeText(myFriendCode); setNotice("Código de amizade copiado."); }} className="rounded-lg border border-border px-3 py-3 text-sm disabled:opacity-50">Copiar</button></div></div><div className="divide-y divide-border>{([
               ["allow_requests","Receber solicitações de conversa","Permite que outras pessoas encontrem você para iniciar uma conversa."],
               ["show_online_status","Mostrar quando estou online","Permite que participantes autorizados vejam seu status online."],
               ["show_last_seen","Mostrar último acesso","Exibe seu último acesso às conversas."],
