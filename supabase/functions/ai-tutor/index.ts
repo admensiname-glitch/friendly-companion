@@ -1009,6 +1009,10 @@ async function generateAdaptiveMicroAssessment(args: {
     "- A mensagem não pode conter a nova questão nem as alternativas; a questão será exibida separadamente.\n" +
     "- concept_tags deve ter de 1 a 3 conceitos, priorizando o conceito frágil quando indicado.\n" +
     "- difficulty deve ser exatamente a dificuldade solicitada.\n\n" +
+    "FORMATO DE SAÍDA OBRIGATÓRIO\n" +
+    "Responda exclusivamente com um objeto JSON válido, sem Markdown nem texto antes ou depois. Use exatamente as chaves message e microassessment.\n" +
+    "message deve ser uma frase curta de transição que não revele a questão nem as alternativas.\n" +
+    "microassessment deve conter enabled=true, question (enunciado), options (exatamente 4 strings de alternativas distintas), correct_option_index (inteiro de 0 a 3), explanation, difficulty e concept_tags (de 1 a 3 strings).\n\n" +
     "PRECISÃO EM ALFABETIZAÇÃO E LINGUAGEM\n" +
     "- Não confunda consciência fonológica, consciência fonêmica, fonema, sílaba, rima, aliteração, grafema e relação grafofonêmica.\n" +
     "- Em exemplos de rima, confirme a semelhança sonora relevante na terminação; compartilhar apenas uma vogal final não basta.\n\n" +
