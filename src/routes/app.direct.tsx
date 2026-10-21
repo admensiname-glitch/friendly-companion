@@ -238,8 +238,9 @@ export function DirectPage() {
     setActiveConversation(conversation); setError("");
     if (demoMode) {
       const now = new Date();
+      const isAlexandreTest = conversation.id.includes("alexandre") || (conversation.title || "").toLowerCase().includes("alexandre");
       setMessages([
-        { id: "demo-message-1", conversation_id: conversation.id, sender_id: conversation.id === "demo-group" ? "demo-joao" : "demo-mariana", message_type: "text", body: conversation.kind === "group" ? "Pessoal, alguém revisou o material de alfabetização?" : "Oi! Você conseguiu revisar o conteúdo de hoje?", created_at: new Date(now.getTime() - 3600000).toISOString() },
+        { id: "demo-message-1", conversation_id: conversation.id, sender_id: conversation.kind === "group" ? "demo-joao" : isAlexandreTest ? "demo-alexandre" : "demo-mariana", message_type: "text", body: conversation.kind === "group" ? "Pessoal, alguém revisou o material de alfabetização?" : isAlexandreTest ? "Oi! Sou o Alexandre, perfil de teste do Direct. Quer testar o envio de mensagens?" : "Oi! Você conseguiu revisar o conteúdo de hoje?", created_at: new Date(now.getTime() - 3600000).toISOString() },
         { id: "demo-message-2", conversation_id: conversation.id, sender_id: userId, message_type: "text", body: "Sim! Podemos compartilhar nossas anotações por aqui.", created_at: new Date(now.getTime() - 1800000).toISOString() },
       ]);
       setGroupNotificationsEnabled(true); setReadReceipts([]);
@@ -478,15 +479,15 @@ export function DirectPage() {
     setNotice("Preferência de notificações do grupo salva.");
   }
 
-  async function updateConversationPreference(kind: "archive" | "pin", enabled: boolean) {
-    if (!activeConversation) return;
+  async function updateConversationPreference(kind: "archive" | "pin", enabled: boolean, targetConversation: Conversation | null = activeConversation) {
+    if (!targetConversation) return;
     if (demoMode) {
-      setMemberPreferences((current) => ({ ...current, [activeConversation.id]: { archived_at: kind === "archive" ? (enabled ? new Date().toISOString() : null) : current[activeConversation.id]?.archived_at ?? null, pinned_at: kind === "pin" ? (enabled ? new Date().toISOString() : null) : current[activeConversation.id]?.pinned_at ?? null, hidden_at: null } }));
+      setMemberPreferences((current) => ({ ...current, [targetConversation.id]: { archived_at: kind === "archive" ? (enabled ? new Date().toISOString() : null) : current[targetConversation.id]?.archived_at ?? null, pinned_at: kind === "pin" ? (enabled ? new Date().toISOString() : null) : current[targetConversation.id]?.pinned_at ?? null, hidden_at: null } }));
       setNotice("Preferência atualizada localmente na demonstração."); return;
     }
     setBusy(true); setError(""); setNotice("");
     const args = {
-      target_conversation_id: activeConversation.id,
+      target_conversation_id: targetConversation.id,
       should_archive: kind === "archive" ? enabled : null,
       should_pin: kind === "pin" ? enabled : null,
       mark_read: false
@@ -494,9 +495,9 @@ export function DirectPage() {
     const { error: preferenceError } = await supabase.rpc("direct_update_member_preferences", args);
     setBusy(false);
     if (preferenceError) { setError("Não foi possível atualizar esta conversa."); return; }
-    setNotice(kind === "archive" ? (enabled ? "Conversa arquivada." : "Conversa desarquivada.") : (enabled ? "Conversa fixada no topo." : "Conversa desafixada."));
+    setNotice(kind === "archive" ? (enabled ? "Conversa arquivada." : "Conversa desarquivada.") : (enabled ? "Conversa adicionada aos favoritos." : "Conversa removida dos favoritos."));
     await load(userId);
-    if (kind === "archive" && enabled) setActiveConversation(null);
+    if (kind === "archive" && enabled && activeConversation?.id === targetConversation.id) setActiveConversation(null);
   }
 
   async function blockPerson(personId: string) {
@@ -650,7 +651,7 @@ export function DirectPage() {
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#DCE8F8] text-sm font-black text-[#0242D7] dark:bg-[#222] dark:text-white">{conversation.kind === "group" ? "👥" : (conversation.title || "E").slice(0, 1).toUpperCase()}</div>
                     <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{conversation.title || (conversation.kind === "group" ? "Grupo de estudos" : "Conversa individual")}</p><time className="shrink-0 text-[10px] text-[#718096] dark:text-[#B6B6B6]">{new Date(conversation.last_message_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</time></div><p className="mt-1 truncate text-xs text-[#687688] dark:text-[#B6B6B6]">{conversation.kind === "group" ? "Grupo de estudos" : "Conversa privada"} · {dateLabel(conversation.last_message_at)}</p></div>
                   </button>
-                  <button type="button" onClick={() => { void openConversation(conversation); }} className="hidden rounded-lg px-2 py-1 text-lg text-[#7A8796] hover:bg-white sm:block dark:text-[#B6B6B6] dark:hover:bg-[#222]" title={memberPreferences[conversation.id]?.pinned_at ? "Favorita" : "Marcar para acesso rápido"} aria-label={memberPreferences[conversation.id]?.pinned_at ? "Conversa favorita" : "Fixar conversa"}>{memberPreferences[conversation.id]?.pinned_at ? "★" : "☆"}</button>
+                  <button type="button" disabled={busy} onClick={() => void updateConversationPreference("pin", !memberPreferences[conversation.id]?.pinned_at, conversation)} className="hidden rounded-lg px-2 py-1 text-lg text-[#7A8796] hover:bg-white disabled:opacity-50 sm:block dark:text-[#B6B6B6] dark:hover:bg-[#222]" title={memberPreferences[conversation.id]?.pinned_at ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-label={memberPreferences[conversation.id]?.pinned_at ? "Remover dos favoritos" : "Adicionar aos favoritos"}>{memberPreferences[conversation.id]?.pinned_at ? "★" : "☆"}</button>
                 </div>
               ))}
             </div>
