@@ -465,3 +465,17 @@ end;
 $$;
 revoke all on function public.direct_accept_request(uuid) from public, anon;
 grant execute on function public.direct_accept_request(uuid) to authenticated;
+
+
+-- Membership rows are managed only by trusted RPCs, never by clients.
+revoke update on public.direct_conversation_members from authenticated;
+
+-- Keep the message list current across web and Android sessions.
+do $$
+begin
+  alter publication supabase_realtime add table public.direct_messages;
+exception when duplicate_object then null;
+when undefined_object then null;
+end;
+$$;
+
