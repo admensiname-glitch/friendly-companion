@@ -14,8 +14,8 @@ type DirectSettings = { allow_requests: boolean; show_online_status: boolean; sh
 const initialSettings: DirectSettings = { allow_requests: true, show_online_status: true, show_last_seen: true, read_receipts: true, auto_play_voice: false };
 const dateLabel = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
-function DirectPage() {
-  const [demoMode] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "1");
+export function DirectPage() {
+  const [demoMode] = useState(() => typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1"));
   const [userId, setUserId] = useState("");
   const [tab, setTab] = useState<"individual" | "groups" | "requests" | "settings" | "suggestion">("individual");
   const [showArchived, setShowArchived] = useState(false);
@@ -110,14 +110,14 @@ function DirectPage() {
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || demoMode) return;
     const channel = supabase.channel(`direct-requests-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_requests", filter: `recipient_id=eq.${userId}` }, () => {
         setNotice("Você recebeu uma nova solicitação de conversa no Ensina-me.");
         void load(userId);
       }).subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [userId, load]);
+  }, [userId, load, demoMode]);
 
 
 
@@ -470,7 +470,7 @@ function DirectPage() {
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Ensina-me · Comunicação</p>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Direct</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Converse com outros estudantes, organize grupos e controle sua privacidade.</p>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Converse com outros estudantes, organize grupos e controle sua privacidade.</p>{demoMode && <p className="mt-3 max-w-2xl rounded-xl border border-amber-400/60 bg-amber-50 px-3 py-2 text-sm text-amber-950">Modo de demonstração gratuito: as alterações são apenas locais nesta sessão. Nada é enviado a estudantes reais ou ao banco.</p>}
         </div>
         <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
           <span className="font-semibold">{received.length}</span> solicitações pendentes
