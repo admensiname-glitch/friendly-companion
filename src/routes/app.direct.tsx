@@ -7,7 +7,8 @@ export const Route = createFileRoute("/app/direct")({ component: DirectPage });
 type Person = { user_id: string; display_name: string; avatar_url: string | null; allow_requests: boolean };
 type RequestRow = { id: string; sender_id: string; recipient_id: string; status: string; created_at: string };
 type Conversation = { id: string; kind: "individual" | "group"; title: string | null; last_message_at: string; created_at: string };
-type Message = { id: string; conversation_id: string; sender_id: string; message_type: string; body: string | null; media_path?: string | null; duration_seconds?: number | null; created_at: string; audioUrl?: string };\ntype ReadReceipt = { user_id: string; display_name: string; last_read_at: string };
+type Message = { id: string; conversation_id: string; sender_id: string; message_type: string; body: string | null; media_path?: string | null; duration_seconds?: number | null; created_at: string; audioUrl?: string };
+type ReadReceipt = { user_id: string; display_name: string; last_read_at: string };
 type DirectSettings = { allow_requests: boolean; show_online_status: boolean; show_last_seen: boolean; read_receipts: boolean; auto_play_voice: boolean };
 
 const initialSettings: DirectSettings = { allow_requests: true, show_online_status: true, show_last_seen: true, read_receipts: true, auto_play_voice: false };
