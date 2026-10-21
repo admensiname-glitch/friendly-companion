@@ -123,7 +123,7 @@ function DirectPage() {
     else { setNotice("Solicitação cancelada."); await load(userId); }
   }
 
-  async function openConversation(conversation: Conversation) {
+  const openConversation = useCallback(async (conversation: Conversation) => {
     setActiveConversation(conversation); setError("");
     const { data, error: messageError } = await supabase.from("direct_messages").select("id,conversation_id,sender_id,message_type,body,media_path,duration_seconds,created_at").eq("conversation_id", conversation.id).order("created_at", { ascending: true }).limit(200);
     if (messageError) { setError("Não foi possível carregar as mensagens desta conversa."); return; }
@@ -143,7 +143,7 @@ function DirectPage() {
       setVoiceDraftConversationId(conversation.id); setRecordingSeconds(draft.duration_seconds ?? 0);
     }
     await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null, should_pin: null, mark_read: true });
-  }
+  }, [userId]);
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
@@ -197,7 +197,7 @@ function DirectPage() {
         void openConversation(activeConversation);
       }).subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [activeConversation?.id, userId]);
+  }, [activeConversation, openConversation, userId]);
 
   useEffect(() => {
     if (!recording) return;
@@ -208,6 +208,7 @@ function DirectPage() {
   async function startVoiceRecording() {
     setError(""); setNotice("");
     if (!activeConversation) return;
+    const recordingConversationId = activeConversation.id;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setError("Este dispositivo/navegador não permite gravar áudio. Tente atualizar o navegador ou usar o app Android.");
       return;
@@ -222,16 +223,16 @@ function DirectPage() {
         const duration = Math.max(1, Math.round((Date.now() - recordingStartRef.current) / 1000));
         const draftId = crypto.randomUUID();
         const extension = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
-        const path = `${activeConversation.id}/${userId}/draft-${draftId}.${extension}`;
+        const path = `${recordingConversationId}/${userId}/draft-${draftId}.${extension}`;
         setVoiceDraft(blob); setVoiceDraftUrl(URL.createObjectURL(blob)); setVoiceDraftId(draftId);
-        setVoiceDraftConversationId(activeConversation.id); setRecordingSeconds(duration);
+        setVoiceDraftConversationId(recordingConversationId); setRecordingSeconds(duration);
         stream.getTracks().forEach((track) => track.stop());
         setBusy(true);
         void (async () => {
           const { error: uploadError } = await supabase.storage.from("direct-voice").upload(path, blob, { contentType: blob.type || "audio/webm", upsert: false });
           if (uploadError) { setBusy(false); setError("Áudio mantido neste dispositivo. Não foi possível sincronizar o rascunho."); return; }
           const { error: draftError } = await supabase.from("direct_voice_drafts").insert({
-            id: draftId, user_id: userId, conversation_id: activeConversation.id, storage_path: path, duration_seconds: duration, sync_status: "synced"
+            id: draftId, user_id: userId, conversation_id: recordingConversationId, storage_path: path, duration_seconds: duration, sync_status: "synced"
           });
           if (draftError) {
             await supabase.storage.from("direct-voice").remove([path]);
