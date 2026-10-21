@@ -563,14 +563,14 @@ function CommunityPage() {
                         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Apoio visual do Tutor</p>
                         <h3 className="mt-1 text-sm font-black text-[#172334]">{post.tutor_visual_aid.title}</h3>
                       </div>
-                      {post.tutor_image_url && (
+                      {safeHttpsUrl(post.tutor_image_url) && (
                         <figure className="p-3 sm:p-4">
-                          <img src={post.tutor_image_url} alt={post.tutor_image_alt || post.tutor_visual_aid.title} className="max-h-[560px] w-full rounded-lg border border-[#E2E8F0] bg-white object-contain" loading="lazy" referrerPolicy="no-referrer" />
+                          <img src={safeHttpsUrl(post.tutor_image_url)!} alt={post.tutor_image_alt || post.tutor_visual_aid.title} className="max-h-[560px] w-full rounded-lg border border-[#E2E8F0] bg-white object-contain" loading="lazy" referrerPolicy="no-referrer" />
                           {(post.tutor_image_attribution || post.tutor_image_license || post.tutor_image_source_url) && (
                             <figcaption className="mt-2 flex flex-wrap items-center gap-2 text-[11px] leading-5 text-[#64748B]">
                               {post.tutor_image_attribution && <span>{post.tutor_image_attribution}</span>}
                               {post.tutor_image_license && <span>· {post.tutor_image_license}</span>}
-                              {post.tutor_image_source_url && <a href={post.tutor_image_source_url} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">Fonte da imagem</a>}
+                              {safeHttpsUrl(post.tutor_image_source_url) && <a href={safeHttpsUrl(post.tutor_image_source_url)!} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">Fonte da imagem</a>}
                             </figcaption>
                           )}
                         </figure>
