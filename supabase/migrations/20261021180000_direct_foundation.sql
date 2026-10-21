@@ -479,3 +479,25 @@ when undefined_object then null;
 end;
 $$;
 
+
+
+-- Keep ordering current and constrain message edits to the original conversation.
+drop policy if exists "direct_messages_sender_edit" on public.direct_messages;
+create policy "direct_messages_sender_edit" on public.direct_messages
+  for update to authenticated
+  using ((select auth.uid()) = sender_id and created_at > now() - interval '15 minutes')
+  with check ((select auth.uid()) = sender_id and direct_private.is_member(conversation_id));
+
+create or replace function direct_private.bump_conversation_last_message()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  update public.direct_conversations set last_message_at = new.created_at where id = new.conversation_id;
+  return new;
+end;
+$$;
+revoke all on function direct_private.bump_conversation_last_message() from public, anon, authenticated;
+drop trigger if exists direct_messages_bump_conversation on public.direct_messages;
+create trigger direct_messages_bump_conversation
+after insert on public.direct_messages
+for each row execute function direct_private.bump_conversation_last_message();
+
