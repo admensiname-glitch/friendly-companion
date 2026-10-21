@@ -534,3 +534,78 @@ end;
 $$;
 revoke all on function public.direct_get_read_receipts(uuid) from public, anon;
 grant execute on function public.direct_get_read_receipts(uuid) to authenticated;
+
+
+-- Per-user hiding for old messages, plus the 15-minute delete-for-everyone rule.
+create table if not exists public.direct_message_hides (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  message_id uuid not null references public.direct_messages(id) on delete cascade,
+  hidden_at timestamptz not null default now(),
+  primary key (user_id, message_id)
+);
+alter table public.direct_message_hides enable row level security;
+drop policy if exists direct_message_hides_own on public.direct_message_hides;
+create policy direct_message_hides_own on public.direct_message_hides
+  for all to authenticated using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+grant select, insert, delete on public.direct_message_hides to authenticated;
+
+create or replace function public.direct_delete_message(target_message_id uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare msg public.direct_messages%rowtype;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  select * into msg from public.direct_messages where id = target_message_id for update;
+  if not found or not direct_private.is_member(msg.conversation_id) then raise exception 'Message unavailable'; end if;
+  if msg.sender_id = auth.uid() and msg.created_at > now() - interval '15 minutes' then
+    update public.direct_messages set deleted_for_everyone_at = now()
+      where id = target_message_id and deleted_for_everyone_at is null;
+    return 'everyone';
+  end if;
+  insert into public.direct_message_hides(user_id, message_id) values (auth.uid(), target_message_id)
+    on conflict (user_id, message_id) do nothing;
+  return 'self';
+end;
+$$;
+revoke all on function public.direct_delete_message(uuid) from public, anon;
+grant execute on function public.direct_delete_message(uuid) to authenticated;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.direct_requests;
+exception when duplicate_object then null;
+when undefined_object then null;
+end;
+$$;
+
+-- If a blocked pair accepts a fresh request after unblocking, restore their old authorized history.
+create or replace function public.direct_accept_request(request_id uuid)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare req public.direct_requests%rowtype; new_conversation uuid; existing_conversation uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  select * into req from public.direct_requests where id = request_id for update;
+  if not found or req.recipient_id <> auth.uid() or req.status <> 'pending' then raise exception 'Request unavailable'; end if;
+  if exists(select 1 from public.direct_blocks b where (b.blocker_id = req.sender_id and b.blocked_id = req.recipient_id) or (b.blocker_id = req.recipient_id and b.blocked_id = req.sender_id)) then
+    update public.direct_requests set status = 'unavailable', updated_at = now() where id = request_id;
+    return null;
+  end if;
+  select c.id into existing_conversation
+  from public.direct_conversations c
+  join public.direct_conversation_members a on a.conversation_id = c.id and a.user_id = req.sender_id
+  join public.direct_conversation_members b on b.conversation_id = c.id and b.user_id = req.recipient_id
+  where c.kind = 'individual' limit 1;
+  if existing_conversation is not null then new_conversation := existing_conversation;
+  else
+    insert into public.direct_conversations(kind, created_by) values ('individual', auth.uid()) returning id into new_conversation;
+    insert into public.direct_conversation_members(conversation_id, user_id, role) values
+      (new_conversation, req.sender_id, 'member'), (new_conversation, req.recipient_id, 'member');
+  end if;
+  update public.direct_conversation_members set hidden_at = null
+    where conversation_id = new_conversation and user_id in (req.sender_id, req.recipient_id);
+  update public.direct_requests set status = 'accepted', conversation_id = new_conversation, updated_at = now() where id = request_id;
+  return new_conversation;
+end;
+$$;
+revoke all on function public.direct_accept_request(uuid) from public, anon;
+grant execute on function public.direct_accept_request(uuid) to authenticated;
