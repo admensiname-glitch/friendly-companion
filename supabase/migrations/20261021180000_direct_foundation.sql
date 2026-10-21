@@ -252,3 +252,121 @@ grant update on public.direct_conversation_members to authenticated;
 grant select, insert, update on public.direct_messages to authenticated;
 grant select, insert, update on public.direct_group_notification_preferences to authenticated;
 grant select, insert, update, delete on public.direct_voice_drafts to authenticated;
+
+
+-- Direct preview hardening: enforce unique pending requests and isolate member preferences.
+create unique index if not exists direct_requests_one_pending_pair
+  on public.direct_requests(sender_id, recipient_id) where status = 'pending';
+
+alter table public.direct_conversation_members
+  add column if not exists hidden_at timestamptz;
+
+-- Never allow a client to self-add to another conversation or promote its role.
+drop policy if exists "direct_members_self_update" on public.direct_conversation_members;
+create policy "direct_members_self_update" on public.direct_conversation_members
+  for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check (
+    (select auth.uid()) = user_id
+    and direct_private.is_member(conversation_id)
+  );
+
+create table if not exists public.direct_request_permissions (
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  requester_id uuid not null references auth.users(id) on delete cascade,
+  allowed boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (recipient_id, requester_id),
+  check (recipient_id <> requester_id)
+);
+alter table public.direct_request_permissions enable row level security;
+drop policy if exists direct_request_permissions_select_own on public.direct_request_permissions;
+create policy direct_request_permissions_select_own on public.direct_request_permissions
+  for select to authenticated using ((select auth.uid()) = recipient_id);
+revoke all on public.direct_request_permissions from public, anon, authenticated;
+grant select on public.direct_request_permissions to authenticated;
+
+create or replace function public.direct_set_request_permission(requester_user_id uuid, is_allowed boolean)
+returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or requester_user_id is null or requester_user_id = auth.uid() then
+    raise exception 'Invalid requester';
+  end if;
+  insert into public.direct_request_permissions(recipient_id, requester_id, allowed, updated_at)
+  values (auth.uid(), requester_user_id, is_allowed, now())
+  on conflict (recipient_id, requester_id) do update
+    set allowed = excluded.allowed, updated_at = now();
+  return true;
+end;
+$$;
+revoke all on function public.direct_set_request_permission(uuid, boolean) from public, anon;
+grant execute on function public.direct_set_request_permission(uuid, boolean) to authenticated;
+
+create or replace function public.direct_block_user(target_user_id uuid)
+returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or target_user_id is null or target_user_id = auth.uid() then
+    raise exception 'Invalid user';
+  end if;
+  insert into public.direct_blocks(blocker_id, blocked_id)
+  values (auth.uid(), target_user_id) on conflict do nothing;
+  update public.direct_requests set status = 'unavailable', updated_at = now()
+  where status = 'pending'
+    and ((sender_id = auth.uid() and recipient_id = target_user_id)
+      or (sender_id = target_user_id and recipient_id = auth.uid()));
+  update public.direct_conversation_members m set hidden_at = now()
+  from public.direct_conversations c
+  where m.conversation_id = c.id and c.kind = 'individual'
+    and m.user_id = auth.uid()
+    and exists (select 1 from public.direct_conversation_members peer
+      where peer.conversation_id = c.id and peer.user_id = target_user_id);
+  return true;
+end;
+$$;
+revoke all on function public.direct_block_user(uuid) from public, anon;
+grant execute on function public.direct_block_user(uuid) to authenticated;
+
+create or replace function public.direct_unblock_user(target_user_id uuid)
+returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or target_user_id is null then raise exception 'Authentication required'; end if;
+  delete from public.direct_blocks where blocker_id = auth.uid() and blocked_id = target_user_id;
+  return found;
+end;
+$$;
+revoke all on function public.direct_unblock_user(uuid) from public, anon;
+grant execute on function public.direct_unblock_user(uuid) to authenticated;
+
+create or replace function public.direct_update_member_preferences(
+  target_conversation_id uuid,
+  should_archive boolean default null,
+  should_pin boolean default null,
+  mark_read boolean default false
+) returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not direct_private.is_member(target_conversation_id) then
+    raise exception 'Conversation unavailable';
+  end if;
+  update public.direct_conversation_members
+  set archived_at = case when should_archive is null then archived_at when should_archive then now() else null end,
+      pinned_at = case when should_pin is null then pinned_at when should_pin then now() else null end,
+      last_read_at = case when mark_read then now() else last_read_at end
+  where conversation_id = target_conversation_id and user_id = auth.uid();
+  return found;
+end;
+$$;
+revoke all on function public.direct_update_member_preferences(uuid, boolean, boolean, boolean) from public, anon;
+grant execute on function public.direct_update_member_preferences(uuid, boolean, boolean, boolean) to authenticated;
+
+-- Private audio storage; only conversation members may read and only a member may upload into their own folder.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('direct-voice', 'direct-voice', false, 52428800, array['audio/webm','audio/mp4','audio/ogg','audio/mpeg','audio/wav'])
+on conflict (id) do nothing;
+drop policy if exists direct_voice_member_read on storage.objects;
+create policy direct_voice_member_read on storage.objects for select to authenticated
+using (bucket_id = 'direct-voice' and direct_private.is_member(((storage.foldername(name))[1])::uuid));
+drop policy if exists direct_voice_member_upload on storage.objects;
+create policy direct_voice_member_upload on storage.objects for insert to authenticated
+with check (bucket_id = 'direct-voice'
+  and (storage.foldername(name))[2] = (select auth.uid())::text
+  and direct_private.is_member(((storage.foldername(name))[1])::uuid));
