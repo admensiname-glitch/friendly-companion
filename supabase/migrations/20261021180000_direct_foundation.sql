@@ -155,6 +155,44 @@ $$;
 revoke all on function public.direct_find_people(text) from public, anon;
 grant execute on function public.direct_find_people(text) to authenticated;
 
+create or replace function public.direct_send_request(recipient_user_id uuid)
+returns uuid language plpgsql security definer set search_path = '' as $
+declare new_request uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if recipient_user_id is null or recipient_user_id = auth.uid() then raise exception 'Invalid recipient'; end if;
+  if not exists(select 1 from public.student_profiles p where p.user_id = recipient_user_id)
+     or not coalesce((select s.allow_requests from public.direct_settings s where s.user_id = recipient_user_id), true) then
+    raise exception 'Recipient unavailable';
+  end if;
+  if exists(select 1 from public.direct_blocks b where (b.blocker_id = auth.uid() and b.blocked_id = recipient_user_id) or (b.blocker_id = recipient_user_id and b.blocked_id = auth.uid())) then
+    raise exception 'Recipient unavailable';
+  end if;
+  if exists(select 1 from public.direct_requests r where r.sender_id = auth.uid() and r.recipient_id = recipient_user_id and r.status = 'declined') then
+    raise exception 'Recipient has declined a previous request';
+  end if;
+  if exists(select 1 from public.direct_requests r where r.sender_id = auth.uid() and r.recipient_id = recipient_user_id and r.status = 'pending') then
+    raise exception 'Request already pending';
+  end if;
+  insert into public.direct_requests(sender_id, recipient_id) values (auth.uid(), recipient_user_id) returning id into new_request;
+  return new_request;
+end;
+$;
+revoke all on function public.direct_send_request(uuid) from public, anon;
+grant execute on function public.direct_send_request(uuid) to authenticated;
+
+create or replace function public.direct_decline_request(request_id uuid)
+returns boolean language plpgsql security definer set search_path = '' as $
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  update public.direct_requests set status = 'declined', updated_at = now()
+    where id = request_id and recipient_id = auth.uid() and status = 'pending';
+  return found;
+end;
+$;
+revoke all on function public.direct_decline_request(uuid) from public, anon;
+grant execute on function public.direct_decline_request(uuid) to authenticated;
+
 create or replace function public.direct_accept_request(request_id uuid)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare req public.direct_requests%rowtype; new_conversation uuid; existing_conversation uuid;
