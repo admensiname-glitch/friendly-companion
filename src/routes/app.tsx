@@ -61,6 +61,7 @@ const navigation = [
   { to: "/app/estude-agora" as const, label: "Estudar agora", icon: "spark" as const },
   { to: "/app/tutor" as const, label: "Tutor", icon: "tutor" as const },
   { to: "/app/comunidade" as const, label: "Comunidade", icon: "community" as const },
+  { to: "/app/direct" as const, label: "Direct", icon: "community" as const },
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },

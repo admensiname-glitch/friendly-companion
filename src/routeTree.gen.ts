@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminAtivarRouteImport } from './routes/admin-ativar'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as DirectDemoRouteImport } from './routes/direct-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -27,6 +28,7 @@ import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppComunidadeRouteImport } from './routes/app.comunidade'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
+import { Route as AppDirectRouteImport } from './routes/app.direct'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
 import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
@@ -61,6 +63,11 @@ const AppRoute = AppRouteImport.update({
 const CadastroRoute = CadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirectDemoRoute = DirectDemoRouteImport.update({
+  id: '/direct-demo',
+  path: '/direct-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -128,6 +135,11 @@ const AppDesempenhoRoute = AppDesempenhoRouteImport.update({
   path: '/desempenho',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDirectRoute = AppDirectRouteImport.update({
+  id: '/direct',
+  path: '/direct',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/disciplinas',
   path: '/disciplinas',
@@ -187,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -200,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -217,6 +231,7 @@ export interface FileRoutesByTo {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -230,6 +245,7 @@ export interface FileRoutesByTo {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -248,6 +264,7 @@ export interface FileRoutesById {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -261,6 +278,7 @@ export interface FileRoutesById {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -280,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -293,6 +312,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -310,6 +330,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -323,6 +344,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -340,6 +362,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -353,6 +376,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -371,6 +395,7 @@ export interface RootRouteChildren {
   AdminAtivarRoute: typeof AdminAtivarRoute
   AppRoute: typeof AppRouteWithChildren
   CadastroRoute: typeof CadastroRoute
+  DirectDemoRoute: typeof DirectDemoRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -414,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/cadastro'
       fullPath: '/cadastro'
       preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/direct-demo': {
+      id: '/direct-demo'
+      path: '/direct-demo'
+      fullPath: '/direct-demo'
+      preLoaderRoute: typeof DirectDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -505,6 +537,13 @@ declare module '@tanstack/react-router' {
       path: '/desempenho'
       fullPath: '/app/desempenho'
       preLoaderRoute: typeof AppDesempenhoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/direct': {
+      id: '/app/direct'
+      path: '/direct'
+      fullPath: '/app/direct'
+      preLoaderRoute: typeof AppDirectRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/disciplinas': {
@@ -638,6 +677,7 @@ interface AppRouteChildren {
   AppComunidadeRoute: typeof AppComunidadeRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
+  AppDirectRoute: typeof AppDirectRoute
   AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
   AppEstudeAgoraRoute: typeof AppEstudeAgoraRoute
   AppNotificacoesRoute: typeof AppNotificacoesRoute
@@ -652,6 +692,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppComunidadeRoute: AppComunidadeRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
+  AppDirectRoute: AppDirectRoute,
   AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
   AppEstudeAgoraRoute: AppEstudeAgoraRoute,
   AppNotificacoesRoute: AppNotificacoesRoute,
@@ -669,6 +710,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAtivarRoute: AdminAtivarRoute,
   AppRoute: AppRouteWithChildren,
   CadastroRoute: CadastroRoute,
+  DirectDemoRoute: DirectDemoRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PrivacidadeRoute: PrivacidadeRoute,
