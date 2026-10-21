@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
       const { data: members, error: memberError } = await db.from("direct_conversation_members").select("user_id").eq("conversation_id", message.conversation_id).neq("user_id", user.id);
       if (memberError) return json(500, { error: "Não foi possível determinar os destinatários." });
       recipients = (members || []).map((m: { user_id: string }) => m.user_id);
-      body = message.message_type === "voice" ? "Você recebeu uma mensagem de voz." : String(message.body || "Você recebeu uma nova mensagem.").slice(0, 140);
+      body = message.message_type === "voice" ? "Você recebeu uma mensagem de voz." : "Você recebeu uma nova mensagem no Direct.";
     }
     if (!recipients.length) return json(200, { ok: true, sent: 0, skipped: 0 });
     const { data: prefs } = await db.from("notification_preferences").select("user_id,push_enabled").in("user_id", recipients);
