@@ -582,7 +582,7 @@ export function DirectPage() {
         </div>
         <nav aria-label="Pastas do Direct" className="flex gap-1 overflow-x-auto px-3 sm:px-5">
           {([
-            { id: "inbox", label: "Entrada", mark: "▣" },
+            { id: "inbox", label: "Contatos", mark: "▣" },
             { id: "starred", label: "Favoritas", mark: "☆" },
             { id: "groups", label: "Grupos", mark: "♧" },
             { id: "requests", label: "Solicitações", mark: "↗" },
@@ -653,7 +653,7 @@ export function DirectPage() {
               </details>
               {tab === "groups" && <form onSubmit={createGroup} className="mt-3 rounded-xl border border-[#E2E8F0] p-3 dark:border-[#303030]"><h3 className="text-sm font-black">Criar grupo</h3><label htmlFor="direct-group-title" className="mb-1 mt-3 block text-xs font-bold">Nome do grupo</label><input id="direct-group-title" value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} maxLength={80} minLength={2} required placeholder="Ex.: Estudos de Alfabetização" className="w-full rounded-lg border border-[#DDE4ED] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0242D7] dark:border-[#333] dark:bg-[#111] dark:text-white" /><p className="mt-2 text-xs text-[#718096] dark:text-[#B6B6B6]">{selectedMembers.length} pessoa(s) selecionada(s). Busque os códigos acima para adicionar participantes.</p><button disabled={busy || selectedMembers.length < 1} className="mt-3 w-full rounded-lg bg-[#0242D7] px-3 py-2.5 text-sm font-bold text-white disabled:opacity-50">Criar grupo</button></form>}
             </div>
-            <div className="flex items-center justify-between px-4 py-3"><h2 className="text-xs font-black uppercase tracking-[0.12em] text-[#7A8796] dark:text-[#B6B6B6]">{showArchived ? "Arquivadas" : favoriteOnly ? "Favoritas" : tab === "groups" ? "Seus grupos" : "Entrada"}</h2><span className="text-xs text-[#7A8796] dark:text-[#B6B6B6]">{visibleConversations.length}</span></div>
+            <div className="flex items-center justify-between px-4 py-3"><h2 className="text-xs font-black uppercase tracking-[0.12em] text-[#7A8796] dark:text-[#B6B6B6]">{showArchived ? "Arquivadas" : favoriteOnly ? "Favoritas" : tab === "groups" ? "Seus grupos" : "Contatos"}</h2><span className="text-xs text-[#7A8796] dark:text-[#B6B6B6]">{visibleConversations.length}</span></div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {visibleConversations.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center"><span className="text-3xl">✉</span><p className="mt-3 text-sm font-bold">{favoriteOnly ? "Nenhuma conversa favorita" : showArchived ? "Nenhuma conversa arquivada" : conversationSearch ? "Nenhuma conversa encontrada" : tab === "groups" ? "Você ainda não participa de grupos" : "Sua caixa de entrada está vazia"}</p><p className="mt-1 max-w-[250px] text-xs leading-5 text-[#718096] dark:text-[#B6B6B6]">{tab === "groups" ? "Encontre estudantes e organize um grupo de estudos." : "Pesquise o código de amizade de um estudante para começar uma conversa."}</p></div> : visibleConversations.map((conversation) => (
                 <div key={conversation.id} className={"group flex items-center gap-3 border-b border-[#F0F2F5] px-3 py-3 transition-colors dark:border-[#202020] " + (activeConversation?.id === conversation.id ? "bg-[#EAF1FF] dark:bg-[#171717]" : "hover:bg-[#F8FAFC] dark:hover:bg-[#111]")}>
