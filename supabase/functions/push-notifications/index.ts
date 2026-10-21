@@ -70,6 +70,73 @@ Deno.serve(async (req: Request) => {
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   let input: { action?: string; subscription?: PushSubscriptionJSON; enabled?: boolean; token?: string };
   try { input = await req.json(); } catch { return json(400, { error: "Corpo da requisição inválido." }); }
+
+  if (input.action === "direct-notify-request" || input.action === "direct-notify-message") {
+    const isRequest = input.action === "direct-notify-request";
+    const targetId = isRequest ? input.request_id : input.message_id;
+    if (typeof targetId !== "string" || targetId.length > 80) return json(400, { error: "Identificador inválido." });
+
+    let recipients: string[] = [];
+    let title = "Nova mensagem no Direct";
+    let body = "Você recebeu uma nova mensagem.";
+    let url = "/app/comunidade";
+    let conversationId: string | null = null;
+
+    if (isRequest) {
+      const { data: request, error } = await db.from("direct_requests").select("id,sender_id,recipient_id,status").eq("id", targetId).maybeSingle();
+      if (error || !request || request.sender_id !== user.id || request.status !== "pending") return json(404, { error: "Solicitação não encontrada ou não autorizada." });
+      recipients = [request.recipient_id];
+      title = "Nova solicitação no Direct";
+      body = "Um estudante quer iniciar uma conversa com você.";
+    } else {
+      const { data: message, error } = await db.from("direct_messages").select("id,conversation_id,sender_id,message_type,body").eq("id", targetId).maybeSingle();
+      if (error || !message || message.sender_id !== user.id) return json(404, { error: "Mensagem não encontrada ou não autorizada." });
+      conversationId = message.conversation_id;
+      const { data: members, error: memberError } = await db.from("direct_conversation_members").select("user_id").eq("conversation_id", message.conversation_id).neq("user_id", user.id);
+      if (memberError) return json(500, { error: "Não foi possível determinar os destinatários." });
+      recipients = (members || []).map((m: { user_id: string }) => m.user_id);
+      body = message.message_type === "voice" ? "Você recebeu uma mensagem de voz." : String(message.body || "Você recebeu uma nova mensagem.").slice(0, 140);
+    }
+    if (!recipients.length) return json(200, { ok: true, sent: 0, skipped: 0 });
+    const { data: prefs } = await db.from("notification_preferences").select("user_id,push_enabled").in("user_id", recipients);
+    const enabledUsers = new Set((prefs || []).filter((p: { user_id: string; push_enabled: boolean }) => p.push_enabled).map((p: { user_id: string }) => p.user_id));
+    if (!isRequest && conversationId) {
+      const { data: group } = await db.from("direct_conversations").select("kind").eq("id", conversationId).maybeSingle();
+      if (group?.kind === "group") {
+        const { data: groupPrefs } = await db.from("direct_group_notification_preferences").select("user_id,notifications_enabled").eq("conversation_id", conversationId);
+        const muted = new Set((groupPrefs || []).filter((p: { user_id: string; notifications_enabled: boolean }) => !p.notifications_enabled).map((p: { user_id: string }) => p.user_id));
+        recipients = recipients.filter((id) => !muted.has(id));
+      }
+    }
+    recipients = recipients.filter((id) => enabledUsers.has(id));
+    if (!recipients.length) return json(200, { ok: true, sent: 0, skipped: true });
+
+    const { data: subs, error: subError } = await db.from("push_subscriptions").select("id,user_id,channel,endpoint,p256dh,auth_key,fcm_token").in("user_id", recipients).eq("active", true);
+    if (subError) return json(500, { error: "Não foi possível consultar os dispositivos inscritos." });
+    let sent = 0;
+    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") || "";
+    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") || "";
+    if (vapidPublic && vapidPrivate) webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") || "mailto:suporte@ensina-me.app", vapidPublic, vapidPrivate);
+    let serviceAccount: Record<string, string> | null = null;
+    try { serviceAccount = JSON.parse(Deno.env.get("FIREBASE_SERVICE_ACCOUNT") || "null"); } catch { serviceAccount = null; }
+    for (const sub of subs || []) {
+      try {
+        if (sub.channel === "web_push" && vapidPublic && vapidPrivate && sub.endpoint && sub.p256dh && sub.auth_key) {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } }, JSON.stringify({ title: "Ensina-me · " + title, body, url, tag: "direct-" + targetId }));
+          sent++;
+        } else if (sub.channel === "android_fcm" && serviceAccount?.project_id && serviceAccount.client_email && serviceAccount.private_key && sub.fcm_token) {
+          await sendFcm(serviceAccount, sub.fcm_token, "Ensina-me · " + title, body, url);
+          sent++;
+        }
+      } catch (error) {
+        const detail = String(error);
+        console.error("[push-notifications] direct delivery failed", detail.slice(0, 300));
+        if (/statusCode: 404|statusCode: 410|UNREGISTERED/.test(detail)) await db.from("push_subscriptions").update({ active: false, updated_at: new Date().toISOString() }).eq("id", sub.id);
+      }
+    }
+    return json(200, { ok: true, sent, recipients: recipients.length });
+  }
+
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY") || "";
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY") || "";
   const subject = Deno.env.get("VAPID_SUBJECT") || "mailto:suporte@ensina-me.app";
