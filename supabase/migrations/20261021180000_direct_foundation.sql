@@ -510,3 +510,27 @@ revoke insert on public.direct_requests from authenticated;
 -- Until dedicated edit/delete RPCs are exposed, messages are immutable from clients.
 revoke update on public.direct_messages from authenticated;
 
+
+
+-- Expose read status only when the recipient has explicitly enabled read receipts.
+create or replace function public.direct_get_read_receipts(target_conversation_id uuid)
+returns table(user_id uuid, display_name text, last_read_at timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not direct_private.is_member(target_conversation_id) then
+    raise exception 'Conversation unavailable';
+  end if;
+  return query
+    select m.user_id,
+           coalesce(nullif(trim(p.display_name), ''), 'Estudante')::text,
+           m.last_read_at
+    from public.direct_conversation_members m
+    left join public.student_profiles p on p.user_id = m.user_id
+    join public.direct_settings s on s.user_id = m.user_id and s.read_receipts = true
+    where m.conversation_id = target_conversation_id
+      and m.user_id <> auth.uid()
+      and m.last_read_at is not null;
+end;
+$$;
+revoke all on function public.direct_get_read_receipts(uuid) from public, anon;
+grant execute on function public.direct_get_read_receipts(uuid) to authenticated;
