@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminAtivarRouteImport } from './routes/admin-ativar'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as DirectDemoRouteImport } from './routes/direct-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -61,6 +62,11 @@ const AppRoute = AppRouteImport.update({
 const CadastroRoute = CadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirectDemoRoute = DirectDemoRouteImport.update({
+  id: '/direct-demo',
+  path: '/direct-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/admin-ativar': typeof AdminAtivarRoute
   '/app': typeof AppRouteWithChildren
   '/cadastro': typeof CadastroRoute
+  '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/admin-ativar'
     | '/app'
     | '/cadastro'
+    | '/direct-demo'
     | '/login'
     | '/onboarding'
     | '/privacidade'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   AdminAtivarRoute: typeof AdminAtivarRoute
   AppRoute: typeof AppRouteWithChildren
   CadastroRoute: typeof CadastroRoute
+  DirectDemoRoute: typeof DirectDemoRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/cadastro'
       fullPath: '/cadastro'
       preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/direct-demo': {
+      id: '/direct-demo'
+      path: '/direct-demo'
+      fullPath: '/direct-demo'
+      preLoaderRoute: typeof DirectDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -669,6 +689,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAtivarRoute: AdminAtivarRoute,
   AppRoute: AppRouteWithChildren,
   CadastroRoute: CadastroRoute,
+  DirectDemoRoute: DirectDemoRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PrivacidadeRoute: PrivacidadeRoute,

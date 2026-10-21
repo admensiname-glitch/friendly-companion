@@ -2,7 +2,7 @@ name: Sync generated route tree
 
 on:
   push:
-    branches: [main]
+    branches: [main, preview/direct-demo-visible]
   workflow_dispatch:
 
 concurrency:

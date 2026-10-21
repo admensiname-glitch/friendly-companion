@@ -64,6 +64,7 @@ const navigation = [
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
+  { to: "/direct-demo" as const, label: "Direct (prévia)", icon: "community" as const },
 ];
 
 function AppLayout() {
