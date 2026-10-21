@@ -1067,55 +1067,9 @@ async function generateAdaptiveMicroAssessment(args: {
           temperature: 0.2,
           reasoning_effort: "low",
           include_reasoning: false,
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "ensina_me_adaptive_microassessment",
-              strict: true,
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  message: { type: "string" },
-                  microassessment: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      enabled: { type: "boolean" },
-                      question: { type: "string" },
-                      // Runtime validation below enforces four options and index 0–3.
-                      options: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                      correct_option_index: {
-                        type: "integer",
-                      },
-                      explanation: { type: "string" },
-                      difficulty: {
-                        type: "string",
-                        enum: ["introductory", "intermediate", "advanced"],
-                      },
-                      concept_tags: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                    },
-                    required: [
-                      "enabled",
-                      "question",
-                      "options",
-                      "correct_option_index",
-                      "explanation",
-                      "difficulty",
-                      "concept_tags",
-                    ],
-                  },
-                },
-                required: ["message", "microassessment"],
-              },
-            },
-          },
+          // Use JSON mode for this adaptive micro-assessment. Groq rejects the current strict schema
+          // with HTTP 400 in production; server-side validation below still checks all fields.
+          response_format: { type: "json_object" },
         }),
         signal: controller.signal,
       },
