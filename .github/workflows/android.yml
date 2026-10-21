@@ -3,7 +3,7 @@ name: Android app
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'fix/android-offline-safe-area']
     paths:
       - "capacitor.config.json"
       - "www/**"
@@ -78,12 +78,12 @@ jobs:
           import com.getcapacitor.BridgeActivity;
 
           public class MainActivity extends BridgeActivity {
-            private void hideSystemBars() {
+            private void hideNavigationBar() {
               WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
               WindowInsetsControllerCompat controller =
                   WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
               if (controller != null) {
-                controller.hide(WindowInsetsCompat.Type.systemBars());
+                controller.hide(WindowInsetsCompat.Type.navigationBars());
                 controller.setSystemBarsBehavior(
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 );
@@ -93,14 +93,14 @@ jobs:
             @Override
             public void onCreate(Bundle savedInstanceState) {
               super.onCreate(savedInstanceState);
-              hideSystemBars();
+              hideNavigationBar();
             }
 
             @Override
             public void onWindowFocusChanged(boolean hasFocus) {
               super.onWindowFocusChanged(hasFocus);
               if (hasFocus) {
-                hideSystemBars();
+                hideNavigationBar();
               }
             }
           }

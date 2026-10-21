@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0242D7">
+  <title>Sem conexão — Ensina-me</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #172033; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); }
+    main { width: min(100%, 420px); text-align: center; }
+    .mark { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 24px; border-radius: 20px; background: #0242D7; color: white; font-size: 30px; font-weight: 800; }
+    h1 { margin: 0; font-size: clamp(1.5rem, 6vw, 2rem); letter-spacing: -.03em; }
+    p { margin: 12px 0 24px; color: #526075; line-height: 1.6; }
+    button { border: 0; border-radius: 12px; padding: 13px 20px; background: #0242D7; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">E</div>
+    <h1>Você está sem conexão</h1>
+    <p>Não foi possível conectar ao Ensina-me. Verifique sua internet e tente novamente. Quando a conexão voltar, você poderá continuar seus estudos.</p>
+    <button type="button" onclick="window.location.reload()">Tentar novamente</button>
+  </main>
+</body>
+</html>

@@ -129,18 +129,15 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
-  // Hide each native system bar explicitly. Some Android builds can leave the
-  // bottom navigation bar visible when only the generic hide request is used.
+  // Keep the Android status bar visible while hiding only the bottom navigation bar.
+  // The app shell uses CSS safe-area insets to keep content clear of the status bar.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     let active = true;
     const hideNativeSystemBars = async () => {
       try {
-        await Promise.all([
-          SystemBars.hide({ bar: SystemBarType.StatusBar, animation: "NONE" }),
-          SystemBars.hide({ bar: SystemBarType.NavigationBar, animation: "NONE" }),
-        ]);
+        await SystemBars.hide({ bar: SystemBarType.NavigationBar, animation: "NONE" });
       } catch {
         // The web experience must remain usable if the native API is unavailable.
       }
@@ -169,17 +166,21 @@ function RootComponent() {
     });
   }, []);
 
-  // Register native Android FCM notifications only inside the installed app.
+  // Register listener handlers before asking Android for an FCM token.
+  // The native bridge can emit "registration" immediately; starting listeners and
+  // registration concurrently can lose that event and leave no token on the server.
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
     let active = true;
-    const listeners = [
+    const listeners = Promise.all([
       PushNotifications.addListener("registration", async (token) => {
         if (!active || !token.value) return;
-        const { error } = await supabase.functions.invoke("push-notifications", {
+        const { data, error } = await supabase.functions.invoke("push-notifications", {
           body: { action: "native-register", token: token.value },
         });
-        if (error) console.warn("Ensina-me: não foi possível registrar o token FCM.", error.message);
+        if (error || !data?.ok) {
+          console.warn("Ensina-me: não foi possível registrar o token FCM.", error?.message);
+        }
       }),
       PushNotifications.addListener("registrationError", (error) => {
         console.warn("Ensina-me: registro FCM falhou.", error);
@@ -191,9 +192,11 @@ function RootComponent() {
         const target = action.notification.data?.url;
         if (typeof target === "string" && target.startsWith("/")) window.location.assign(target);
       }),
-    ];
+    ]);
     void (async () => {
       try {
+        await listeners;
+        if (!active) return;
         let permission = await PushNotifications.checkPermissions();
         if (permission.receive !== "granted") permission = await PushNotifications.requestPermissions();
         if (active && permission.receive === "granted") await PushNotifications.register();
@@ -203,7 +206,9 @@ function RootComponent() {
     })();
     return () => {
       active = false;
-      void Promise.all(listeners.map((listener) => listener.then((handle) => handle.remove())));
+      void listeners.then((handles) => Promise.all(handles.map((handle) => handle.remove()))).catch((error) => {
+        console.warn("Ensina-me: não foi possível remover os ouvintes de notificações.", error);
+      });
     };
   }, []);
 

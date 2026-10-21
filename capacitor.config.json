@@ -11,13 +11,14 @@
   "server": {
     "url": "https://ensina-me-sigma.vercel.app",
     "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "errorPath": "offline.html"
   },
   "plugins": {
     "SystemBars": {
       "insetsHandling": "css",
       "style": "DARK",
-      "hidden": true,
+      "hidden": false,
       "animation": "NONE",
       "initialViewportFitValueHint": "cover"
     }
