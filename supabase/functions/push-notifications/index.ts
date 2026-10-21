@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await authClient.auth.getUser();
   if (authError || !user) return json(401, { error: "Sessão inválida. Entre novamente." });
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  let input: { action?: string; subscription?: PushSubscriptionJSON; enabled?: boolean; token?: string };
+  let input: { action?: string; subscription?: PushSubscriptionJSON; enabled?: boolean; token?: string; request_id?: string; message_id?: string };
   try { input = await req.json(); } catch { return json(400, { error: "Corpo da requisição inválido." }); }
   const publicKey = Deno.env.get("VAPID_PUBLIC_KEY") || "";
   const privateKey = Deno.env.get("VAPID_PRIVATE_KEY") || "";
@@ -172,6 +172,85 @@ Deno.serve(async (req: Request) => {
       return json(502, { ok: false, sent, total: subs.length, error });
     }
     return json(200, { ok: true, sent, total: subs.length, error: null });
+  }
+  if (input.action === "direct-notify-request" || input.action === "direct-notify-message") {
+    const isRequest = input.action === "direct-notify-request";
+    let recipientIds: string[] = [];
+    if (isRequest) {
+      if (!input.request_id) return json(400, { error: "Solicitação inválida." });
+      const { data: request, error } = await db.from("direct_requests")
+        .select("id,sender_id,recipient_id,status").eq("id", input.request_id).maybeSingle();
+      if (error || !request || request.sender_id !== user.id || request.status !== "pending") {
+        return json(403, { error: "Solicitação não autorizada para notificação." });
+      }
+      recipientIds = [request.recipient_id];
+    } else {
+      if (!input.message_id) return json(400, { error: "Mensagem inválida." });
+      const { data: message, error } = await db.from("direct_messages")
+        .select("id,sender_id,conversation_id").eq("id", input.message_id).maybeSingle();
+      if (error || !message || message.sender_id !== user.id) {
+        return json(403, { error: "Mensagem não autorizada para notificação." });
+      }
+      const { data: conversation } = await db.from("direct_conversations")
+        .select("kind").eq("id", message.conversation_id).maybeSingle();
+      const { data: members, error: membersError } = await db.from("direct_conversation_members")
+        .select("user_id").eq("conversation_id", message.conversation_id).neq("user_id", user.id);
+      if (membersError) return json(500, { error: "Não foi possível resolver os destinatários." });
+      recipientIds = (members ?? []).map((m) => m.user_id);
+      if (conversation?.kind === "group" && recipientIds.length) {
+        const { data: muted } = await db.from("direct_group_notification_preferences")
+          .select("user_id").eq("conversation_id", message.conversation_id).eq("notifications_enabled", false).in("user_id", recipientIds);
+        const mutedIds = new Set((muted ?? []).map((row) => row.user_id));
+        recipientIds = recipientIds.filter((id) => !mutedIds.has(id));
+      }
+    }
+    if (!recipientIds.length) return json(200, { ok: true, sent: 0, skipped: 0 });
+    const { data: preferences, error: preferencesError } = await db.from("notification_preferences")
+      .select("user_id,push_enabled,quiet_hours_enabled,quiet_hours_start,quiet_hours_end").in("user_id", recipientIds);
+    if (preferencesError) return json(500, { error: "Não foi possível verificar as preferências de notificação." });
+    const enabledIds = new Set((preferences ?? []).filter((p) => p.push_enabled === true).map((p) => p.user_id));
+    recipientIds = recipientIds.filter((id) => enabledIds.has(id));
+    if (!recipientIds.length) return json(200, { ok: true, sent: 0, skipped: recipientIds.length });
+    const { data: subscriptions, error: subscriptionError } = await db.from("push_subscriptions")
+      .select("id,user_id,channel,endpoint,p256dh,auth_key,fcm_token,active")
+      .in("user_id", recipientIds).eq("active", true);
+    if (subscriptionError) return json(500, { error: "Não foi possível consultar os dispositivos inscritos." });
+    const title = "Ensina-me — Direct";
+    const body = isRequest
+      ? "Você recebeu uma nova solicitação de conversa no Ensina-me."
+      : "Você recebeu uma nova mensagem no Ensina-me.";
+    let sent = 0;
+    let skipped = 0;
+    const vapidReady = Boolean(publicKey && privateKey);
+    if (vapidReady) webpush.setVapidDetails(subject, publicKey, privateKey);
+    let serviceAccount: Record<string, string> | null = null;
+    try {
+      const raw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+      if (raw) serviceAccount = JSON.parse(raw);
+    } catch { serviceAccount = null; }
+    for (const sub of subscriptions ?? []) {
+      try {
+        if (sub.channel === "web_push" && vapidReady && sub.endpoint && sub.p256dh && sub.auth_key) {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
+            JSON.stringify({ title, body, url: "/app/direct", tag: isRequest ? "direct-request" : "direct-message" }),
+          );
+          sent++;
+        } else if (sub.channel === "android_fcm" && serviceAccount?.project_id && serviceAccount.client_email && serviceAccount.private_key && sub.fcm_token) {
+          await sendFcm(serviceAccount, sub.fcm_token, title, body, "/app/direct");
+          sent++;
+        } else skipped++;
+      } catch (err) {
+        skipped++;
+        const detail = String(err);
+        const status = (err as { statusCode?: number })?.statusCode;
+        if (status === 404 || status === 410 || detail.includes("UNREGISTERED")) {
+          await db.from("push_subscriptions").update({ active: false, updated_at: new Date().toISOString() }).eq("id", sub.id);
+        }
+        console.error("[push-notifications] direct notification failed", detail.slice(0, 250));
+      }
+    }
+    return json(200, { ok: true, sent, skipped });
   }
   return json(400, { error: "Ação desconhecida." });
 });
