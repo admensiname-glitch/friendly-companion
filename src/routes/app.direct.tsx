@@ -73,10 +73,10 @@ function DirectPage() {
     } else setRestrictedRequesters([]);
     const requestRows = (requestResult.data ?? []) as RequestRow[];
     const peerIds = [...new Set(requestRows.map((row) => row.sender_id === id ? row.recipient_id : row.sender_id))];
-    const requestNames = peerIds.length ? await supabase.from("student_profiles").select("user_id,display_name").in("user_id", peerIds) : { data: [] };
+    const requestNames = peerIds.length ? await supabase.from("student_profiles").select("user_id,display_name").in("user_id", peerIds) : null;
     setRequests(requestRows.map((row) => ({
       ...row,
-      other_name: requestNames.data?.find((person) => person.user_id === (row.sender_id === id ? row.recipient_id : row.sender_id))?.display_name || "Estudante"
+      other_name: requestNames?.data?.find((person) => person.user_id === (row.sender_id === id ? row.recipient_id : row.sender_id))?.display_name || "Estudante"
     })));
     const memberRows = memberResult.data ?? [];
     setMemberPreferences(Object.fromEntries(memberRows.map((m) => [m.conversation_id, { archived_at: m.archived_at, pinned_at: m.pinned_at, hidden_at: m.hidden_at }])));
@@ -143,8 +143,11 @@ function DirectPage() {
       setGroupNotificationsEnabled(groupPreference?.notifications_enabled ?? true);
     } else setGroupNotificationsEnabled(true);
     const messageRows = (data ?? []) as Message[];
-    const hiddenResult = messageRows.length ? await supabase.from("direct_message_hides").select("message_id").eq("user_id", userId).in("message_id", messageRows.map((message) => message.id)) : { data: [] };
-    const hiddenIds = new Set((hiddenResult.data ?? []).map((row) => row.message_id));
+    let hiddenIds = new Set<string>();
+    if (messageRows.length) {
+      const { data: hiddenRows } = await supabase.from("direct_message_hides").select("message_id").eq("user_id", userId).in("message_id", messageRows.map((message) => message.id));
+      hiddenIds = new Set((hiddenRows ?? []).map((row) => row.message_id));
+    }
     const hydrated = await Promise.all(messageRows.filter((message) => !hiddenIds.has(message.id)).map(async (message) => {
       const row = message as Message;
       if (row.message_type !== "voice" || !row.media_path) return row;
