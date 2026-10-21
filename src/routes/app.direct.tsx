@@ -575,27 +575,27 @@ export function DirectPage() {
               <p className="hidden text-xs text-[#718096] sm:block dark:text-[#B6B6B6]">Conversas e grupos do Ensina-me</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden rounded-full bg-[#EFF4FF] px-3 py-1.5 text-xs font-bold text-[#0242D7] sm:inline-flex dark:bg-[#171717] dark:text-white">{received.length} solicitações</span>
-            <button type="button" onClick={() => changeView("settings")} aria-label="Privacidade e configurações" title="Privacidade e configurações" className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DDE4ED] text-lg hover:bg-[#F6F8FB] dark:border-[#333] dark:hover:bg-[#171717]">⚙</button>
-          </div>
+          <details className="group relative shrink-0">
+            <summary aria-label="Mais opções do Direct" title="Mais opções" className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-2xl font-bold hover:bg-[#F1F4F9] dark:hover:bg-[#191919]">⋮</summary>
+            <div className="absolute right-0 top-12 z-50 w-60 rounded-2xl border border-[#DDE4ED] bg-white p-2 shadow-xl dark:border-[#333] dark:bg-[#111]">
+              {([
+                { id: "inbox", label: "Contatos", mark: "▣" },
+                { id: "starred", label: "Favoritas", mark: "☆" },
+                { id: "groups", label: "Grupos", mark: "♧" },
+                { id: "requests", label: "Solicitações", mark: "↗" },
+                { id: "archived", label: "Arquivadas", mark: "▤" },
+                { id: "settings", label: "Privacidade", mark: "⚙" },
+                { id: "suggestion", label: "Sugestões", mark: "✎" },
+              ] as const).map((item) => (
+                <button key={item.id} type="button" onClick={(event) => { changeView(item.id); const menu = event.currentTarget.closest("details"); if (menu) menu.open = false; }} aria-current={activeTopView === item.id ? "page" : undefined} className={"flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold " + (activeTopView === item.id ? "bg-[#EAF1FF] text-[#0242D7] dark:bg-[#202020] dark:text-white" : "hover:bg-[#F5F7FA] dark:hover:bg-[#191919]")}>
+                  <span aria-hidden="true" className="w-5 text-center text-base">{item.mark}</span><span className="flex-1">{item.label}</span>
+                  {item.id === "requests" && received.length > 0 && <span className="rounded-full bg-[#0242D7] px-2 py-0.5 text-[10px] text-white">{received.length}</span>}
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
-        <nav aria-label="Pastas do Direct" className="flex gap-1 overflow-x-auto px-3 sm:px-5">
-          {([
-            { id: "inbox", label: "Contatos", mark: "▣" },
-            { id: "starred", label: "Favoritas", mark: "☆" },
-            { id: "groups", label: "Grupos", mark: "♧" },
-            { id: "requests", label: "Solicitações", mark: "↗" },
-            { id: "archived", label: "Arquivadas", mark: "▤" },
-            { id: "settings", label: "Privacidade", mark: "⚙" },
-            { id: "suggestion", label: "Sugestões", mark: "✎" },
-          ] as const).map((item) => (
-            <button key={item.id} type="button" onClick={() => changeView(item.id)} aria-current={activeTopView === item.id ? "page" : undefined} className={"flex min-h-11 shrink-0 items-center gap-2 border-b-[3px] px-3 text-sm font-bold transition-colors sm:px-4 " + (activeTopView === item.id ? "border-[#0242D7] text-[#0242D7] dark:text-white dark:border-white" : "border-transparent text-[#687688] hover:bg-[#F7F9FC] hover:text-[#172334] dark:text-[#B6B6B6] dark:hover:bg-[#151515] dark:hover:text-white")}>
-              <span aria-hidden="true" className="text-base">{item.mark}</span>{item.label}
-              {item.id === "requests" && received.length > 0 && <span className="rounded-full bg-[#0242D7] px-1.5 py-0.5 text-[10px] text-white">{received.length}</span>}
-            </button>
-          ))}
-        </nav>
+
       </header>
 
       {(error || notice) && <div role={error ? "alert" : "status"} className={"mx-3 mt-3 flex shrink-0 items-start gap-3 rounded-xl border px-4 py-3 text-sm font-semibold leading-relaxed sm:mx-5 " + (error ? "border-[#E7A4A4] bg-[#FFF1F1] text-[#7F1D1D] dark:border-[#7F3030] dark:bg-[#2B1111] dark:text-[#FFE4E4]" : "border-[#B8CCFF] bg-[#EEF4FF] text-[#173A8A] dark:border-[#454545] dark:bg-[#171717] dark:text-white")}>
@@ -629,7 +629,7 @@ export function DirectPage() {
       ) : tab === "suggestion" ? (
         <form onSubmit={submitSuggestion} className="m-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[#E5EAF1] bg-white p-4 sm:m-6 sm:p-6 dark:border-[#252525] dark:bg-black"><h2 className="text-xl font-black">Enviar sugestão anônima</h2><p className="mb-5 mt-2 max-w-2xl text-sm leading-6 text-[#718096] dark:text-[#B6B6B6]">Compartilhe uma ideia para melhorar o Direct. Não inclua nome, telefone, e-mail, dados acadêmicos identificáveis ou outros dados pessoais. Não anexe arquivos.</p><label htmlFor="direct-suggestion" className="mb-2 block text-sm font-bold">Sua sugestão</label><textarea id="direct-suggestion" value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} maxLength={3000} rows={7} placeholder="Escreva sua sugestão (até 3.000 caracteres)" className="w-full rounded-xl border border-[#DDE4ED] bg-white p-4 text-sm leading-6 outline-none focus:border-[#0242D7] dark:border-[#333] dark:bg-[#111] dark:text-white" /><p className="mb-4 mt-1 text-right text-xs text-[#718096] dark:text-[#B6B6B6]">{suggestionText.length}/3000</p><label className="mb-5 flex items-start gap-3 text-sm leading-5"><input type="checkbox" checked={confirmNoPersonalData} onChange={(e) => setConfirmNoPersonalData(e.target.checked)} required className="mt-1 h-4 w-4 accent-blue-700" /><span>Confirmo que o texto não contém dados pessoais nem conteúdo de conversas privadas.</span></label><button disabled={busy || !suggestionText.trim() || !confirmNoPersonalData} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">Enviar sugestão anônima</button><p className="mt-4 text-xs text-[#718096] dark:text-[#B6B6B6]">Após o envio, você verá apenas a confirmação de recebimento. Não há acompanhamento de status nem promessa de resposta.</p></form>
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(310px,365px)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]">
           <aside className={(activeConversation ? "hidden lg:flex" : "flex") + " min-h-0 flex-col border-b border-[#E5EAF1] bg-white lg:border-b-0 lg:border-r dark:border-[#252525] dark:bg-black"} aria-label="Lista de conversas">
             <div className="shrink-0 border-b border-[#E5EAF1] p-3 sm:p-4 dark:border-[#252525]">
               <label htmlFor="direct-conversation-search" className="sr-only">Buscar conversas</label>
