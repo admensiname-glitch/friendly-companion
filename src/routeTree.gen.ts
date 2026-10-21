@@ -27,6 +27,7 @@ import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppComunidadeRouteImport } from './routes/app.comunidade'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDesempenhoRouteImport } from './routes/app.desempenho'
+import { Route as AppDirectRouteImport } from './routes/app.direct'
 import { Route as AppDisciplinasRouteImport } from './routes/app.disciplinas'
 import { Route as AppEstudeAgoraRouteImport } from './routes/app.estude-agora'
 import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
@@ -128,6 +129,11 @@ const AppDesempenhoRoute = AppDesempenhoRouteImport.update({
   path: '/desempenho',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDirectRoute = AppDirectRouteImport.update({
+  id: '/direct',
+  path: '/direct',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDisciplinasRoute = AppDisciplinasRouteImport.update({
   id: '/disciplinas',
   path: '/disciplinas',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/app/comunidade': typeof AppComunidadeRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/desempenho': typeof AppDesempenhoRoute
+  '/app/direct': typeof AppDirectRoute
   '/app/disciplinas': typeof AppDisciplinasRouteWithChildren
   '/app/estude-agora': typeof AppEstudeAgoraRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/app/comunidade'
     | '/app/dashboard'
     | '/app/desempenho'
+    | '/app/direct'
     | '/app/disciplinas'
     | '/app/estude-agora'
     | '/app/notificacoes'
@@ -507,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDesempenhoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/direct': {
+      id: '/app/direct'
+      path: '/direct'
+      fullPath: '/app/direct'
+      preLoaderRoute: typeof AppDirectRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/disciplinas': {
       id: '/app/disciplinas'
       path: '/disciplinas'
@@ -638,6 +657,7 @@ interface AppRouteChildren {
   AppComunidadeRoute: typeof AppComunidadeRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDesempenhoRoute: typeof AppDesempenhoRoute
+  AppDirectRoute: typeof AppDirectRoute
   AppDisciplinasRoute: typeof AppDisciplinasRouteWithChildren
   AppEstudeAgoraRoute: typeof AppEstudeAgoraRoute
   AppNotificacoesRoute: typeof AppNotificacoesRoute
@@ -652,6 +672,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppComunidadeRoute: AppComunidadeRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDesempenhoRoute: AppDesempenhoRoute,
+  AppDirectRoute: AppDirectRoute,
   AppDisciplinasRoute: AppDisciplinasRouteWithChildren,
   AppEstudeAgoraRoute: AppEstudeAgoraRoute,
   AppNotificacoesRoute: AppNotificacoesRoute,
