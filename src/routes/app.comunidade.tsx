@@ -7,11 +7,48 @@ export const Route = createFileRoute("/app/comunidade")({ component: CommunityPa
 type Course = { id: string; name: string };
 type Discipline = { id: string; name: string; course_id: string };
 type Topic = { id: string; name: string; discipline_id: string };
+type SharedTutorVisualAid = {
+  enabled: boolean;
+  type: "flow" | "concept_map" | "comparison";
+  title: string;
+  items: string[];
+  caption: string;
+};
+
+type SharedTutorMedia = {
+  imageUrl: string | null;
+  imageAlt: string | null;
+  imageSourceUrl: string | null;
+  imageLicense: string | null;
+  imageAttribution: string | null;
+  visualAid: SharedTutorVisualAid | null;
+  videoUrl: string | null;
+  videoEmbedUrl: string | null;
+  videoTitle: string | null;
+  videoDescription: string | null;
+  videoChannelName: string | null;
+  videoDurationLabel: string | null;
+  videoReason: string | null;
+};
+
 type Post = {
   id: string;
   author_id: string;
   body: string;
   image_url: string | null;
+  tutor_image_url: string | null;
+  tutor_image_alt: string | null;
+  tutor_image_source_url: string | null;
+  tutor_image_license: string | null;
+  tutor_image_attribution: string | null;
+  tutor_visual_aid: SharedTutorVisualAid | null;
+  tutor_video_url: string | null;
+  tutor_video_embed_url: string | null;
+  tutor_video_title: string | null;
+  tutor_video_description: string | null;
+  tutor_video_channel_name: string | null;
+  tutor_video_duration_label: string | null;
+  tutor_video_reason: string | null;
   created_at: string;
   course_id: string | null;
   discipline_id: string | null;
@@ -25,6 +62,51 @@ type Post = {
   disciplines?: { name: string } | null;
   topics?: { name: string } | null;
 };
+
+function safeHttpsUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeYouTubeEmbedUrl(value: string | null | undefined): string | null {
+  const safeUrl = safeHttpsUrl(value);
+  if (!safeUrl) return null;
+  try {
+    const parsed = new URL(safeUrl);
+    const allowedHost = ["youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com"].includes(parsed.hostname);
+    return allowedHost && /^\/embed\/[A-Za-z0-9_-]+$/.test(parsed.pathname) ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseSharedTutorVisualAid(value: string | null): SharedTutorVisualAid | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<SharedTutorVisualAid>;
+    if (
+      parsed.enabled !== true ||
+      typeof parsed.title !== "string" ||
+      !Array.isArray(parsed.items) ||
+      !parsed.items.every((item) => typeof item === "string") ||
+      !["flow", "concept_map", "comparison"].includes(parsed.type ?? "")
+    ) return null;
+    return {
+      enabled: true,
+      type: parsed.type as SharedTutorVisualAid["type"],
+      title: parsed.title.slice(0, 200),
+      items: parsed.items.slice(0, 20).map((item) => item.slice(0, 500)),
+      caption: typeof parsed.caption === "string" ? parsed.caption.slice(0, 1000) : "",
+    };
+  } catch {
+    return null;
+  }
+}
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string; authorName?: string; authorAvatar?: string | null };
 
 const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😎","🤓","🧐","🤔","🤗","🤩","🥳","😢","😭","😤","😡","😱","😴","🤯","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","🔥","✨","⭐","🎉","👏","🙌","👍","👎","🙏","💪","🤝","👀","🧠","📚","✏️","📝","🎓","💡","✅","❌","❗","❓","🚀","🌟","☕","📌"];
@@ -41,6 +123,7 @@ function CommunityPage() {
   const [selectedTopic, setSelectedTopic] = useState("");
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [sharedTutorMedia, setSharedTutorMedia] = useState<SharedTutorMedia | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
@@ -75,12 +158,12 @@ function CommunityPage() {
       supabase.from("student_profiles").select("course_id,display_name,avatar_url").eq("user_id", userId).maybeSingle(),
       supabase
         .from("community_posts")
-        .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
+        .select("id,author_id,body,image_url,tutor_image_url,tutor_image_alt,tutor_image_source_url,tutor_image_license,tutor_image_attribution,tutor_visual_aid,tutor_video_url,tutor_video_embed_url,tutor_video_title,tutor_video_description,tutor_video_channel_name,tutor_video_duration_label,tutor_video_reason,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
         .order("created_at", { ascending: false })
         .limit(50),
       supabase
         .from("community_posts")
-        .select("id,author_id,body,image_url,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
+        .select("id,author_id,body,image_url,tutor_image_url,tutor_image_alt,tutor_image_source_url,tutor_image_license,tutor_image_attribution,tutor_visual_aid,tutor_video_url,tutor_video_embed_url,tutor_video_title,tutor_video_description,tutor_video_channel_name,tutor_video_duration_label,tutor_video_reason,created_at,course_id,discipline_id,topic_id,is_official,official_until,author_display_name,author_avatar_url,author_is_verified,courses(name),disciplines(name),topics(name)")
         .eq("is_official", true)
         .gt("official_until", nowIso)
         .order("created_at", { ascending: false })
@@ -141,6 +224,31 @@ function CommunityPage() {
       setSelectedDiscipline(disciplineId ?? "");
       setSelectedTopic(topicId ?? "");
       setError(null);
+    }
+
+    if (params.get("share_tutor") === "1") {
+      const imageUrl = safeHttpsUrl(params.get("share_image_url"));
+      const videoUrl = safeHttpsUrl(params.get("share_video_url"));
+      const videoEmbedUrl = safeYouTubeEmbedUrl(params.get("share_video_embed_url"));
+      const visualAid = parseSharedTutorVisualAid(params.get("share_visual_aid"));
+      const hasTutorMedia = !!(imageUrl || visualAid || videoEmbedUrl || videoUrl);
+      if (hasTutorMedia) {
+        setSharedTutorMedia({
+          imageUrl,
+          imageAlt: params.get("share_image_alt")?.slice(0, 300) ?? null,
+          imageSourceUrl: safeHttpsUrl(params.get("share_image_source_url")),
+          imageLicense: params.get("share_image_license")?.slice(0, 200) ?? null,
+          imageAttribution: params.get("share_image_attribution")?.slice(0, 300) ?? null,
+          visualAid,
+          videoUrl,
+          videoEmbedUrl,
+          videoTitle: params.get("share_video_title")?.slice(0, 300) ?? null,
+          videoDescription: params.get("share_video_description")?.slice(0, 1000) ?? null,
+          videoChannelName: params.get("share_video_channel")?.slice(0, 200) ?? null,
+          videoDurationLabel: params.get("share_video_duration")?.slice(0, 50) ?? null,
+          videoReason: params.get("share_video_reason")?.slice(0, 1000) ?? null,
+        });
+      }
     }
   }, []);
 
@@ -221,7 +329,7 @@ function CommunityPage() {
 
   async function publish() {
     const text = body.trim();
-    if (!text && !imageFile) return;
+    if (!text && !imageFile && !sharedTutorMedia) return;
     if (text.length > 2000) {
       setError("A publicação pode ter no máximo 2.000 caracteres.");
       return;
@@ -248,9 +356,22 @@ function CommunityPage() {
 
       const { error: insertError } = await supabase.from("community_posts").insert({
         author_id: userId,
-        body: text || "Compartilhei uma imagem de estudo.",
+        body: text || (sharedTutorMedia ? "Compartilhei uma explicação do Tutor Ensina-me." : "Compartilhei uma imagem de estudo."),
         image_path: imagePath,
         image_url: imageUrl,
+        tutor_image_url: sharedTutorMedia?.imageUrl ?? null,
+        tutor_image_alt: sharedTutorMedia?.imageAlt ?? null,
+        tutor_image_source_url: sharedTutorMedia?.imageSourceUrl ?? null,
+        tutor_image_license: sharedTutorMedia?.imageLicense ?? null,
+        tutor_image_attribution: sharedTutorMedia?.imageAttribution ?? null,
+        tutor_visual_aid: sharedTutorMedia?.visualAid ?? null,
+        tutor_video_url: sharedTutorMedia?.videoUrl ?? null,
+        tutor_video_embed_url: sharedTutorMedia?.videoEmbedUrl ?? null,
+        tutor_video_title: sharedTutorMedia?.videoTitle ?? null,
+        tutor_video_description: sharedTutorMedia?.videoDescription ?? null,
+        tutor_video_channel_name: sharedTutorMedia?.videoChannelName ?? null,
+        tutor_video_duration_label: sharedTutorMedia?.videoDurationLabel ?? null,
+        tutor_video_reason: sharedTutorMedia?.videoReason ?? null,
         course_id: selectedCourse || null,
         discipline_id: selectedDiscipline || null,
         topic_id: selectedTopic || null,
@@ -259,6 +380,7 @@ function CommunityPage() {
 
       setBody("");
       setImageFile(null);
+      setSharedTutorMedia(null);
       setSelectedTopic("");
       await loadFeed();
     } catch (caught) {
@@ -371,6 +493,19 @@ function CommunityPage() {
               <button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#0242D7] text-xs font-black text-white" aria-label="Editar perfil">{avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : "EM"}</button>
               <div className="min-w-0 flex-1">
                 <div className="mb-3 flex items-center gap-2"><button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-sm font-black text-[#172334] hover:text-[#0242D7]">{profileName}</button>{currentUserId === "bcebd090-39ae-4b5f-a641-3b0ac648c1d9" && <span title="Conta oficial do Ensina-me" aria-label="Conta oficial verificada" className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#1877F2] text-[10px] font-black text-white">✓</span>}<button type="button" onClick={() => { setProfileNameDraft(profileName); setProfileEditing(true); }} className="text-xs font-bold text-[#64748B] hover:text-[#0242D7]">Alterar foto</button></div><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={4} maxLength={2000} placeholder="O que você quer compartilhar com a comunidade?" className="w-full resize-none rounded-xl border border-[#DCE5F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#172334] outline-none focus:border-[#0242D7]" /><details className="mt-2 relative"><summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm font-bold text-[#475569]">😊 Emoji</summary><div className="mt-2 flex max-w-[420px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-lg">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); const next = body + item; setBody(next); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
+                {sharedTutorMedia && (
+                  <div className="mt-3 rounded-xl border border-[#CFE0FF] bg-[#F4F8FF] p-3">
+                    <p className="text-xs font-black text-[#0242D7]">Explicação do Tutor anexada</p>
+                    <p className="mt-1 text-xs leading-5 text-[#475569]">
+                      {sharedTutorMedia.imageUrl ? "Imagem incluída · " : ""}
+                      {sharedTutorMedia.visualAid ? "Apoio visual incluído · " : ""}
+                      {sharedTutorMedia.videoEmbedUrl ? "Vídeo com player incluído" : "Mídia do Tutor pronta para publicar"}
+                    </p>
+                    {sharedTutorMedia.imageUrl && <img src={sharedTutorMedia.imageUrl} alt={sharedTutorMedia.imageAlt || "Imagem da explicação do Tutor"} className="mt-3 max-h-48 rounded-lg border border-[#DCE5F0] bg-white object-contain" />}
+                    {sharedTutorMedia.videoTitle && <p className="mt-2 text-xs font-bold text-[#334155]">{sharedTutorMedia.videoTitle}</p>}
+                    <button type="button" onClick={() => setSharedTutorMedia(null)} className="mt-2 text-xs font-bold text-[#B42318] hover:underline">Remover anexos do Tutor</button>
+                  </div>
+                )}
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   <select value={selectedCourse} onChange={(event) => setSelectedCourse(event.target.value)} className="rounded-xl border border-[#DCE5F0] bg-white px-3 py-2.5 text-sm text-[#334155]">
                     <option value="">Curso (opcional)</option>
@@ -421,6 +556,54 @@ function CommunityPage() {
                   )}
                   <p className="mt-4 whitespace-pre-wrap text-[15px] leading-7 text-[#334155]">{post.body}</p>
                   {post.image_url && <img src={post.image_url} alt="Imagem compartilhada por um estudante" className="mt-4 max-h-[560px] w-full rounded-xl border border-[#E2E8F0] object-contain" loading="lazy" />}
+                  {post.tutor_visual_aid?.enabled && (
+                    <section className="mt-4 overflow-hidden rounded-xl border border-[#CFE0FF] bg-[#F8FAFC]">
+                      <div className="border-b border-[#E3ECFA] bg-[#F4F8FF] px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Apoio visual do Tutor</p>
+                        <h3 className="mt-1 text-sm font-black text-[#172334]">{post.tutor_visual_aid.title}</h3>
+                      </div>
+                      {post.tutor_image_url && (
+                        <figure className="p-3 sm:p-4">
+                          <img src={post.tutor_image_url} alt={post.tutor_image_alt || post.tutor_visual_aid.title} className="max-h-[560px] w-full rounded-lg border border-[#E2E8F0] bg-white object-contain" loading="lazy" referrerPolicy="no-referrer" />
+                          {(post.tutor_image_attribution || post.tutor_image_license || post.tutor_image_source_url) && (
+                            <figcaption className="mt-2 flex flex-wrap items-center gap-2 text-[11px] leading-5 text-[#64748B]">
+                              {post.tutor_image_attribution && <span>{post.tutor_image_attribution}</span>}
+                              {post.tutor_image_license && <span>· {post.tutor_image_license}</span>}
+                              {post.tutor_image_source_url && <a href={post.tutor_image_source_url} target="_blank" rel="noreferrer" className="font-bold text-[#0242D7] hover:underline">Fonte da imagem</a>}
+                            </figcaption>
+                          )}
+                        </figure>
+                      )}
+                      {post.tutor_visual_aid.items.length > 0 && (
+                        <div className="px-4 pb-4">
+                          <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.1em] text-[#687688]">Etapas principais</p>
+                          {post.tutor_visual_aid.type === "comparison" ? (
+                            <div className="grid gap-2 sm:grid-cols-2">{post.tutor_visual_aid.items.map((item, index) => <div key={item + index} className="rounded-lg border border-[#DCE5F0] bg-white p-3 text-sm leading-6 text-[#334155]">{item}</div>)}</div>
+                          ) : (
+                            <ol className="space-y-2">{post.tutor_visual_aid.items.map((item, index) => <li key={item + index} className="flex gap-3 rounded-lg border border-[#DCE5F0] bg-white px-3 py-3 text-sm leading-6 text-[#334155]"><span className="font-black text-[#0242D7]">{index + 1}.</span><span>{item}</span></li>)}</ol>
+                          )}
+                        </div>
+                      )}
+                      {post.tutor_visual_aid.caption && <p className="px-4 pb-4 text-xs leading-5 text-[#687688]">{post.tutor_visual_aid.caption}</p>}
+                    </section>
+                  )}
+                  {(post.tutor_video_embed_url || post.tutor_video_url) && (
+                    <section className="mt-4 overflow-hidden rounded-xl border border-[#DCE5F0] bg-[#F8FAFC]">
+                      <div className="px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Vídeo recomendado pelo Tutor</p>
+                        <h3 className="mt-1 text-sm font-black text-[#172334]">{post.tutor_video_title || "Vídeo relacionado à explicação"}</h3>
+                        {post.tutor_video_channel_name && <p className="mt-1 text-xs text-[#64748B]">{post.tutor_video_channel_name}{post.tutor_video_duration_label ? " · " + post.tutor_video_duration_label : ""}</p>}
+                        {post.tutor_video_reason && <p className="mt-2 text-sm leading-6 text-[#475569]">{post.tutor_video_reason}</p>}
+                      </div>
+                      {safeYouTubeEmbedUrl(post.tutor_video_embed_url) && (
+                        <div className="aspect-video w-full bg-black">
+                          <iframe src={safeYouTubeEmbedUrl(post.tutor_video_embed_url)!} title={post.tutor_video_title || "Vídeo recomendado pelo Tutor"} className="h-full w-full" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
+                        </div>
+                      )}
+                      {safeHttpsUrl(post.tutor_video_url) && <a href={safeHttpsUrl(post.tutor_video_url)!} target="_blank" rel="noreferrer" className="inline-flex px-4 py-3 text-xs font-black text-[#0242D7] hover:underline">Abrir vídeo no YouTube</a>}
+                      {post.tutor_video_description && <p className="px-4 pb-4 text-xs leading-5 text-[#64748B]">{post.tutor_video_description}</p>}
+                    </section>
+                  )}
                   <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-[#EEF2F6] pt-3">
                     <button type="button" onClick={() => void toggleLike(post.id)} className={liked.has(post.id) ? "rounded-lg bg-[#EAF1FF] px-3 py-2 text-xs font-black text-[#0242D7]" : "rounded-lg px-3 py-2 text-xs font-bold text-[#64748B] hover:bg-[#F8FAFC]"}>♥ {likeCounts[post.id] ?? 0}</button>
                     <button type="button" onClick={() => void loadComments(post.id)} className="rounded-lg px-3 py-2 text-xs font-bold text-[#64748B] hover:bg-[#F8FAFC]">Responder</button>
