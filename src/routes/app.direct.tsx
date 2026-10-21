@@ -565,7 +565,7 @@ export function DirectPage() {
   }
 
   return (
-    <section className="direct-shell -mx-4 -mb-6 flex h-[calc(100dvh-64px)] min-h-[520px] flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none sm:-mx-6 lg:-mx-8 dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
+    <section className="direct-shell -mx-4 -mb-6 flex h-full min-h-0 flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none sm:-mx-6 lg:-mx-8 dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
       <header className="shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
         <div className="flex min-h-[58px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
