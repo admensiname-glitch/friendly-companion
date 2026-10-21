@@ -26,7 +26,8 @@ type IconName =
   | "close"
   | "chevron"
   | "tutor"
-  | "community";
+  | "community"
+  | "messages";
 
 function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -46,6 +47,7 @@ function Icon({ name, className = "" }: { name: IconName; className?: string }) 
     chevron: <path d="m9 18 6-6-6-6" />,
     tutor: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M8 8h8" /><path d="M8 12h5" /><path d="M15 15h3" /></>,
     community: <><circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><path d="M2.5 20a5.5 5.5 0 0 1 11 0" /><path d="M10.5 20a5.5 5.5 0 0 1 11 0" /></>,
+    messages: <><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H5l-2 2v-5.5A8.5 8.5 0 1 1 21 11.5Z" /><path d="M7.5 11h9" /><path d="M7.5 15h6" /></>,
   };
 
   return (
@@ -61,6 +63,7 @@ const navigation = [
   { to: "/app/estude-agora" as const, label: "Estudar agora", icon: "spark" as const },
   { to: "/app/tutor" as const, label: "Tutor", icon: "tutor" as const },
   { to: "/app/comunidade" as const, label: "Comunidade", icon: "community" as const },
+  { to: "/app/direct" as const, label: "Direct", icon: "messages" as const },
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
@@ -221,6 +224,7 @@ function AppLayout() {
     if (pathname === "/app/estude-agora") return { title: "Estudar agora", back: false };
     if (pathname === "/app/tutor") return { title: "Tutor", back: false };
     if (pathname === "/app/comunidade") return { title: "Comunidade", back: false };
+    if (pathname === "/app/direct") return { title: "Direct", back: false };
     if (pathname === "/app/disciplinas" || pathname === "/app/disciplinas/") return { title: "Meus cursos", back: false };
     if (pathname === "/app/prova") return { title: "Modo Prova", back: false };
     if (pathname === "/app/revisao") return { title: "Revisão", back: false };
@@ -252,8 +256,8 @@ function AppLayout() {
   const mobileNav = [
     navigation[0]!,
     navigation[2]!,
-    navigation[3]!,
-    navigation[4]!,
+    navigation[5]!,
+    navigation[6]!,
   ];
 
   return (
@@ -441,7 +445,7 @@ function AppLayout() {
       </header>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#DCE5F0] bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),6px)] pt-2 shadow-[0_-8px_24px_rgba(23,35,52,.06)] backdrop-blur lg:hidden dark:border-[#2B3A4F] dark:bg-[#111B2A]/95" aria-label="Atalhos principais">
-        {[navigation[0]!, navigation[1]!, navigation[2]!, navigation[5]!, navigation[6]!].map((item) => {
+        {[navigation[0]!, navigation[2]!, navigation[5]!, navigation[6]!, navigation[7]!].map((item) => {
           const active = location.pathname === item.to || (item.to !== "/app/dashboard" && location.pathname.startsWith(item.to + "/"));
           return (
             <Link
