@@ -21,7 +21,8 @@ function DirectPage() {
   const [memberPreferences, setMemberPreferences] = useState<Record<string, { archived_at: string | null; pinned_at: string | null; hidden_at: string | null }>>({});
   const [blockedUsers, setBlockedUsers] = useState<{ blocked_id: string; created_at: string }[]>([]);
   const [restrictedRequesters, setRestrictedRequesters] = useState<{ requester_id: string; display_name: string }[]>([]);
-  const [groupNotificationsEnabled, setGroupNotificationsEnabled] = useState(true);\n  const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
+  const [groupNotificationsEnabled, setGroupNotificationsEnabled] = useState(true);
+  const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
   const [recording, setRecording] = useState(false);
   const [voiceDraft, setVoiceDraft] = useState<Blob | null>(null);
   const [voiceDraftPath, setVoiceDraftPath] = useState<string | null>(null);
@@ -139,6 +140,8 @@ function DirectPage() {
       const { data: signed } = await supabase.storage.from("direct-voice").createSignedUrl(row.media_path, 3600);
       return { ...row, audioUrl: signed?.signedUrl };
     }));
+    const { data: receiptData } = await supabase.rpc("direct_get_read_receipts", { target_conversation_id: conversation.id });
+    setReadReceipts((receiptData ?? []) as ReadReceipt[]);
     setMessages(hydrated);
     setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null);
     const { data: drafts } = await supabase.from("direct_voice_drafts").select("id,storage_path,duration_seconds").eq("conversation_id", conversation.id).eq("user_id", userId).order("created_at", { ascending: false }).limit(1);
