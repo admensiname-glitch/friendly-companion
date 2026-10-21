@@ -6,7 +6,7 @@ export const Route = createFileRoute("/app/direct")({ component: DirectPage });
 
 type Person = { user_id: string; display_name: string; avatar_url: string | null; allow_requests: boolean };
 type RequestRow = { id: string; sender_id: string; recipient_id: string; status: string; created_at: string; other_name?: string };
-type Conversation = { id: string; kind: "individual" | "group"; title: string | null; last_message_at: string; created_at: string };
+type Conversation = { id: string; kind: "individual" | "group"; title: string | null; last_message_at: string; created_at: string; avatar_url?: string | null };
 type Message = { id: string; conversation_id: string; sender_id: string; message_type: string; body: string | null; media_path?: string | null; duration_seconds?: number | null; deleted_for_everyone_at?: string | null; created_at: string; audioUrl?: string };
 type ReadReceipt = { user_id: string; display_name: string; last_read_at: string };
 type DirectSettings = { allow_requests: boolean; show_online_status: boolean; show_last_seen: boolean; read_receipts: boolean; auto_play_voice: boolean };
@@ -556,7 +556,7 @@ export function DirectPage() {
   }
 
   return (
-    <section className="direct-shell -mx-4 flex h-[calc(100dvh-150px)] min-h-[560px] flex-col overflow-hidden border border-[#E1E7EF] bg-white text-[#172334] shadow-sm sm:-mx-6 lg:-mx-8 lg:h-[calc(100dvh-70px)] dark:border-[#252525] dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
+    <section className="direct-shell -mx-4 -mb-6 flex h-[calc(100dvh-64px)] min-h-[520px] flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none sm:-mx-6 lg:-mx-8 dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
       <header className="shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
         <div className="flex min-h-[58px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -658,7 +658,7 @@ export function DirectPage() {
             </div>
           </aside>
 
-          <section className={(activeConversation ? "flex" : "hidden lg:flex") + " min-h-0 min-w-0 flex-col bg-[#F7F4EE] dark:bg-black"} aria-label="Conversa selecionada">
+          <section className={(activeConversation ? "flex" : "hidden lg:flex") + " min-h-0 min-w-0 flex-col bg-[#F8F7F3] dark:bg-[#101010]"} aria-label="Conversa selecionada">
             {activeConversation ? <>
               <header className="flex shrink-0 items-center gap-3 border-b border-[#E5EAF1] bg-white px-3 py-3 sm:px-5 dark:border-[#252525] dark:bg-black">
                 <button type="button" onClick={() => setActiveConversation(null)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-[#F2F4F7] lg:hidden dark:hover:bg-[#171717]" aria-label="Voltar para conversas">←</button>
@@ -670,13 +670,13 @@ export function DirectPage() {
                 <button type="button" onClick={() => changeView("settings")} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-sm hover:bg-[#F6F8FB] sm:flex dark:border-[#333] dark:hover:bg-[#171717]" title="Privacidade e segurança" aria-label="Privacidade e segurança">⋯</button>
               </header>
               {demoMode && <div className="shrink-0 border-b border-[#E5EAF1] bg-[#EFF6FF] px-4 py-2 text-xs font-semibold text-[#1D4ED8] dark:border-[#252525] dark:bg-[#101010] dark:text-white">Modo de demonstração gratuito: as alterações são locais nesta sessão e não são enviadas a estudantes reais nem ao banco.</div>}
-              <div className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-5" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
+              <div className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
                 {messages.length === 0 ? <div className="m-auto flex h-full max-w-sm flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-[#171717]">☏</div><h3 className="mt-4 text-lg font-black">Esta conversa está pronta</h3><p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Envie a primeira mensagem para começar.</p></div> : messages.map((message) => (
                   <div key={message.id} className={"flex " + (message.sender_id === userId ? "justify-end" : "justify-start")}>
-                    <div className={"max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#D9FDD3] text-[#183B2D] dark:bg-[#183629] dark:text-white" : "rounded-bl-md bg-white text-[#172334] dark:bg-[#171717] dark:text-white")}>
+                    <div className={"max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-6 shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#0242D7] text-white dark:bg-[#0242D7] dark:text-white" : "rounded-bl-md bg-[#F7F5EF] text-[#172334] dark:bg-[#F2F0E8] dark:text-[#172334]")}>
                       {message.deleted_for_everyone_at ? <p className="italic opacity-80">Esta mensagem foi apagada.</p> : message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : message.message_type === "image" && message.body ? <img src={message.body} alt="Imagem anexada" className="max-h-72 max-w-full rounded-lg object-contain" /> : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}
                       {message.sender_id === userId && !message.deleted_for_everyone_at && <button type="button" disabled={busy} onClick={() => void deleteMessage(message.id)} className="mt-1 block text-[10px] underline opacity-70">Apagar mensagem</button>}
-                      <p className={"mt-1 text-right text-[10px] " + (message.sender_id === userId ? "text-[#4A7763] dark:text-[#C9E8D7]" : "text-[#718096] dark:text-[#B6B6B6]")}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? " · " + message.duration_seconds + "s" : ""}{message.sender_id === userId && readReceipts.some((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()) ? " · Lida" : ""}</p>
+                      <p className={"mt-1 text-right text-[10px] " + (message.sender_id === userId ? "text-white/80" : "text-[#596273]")}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? " · " + message.duration_seconds + "s" : ""}{message.sender_id === userId && readReceipts.some((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()) ? " · Lida" : ""}</p>
                     </div>
                   </div>
                 ))}
