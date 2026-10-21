@@ -1152,7 +1152,8 @@ function TutorPage() {
         : clientVisualFallback;
 
       const assistantMessageId = crypto.randomUUID();
-      const shouldOfferQuestion = data.should_generate_comprehension_check === true;
+      const shouldOfferQuestion =
+        data.should_generate_comprehension_check === true || Boolean(data.micro_assessment);
       const comprehensionCheckRequest: ComprehensionCheckRequest | null =
         shouldOfferQuestion && !data.micro_assessment
           ? {
@@ -1285,7 +1286,7 @@ function TutorPage() {
                     </div>
                   </div>
                 )}
-                {message.role === "assistant" && message.microAssessmentLoading && (
+                {message.role === "assistant" && message.microAssessmentLoading && !message.comprehensionCheckOffered && (
                   <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
                     <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#334155]">
@@ -1294,7 +1295,7 @@ function TutorPage() {
                     </p>
                   </div>
                 )}
-                {message.role === "assistant" && message.microAssessmentError && (
+                {message.role === "assistant" && message.microAssessmentError && !message.comprehensionCheckOffered && (
                   <div role="alert" className="mt-5 rounded-2xl border border-[#FECACA] bg-white p-4 text-sm text-[#B42318]">
                     <p>{message.microAssessmentError}</p>
                     {message.id && message.comprehensionCheckRequest && (
@@ -1308,7 +1309,7 @@ function TutorPage() {
                     )}
                   </div>
                 )}
-                {message.role === "assistant" && message.microAssessment && (
+                {message.role === "assistant" && message.microAssessment && !message.comprehensionCheckOffered && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
