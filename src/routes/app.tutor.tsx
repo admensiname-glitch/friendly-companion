@@ -3,7 +3,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
 import { retryDelayMs } from "@/lib/tutor-retry-policy";
-import { normalizeTutorOptionText } from "@/lib/tutor-comprehension-check";
 
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 // Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
@@ -24,28 +23,6 @@ type VisualAid = {
   } | null;
 };
 
-type MicroAssessment = {
-  id: string;
-  question: string;
-  options: string[];
-  difficulty: "introductory" | "intermediate" | "advanced";
-  concept_tags: string[];
-  revealed: boolean;
-  answered: boolean;
-  selectedOptionIndex?: number;
-  isCorrect?: boolean;
-  correctOptionIndex?: number;
-  explanation?: string;
-};
-
-type ComprehensionCheckRequest = {
-  topicId: string;
-  conversationId: string | null;
-  idempotencyKey: string;
-  message: string;
-  answerContext: string;
-};
-
 type Message = {
   id?: string;
   role: "user" | "assistant";
@@ -57,11 +34,6 @@ type Message = {
     reason: string;
     video?: TopicVideo | null;
   } | null;
-  microAssessment?: MicroAssessment | null;
-  comprehensionCheckOffered?: boolean;
-  comprehensionCheckRequest?: ComprehensionCheckRequest | null;
-  microAssessmentLoading?: boolean;
-  microAssessmentError?: string | null;
   learningNextStep?: unknown;
 };
 
@@ -691,7 +663,6 @@ function TutorPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [courseNames, setCourseNames] = useState<string[]>([]);
-  const [answeringAssessmentId, setAnsweringAssessmentId] = useState<string | null>(null);
   const [reflection] = useState<TutorReflection>(() =>
     typeof window === "undefined" ? TUTOR_REFLECTIONS[0]! : chooseTutorReflection()
   );
@@ -905,211 +876,6 @@ function TutorPage() {
     })();
   }, []);
 
-  async function answerMicroAssessment(
-    messageIndex: number,
-    assessment: MicroAssessment,
-    selectedOptionIndex: number,
-  ) {
-    if (answeringAssessmentId || assessment.answered) return;
-
-    setAnsweringAssessmentId(assessment.id);
-    setError(null);
-
-    // Reflect the student's choice immediately; keep it visible if the server rejects
-    // the write so the student can retry without losing the selected alternative.
-    setMessages((current) =>
-      current.map((item, itemIndex) =>
-        itemIndex === messageIndex && item.microAssessment?.id === assessment.id
-          ? {
-              ...item,
-              microAssessment: {
-                ...item.microAssessment,
-                selectedOptionIndex,
-              },
-            }
-          : item,
-      ),
-    );
-
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "answer_microassessment",
-        micro_assessment_id: assessment.id,
-        selected_option_index: selectedOptionIndex,
-      },
-    });
-
-    if (invokeError || data?.error) {
-      setError(data?.error ?? "Não foi possível registrar sua resposta. Tente novamente.");
-      setAnsweringAssessmentId(null);
-      return;
-    }
-
-    setMessages((current) => {
-      const next = [...current];
-      const currentMessage = next[messageIndex];
-      if (!currentMessage?.microAssessment) return current;
-
-      next[messageIndex] = {
-        ...currentMessage,
-        microAssessment: {
-          ...currentMessage.microAssessment,
-          revealed: true,
-          answered: true,
-          selectedOptionIndex,
-          isCorrect: data.is_correct === true,
-          correctOptionIndex: Number(data.correct_option_index),
-          explanation: data.explanation ?? "",
-        },
-      };
-      return next;
-    });
-
-    if (data.next_message) {
-      setMessages((current) => [...current, { role: "assistant", content: data.next_message }]);
-    }
-    setAnsweringAssessmentId(null);
-
-    // Keep the answer correction independent from generating the next question.
-    if (data.mastery_level !== "mastered") {
-      void (async () => {
-        try {
-          const { data: followUp, error: followUpError } = await supabase.functions.invoke("ai-tutor", {
-            body: {
-              action: "generate_next_microassessment",
-              micro_assessment_id: assessment.id,
-            },
-          });
-          if (followUpError || followUp?.error) {
-            console.warn("[Ensina-me] Não foi possível preparar a próxima questão.", followUpError ?? followUp.error);
-            return;
-          }
-          if (!followUp?.next_micro_assessment?.id) return;
-
-          setMessages((current) => [
-            ...current,
-            {
-              role: "assistant",
-              content: followUp.next_message ?? "Vamos continuar com uma nova questão.",
-              microAssessment: {
-                id: followUp.next_micro_assessment.id,
-                question: followUp.next_micro_assessment.question,
-                options: followUp.next_micro_assessment.options,
-                difficulty: followUp.next_micro_assessment.difficulty,
-                concept_tags: followUp.next_micro_assessment.concept_tags ?? [],
-                revealed: false,
-                answered: false,
-              },
-            },
-          ]);
-        } catch (followUpError) {
-          console.warn("[Ensina-me] Falha ao preparar a próxima questão.", followUpError);
-        }
-      })();
-    }
-  }
-
-  async function requestComprehensionQuestion(
-    messageId: string,
-    request: ComprehensionCheckRequest,
-  ) {
-    setMessages((current) =>
-      current.map((item) =>
-        item.id === messageId
-          ? {
-              ...item,
-              comprehensionCheckOffered: false,
-              microAssessmentLoading: true,
-              microAssessmentError: null,
-            }
-          : item,
-      ),
-    );
-
-    try {
-      const result = await supabase.functions.invoke("ai-tutor", {
-        body: {
-          action: "generate_initial_microassessment",
-          topic_id: request.topicId,
-          conversation_id: request.conversationId,
-          idempotency_key: request.idempotencyKey,
-          message: request.message,
-          answer_context: request.answerContext,
-        },
-      });
-
-      if (!result.error && !result.data?.error && result.data?.micro_assessment?.id) {
-        setMessages((current) =>
-          current.map((item) =>
-            item.id === messageId
-              ? {
-                  ...item,
-                  microAssessmentLoading: false,
-                  microAssessmentError: null,
-                  comprehensionCheckRequest: null,
-                  microAssessment: {
-                    ...result.data.micro_assessment,
-                    revealed: true,
-                    answered: false,
-                  },
-                }
-              : item,
-          ),
-        );
-        return;
-      }
-
-      let responseStatus: number | null = null;
-      let providerErrorMessage: string | null = null;
-      if (result.error && typeof result.error === "object" && "context" in result.error) {
-        const errorContext = result.error.context;
-        if (errorContext instanceof Response) {
-          responseStatus = errorContext.status;
-          try {
-            const errorBody = await errorContext.clone().json() as { error?: unknown };
-            if (typeof errorBody.error === "string") providerErrorMessage = errorBody.error;
-          } catch {
-            // Gateway errors can arrive without a JSON body.
-          }
-        }
-      }
-
-      const errorMessage = providerErrorMessage ?? result.data?.error ??
-        (responseStatus === 429
-          ? "A geração atingiu um limite temporário. Aguarde um pouco e tente novamente."
-          : result.error
-            ? "A comunicação com o Tutor falhou. Tente novamente."
-            : "Não foi possível preparar a pergunta inédita. Tente novamente.");
-
-      setMessages((current) =>
-        current.map((item) =>
-          item.id === messageId
-            ? {
-                ...item,
-                microAssessmentLoading: false,
-                microAssessmentError: errorMessage,
-                comprehensionCheckRequest: request,
-              }
-            : item,
-        ),
-      );
-    } catch (questionError) {
-      console.error("[Ensina-me] Falha ao gerar a questão após consentimento.", questionError);
-      setMessages((current) =>
-        current.map((item) =>
-          item.id === messageId
-            ? {
-                ...item,
-                microAssessmentLoading: false,
-                microAssessmentError: "Não foi possível preparar a pergunta agora. Tente novamente.",
-                comprehensionCheckRequest: request,
-              }
-            : item,
-        ),
-      );
-    }
-  }
-
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
@@ -1152,19 +918,6 @@ function TutorPage() {
         : clientVisualFallback;
 
       const assistantMessageId = crypto.randomUUID();
-      const shouldOfferQuestion =
-        data.should_generate_comprehension_check === true || Boolean(data.micro_assessment);
-      const comprehensionCheckRequest: ComprehensionCheckRequest | null =
-        shouldOfferQuestion && !data.micro_assessment
-          ? {
-              topicId,
-              conversationId: data.conversation_id ?? conversationId,
-              idempotencyKey: userMessageId,
-              message,
-              answerContext: data.message,
-            }
-          : null;
-
       setMessages((current) => [
         ...current,
         {
@@ -1174,17 +927,6 @@ function TutorPage() {
           shareable: data.shareable === true,
           visualAid,
           videoRecommendation: data.video_recommendation ?? null,
-          microAssessment: data.micro_assessment
-            ? {
-                ...data.micro_assessment,
-                revealed: false,
-                answered: false,
-              }
-            : null,
-          comprehensionCheckOffered: shouldOfferQuestion,
-          comprehensionCheckRequest,
-          microAssessmentLoading: false,
-          microAssessmentError: null,
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
@@ -1229,194 +971,6 @@ function TutorPage() {
                 {message.role === "assistant" && message.videoRecommendation?.enabled && (
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
-                {message.role === "assistant" && message.comprehensionCheckOffered && (
-                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-[#172334]">
-                      Quer responder a uma questão sobre esta explicação para conferir se realmente aprendeu?
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!message.id) return;
-                          if (message.microAssessment) {
-                            setMessages((current) =>
-                              current.map((item) =>
-                                item.id === message.id
-                                  ? {
-                                      ...item,
-                                      comprehensionCheckOffered: false,
-                                      microAssessment: item.microAssessment
-                                        ? { ...item.microAssessment, revealed: true }
-                                        : null,
-                                    }
-                                  : item,
-                              ),
-                            );
-                          } else if (message.comprehensionCheckRequest) {
-                            void requestComprehensionQuestion(message.id, message.comprehensionCheckRequest);
-                          }
-                        }}
-                        className="rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-black text-white transition hover:opacity-95"
-                      >
-                        Sim, quero responder
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMessages((current) =>
-                            current.map((item) =>
-                              item.id === message.id
-                                ? {
-                                    ...item,
-                                    comprehensionCheckOffered: false,
-                                    comprehensionCheckRequest: null,
-                                    microAssessment: null,
-                                    microAssessmentError: null,
-                                  }
-                                : item,
-                            ),
-                          )
-                        }
-                        className="rounded-xl border border-[#DCE5F0] bg-white px-4 py-3 text-sm font-bold text-[#334155] hover:bg-[#F8FAFC]"
-                      >
-                        Agora não
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {message.role === "assistant" && message.microAssessmentLoading && !message.comprehensionCheckOffered && (
-                  <div role="status" aria-live="polite" className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Verificação de compreensão</p>
-                    <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#334155]">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#CFE0FF] border-t-[#0242D7]" aria-hidden="true" />
-                      Preparando uma pergunta inédita sobre esta explicação…
-                    </p>
-                  </div>
-                )}
-                {message.role === "assistant" && message.microAssessmentError && !message.comprehensionCheckOffered && (
-                  <div role="alert" className="mt-5 rounded-2xl border border-[#FECACA] bg-white p-4 text-sm text-[#B42318]">
-                    <p>{message.microAssessmentError}</p>
-                    {message.id && message.comprehensionCheckRequest && (
-                      <button
-                        type="button"
-                        onClick={() => void requestComprehensionQuestion(message.id!, message.comprehensionCheckRequest!)}
-                        className="mt-3 rounded-lg border border-[#FECACA] px-3 py-2 font-bold text-[#B42318] hover:bg-[#FEF3F2]"
-                      >
-                        Tentar gerar novamente
-                      </button>
-                    )}
-                  </div>
-                )}
-                {message.role === "assistant" && message.microAssessment && !message.comprehensionCheckOffered && (
-                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-white p-4 sm:p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">
-                          Verificação de compreensão
-                        </p>
-                        <p className="mt-1 text-sm font-black text-[#172334]">
-                          {message.microAssessment.answered
-                            ? "Veja a correção e a explicação."
-                            : message.microAssessment.revealed
-                              ? "Escolha uma alternativa para conferir sua compreensão."
-                              : "Uma pergunta rápida para verificar o que você aprendeu."}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-[#F4F8FF] px-2.5 py-1 text-[10px] font-black uppercase text-[#0242D7]">
-                        {message.microAssessment.difficulty === "introductory"
-                          ? "Inicial"
-                          : message.microAssessment.difficulty === "advanced"
-                            ? "Avançada"
-                            : "Intermediária"}
-                      </span>
-                    </div>
-
-                    {!message.microAssessment.revealed ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMessages((current) =>
-                            current.map((item, itemIndex) =>
-                              item === message && itemIndex === index && item.microAssessment
-                                ? {
-                                    ...item,
-                                    microAssessment: {
-                                      ...item.microAssessment,
-                                      revealed: true,
-                                    },
-                                  }
-                                : item,
-                            ),
-                          )
-                        }
-                        className="mt-4 w-full rounded-xl bg-[#0242D7] px-4 py-3 text-sm font-black text-white transition hover:opacity-95"
-                      >
-                        Quero a pergunta
-                      </button>
-                    ) : (
-                      <div className="mt-4">
-                        <p className="text-sm font-black leading-6 text-[#172334]">
-                          {message.microAssessment.question}
-                        </p>
-
-                        <div className="mt-3 space-y-2">
-                          {message.microAssessment.options.map((option, optionIndex) => {
-                            const selected = message.microAssessment?.selectedOptionIndex === optionIndex;
-                            const correct = message.microAssessment?.correctOptionIndex === optionIndex;
-                            const answered = message.microAssessment?.answered === true;
-
-                            return (
-                              <button
-                                key={optionIndex}
-                                type="button"
-                                disabled={answered || answeringAssessmentId === message.microAssessment?.id}
-                                onClick={() =>
-                                  void answerMicroAssessment(index, message.microAssessment!, optionIndex)
-                                }
-                                className={
-                                  "w-full rounded-xl border px-4 py-3 text-left text-sm leading-5 transition " +
-                                  (answered && correct
-                                    ? "border-[#1B9E77] bg-[#ECFDF5] text-[#166534]"
-                                    : answered && selected && !correct
-                                      ? "border-[#D92D20] bg-[#FEF3F2] text-[#B42318]"
-                                      : selected && !answered
-                                        ? "border-[#0242D7] bg-[#0242D7] text-white ring-2 ring-[#0242D7]/20"
-                                        : "border-[#DCE5F0] bg-[#F8FAFC] text-[#334155] hover:border-[#0242D7] hover:bg-[#F4F8FF]")
-                                }
-                              >
-                                <span className="mr-2 font-black">
-                                  {String.fromCharCode(65 + optionIndex)}.
-                                </span>
-                                {normalizeTutorOptionText(option)}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {message.microAssessment.answered && (
-                          <div
-                            className={
-                              "mt-4 rounded-xl px-4 py-3 text-sm leading-6 " +
-                              (message.microAssessment.isCorrect
-                                ? "bg-[#ECFDF5] text-[#166534]"
-                                : "bg-[#FEF3F2] text-[#B42318]")
-                            }
-                          >
-                            <p className="font-black">
-                              {message.microAssessment.isCorrect ? "Acertou." : "Ainda não."}
-                            </p>
-                            {message.microAssessment.explanation && (
-                              <p className="mt-1">{message.microAssessment.explanation}</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {message.role === "assistant" && message.learningNextStep?.enabled && (
                   <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
