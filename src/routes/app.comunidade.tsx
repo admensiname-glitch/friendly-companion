@@ -94,7 +94,7 @@ function parseSharedTutorVisualAid(value: string | null): SharedTutorVisualAid |
       typeof parsed.title !== "string" ||
       !Array.isArray(parsed.items) ||
       !parsed.items.every((item) => typeof item === "string") ||
-      !["flow", "concept_map", "comparison"].includes(parsed.type ?? "")
+      (parsed.type !== "flow" && parsed.type !== "concept_map" && parsed.type !== "comparison")
     ) return null;
     return {
       enabled: true,
