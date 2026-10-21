@@ -472,6 +472,27 @@ function CommunityPage() {
     await loadComments(postId);
   }
 
+  async function deleteComment(postId: string, commentId: string) {
+    if (!currentUserId) return;
+    if (!window.confirm("Excluir este comentário? Essa ação não pode ser desfeita.")) return;
+
+    const { error: deleteError } = await supabase
+      .from("community_comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("post_id", postId);
+
+    if (deleteError) {
+      setError("Não foi possível excluir o comentário. Verifique se você é o autor do comentário ou da publicação.");
+      return;
+    }
+
+    setComments((current) => ({
+      ...current,
+      [postId]: (current[postId] ?? []).filter((comment) => comment.id !== commentId),
+    }));
+  }
+
   function onImageChange(event: ChangeEvent<HTMLInputElement>) {
     setImageFile(event.target.files?.[0] ?? null);
   }
@@ -613,7 +634,7 @@ function CommunityPage() {
                   {post.author_id === currentUserId && <button type="button" onClick={() => void deletePost(post.id)} className="mt-2 text-xs font-bold text-[#B42318] hover:underline">Excluir publicação</button>}
                   {comments[post.id] && (
                     <div className="mt-3 space-y-3 rounded-xl bg-[#F8FAFC] p-3">
-                      {comments[post.id].map((comment) => <div key={comment.id}><div className="flex items-center gap-2"><div className="h-7 w-7 overflow-hidden rounded-full bg-[#EAF1FF] text-[9px] font-black text-[#0242D7]">{comment.authorAvatar ? <img src={comment.authorAvatar} alt="" className="h-full w-full object-cover" /> : "E"}</div><p className="text-[11px] font-black text-[#172334]">{comment.authorName ?? "Estudante Ensina-me"}</p></div><p className="mt-1 text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
+                      {comments[post.id].map((comment) => <div key={comment.id} className="rounded-lg border border-[#E8EEF5] bg-white p-3"><div className="flex items-center gap-2"><div className="h-7 w-7 overflow-hidden rounded-full bg-[#EAF1FF] text-[9px] font-black text-[#0242D7]">{comment.authorAvatar ? <img src={comment.authorAvatar} alt="" className="h-full w-full object-cover" /> : "E"}</div><p className="min-w-0 flex-1 text-[11px] font-black text-[#172334]">{comment.authorName ?? "Estudante Ensina-me"}</p>{(comment.author_id === currentUserId || post.author_id === currentUserId) && <button type="button" onClick={() => void deleteComment(post.id, comment.id)} className="shrink-0 rounded-md px-2 py-1 text-[11px] font-bold text-[#B42318] hover:bg-[#FEF2F2]" aria-label={comment.author_id === currentUserId ? "Excluir meu comentário" : "Excluir comentário da publicação"}>Excluir</button>}</div><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#475569]">{comment.body}</p></div>)}
                       <div className="flex gap-2">
                         <input value={commentInput[post.id] ?? ""} onChange={(event) => setCommentInput((current) => ({ ...current, [post.id]: event.target.value }))} maxLength={1000} placeholder="Escreva uma resposta…" className="min-w-0 flex-1 rounded-lg border border-[#DCE5F0] bg-white px-3 py-2 text-sm outline-none focus:border-[#0242D7]" /><details className="relative"><summary className="inline-flex h-10 cursor-pointer list-none items-center justify-center rounded-lg border border-[#DCE5F0] bg-white px-3 text-lg" aria-label="Adicionar emoji">😊</summary><div className="absolute bottom-12 right-0 z-20 flex w-[280px] flex-wrap gap-1 rounded-xl border border-[#DCE5F0] bg-white p-2 shadow-xl">{COMMON_EMOJIS.map((item) => <button key={item} type="button" onClick={(event) => { event.preventDefault(); setCommentInput((current) => ({ ...current, [post.id]: (current[post.id] ?? "") + item })); event.currentTarget.closest("details")?.removeAttribute("open"); }} className="h-8 w-8 rounded text-lg hover:bg-[#F0F5FF]" aria-label="Adicionar emoji">{item}</button>)}</div></details>
                         <button type="button" onClick={() => void addComment(post.id)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-black text-white">Enviar</button>
