@@ -19,6 +19,7 @@ function DirectPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [memberPreferences, setMemberPreferences] = useState<Record<string, { archived_at: string | null; pinned_at: string | null; hidden_at: string | null }>>({});
   const [blockedUsers, setBlockedUsers] = useState<{ blocked_id: string; created_at: string }[]>([]);
+  const [restrictedRequesters, setRestrictedRequesters] = useState<{ requester_id: string; display_name: string }[]>([]);
   const [recording, setRecording] = useState(false);
   const [voiceDraft, setVoiceDraft] = useState<Blob | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -49,14 +50,20 @@ function DirectPage() {
     const id = currentUserId || sessionResult.data.session?.user.id;
     if (!id) { setError("Sua sessão expirou. Entre novamente para acessar o Direct."); setLoading(false); return; }
     setUserId(id);
-    const [requestResult, memberResult, blocksResult, settingsResult] = await Promise.all([
+    const [requestResult, memberResult, blocksResult, permissionsResult, settingsResult] = await Promise.all([
       supabase.from("direct_requests").select("id,sender_id,recipient_id,status,created_at").in("status", ["pending"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("direct_conversation_members").select("conversation_id,archived_at,pinned_at,hidden_at").eq("user_id", id),
       supabase.from("direct_blocks").select("blocked_id,created_at").eq("blocker_id", id),
+      supabase.from("direct_request_permissions").select("requester_id").eq("recipient_id", id).eq("allowed", false),
       supabase.from("direct_settings").select("allow_requests,show_online_status,show_last_seen,read_receipts,auto_play_voice").eq("user_id", id).maybeSingle(),
     ]);
     if (requestResult.error || memberResult.error) { setError("Não foi possível carregar o Direct. Confira a conexão e tente novamente."); setLoading(false); return; }
     if (blocksResult.error) setBlockedUsers([]); else setBlockedUsers((blocksResult.data ?? []) as { blocked_id: string; created_at: string }[]);
+    if (!permissionsResult.error && permissionsResult.data?.length) {
+      const requesterIds = permissionsResult.data.map((row) => row.requester_id as string);
+      const names = await supabase.from("student_profiles").select("user_id,display_name").in("user_id", requesterIds);
+      setRestrictedRequesters(requesterIds.map((requester_id) => ({ requester_id, display_name: names.data?.find((p) => p.user_id === requester_id)?.display_name || `Estudante ${requester_id.slice(0, 8)}…` })));
+    } else setRestrictedRequesters([]);
     setRequests((requestResult.data ?? []) as RequestRow[]);
     const memberRows = memberResult.data ?? [];
     setMemberPreferences(Object.fromEntries(memberRows.map((m) => [m.conversation_id, { archived_at: m.archived_at, pinned_at: m.pinned_at, hidden_at: m.hidden_at }])));
@@ -96,9 +103,9 @@ function DirectPage() {
 
   async function acceptRequest(request: RequestRow) {
     setBusy(true); setError(""); setNotice("");
-    const { error: acceptError } = await supabase.rpc("direct_accept_request", { request_id: request.id });
+    const { data: acceptedConversationId, error: acceptError } = await supabase.rpc("direct_accept_request", { request_id: request.id });
     setBusy(false);
-    if (acceptError) { setError("Esta solicitação não está mais disponível. Você pode enviar uma nova solicitação."); await load(userId); return; }
+    if (acceptError || !acceptedConversationId) { setError("Esta solicitação não está mais disponível. Você pode enviar uma nova solicitação."); await load(userId); return; }
     setNotice("Solicitação aceita. A conversa está liberada.");
     setTab("individual");
     await load(userId);
@@ -266,6 +273,15 @@ function DirectPage() {
     await load(userId);
   }
 
+  async function reallowRequester(personId: string) {
+    setBusy(true); setError(""); setNotice("");
+    const { error: permissionError } = await supabase.rpc("direct_set_request_permission", { requester_user_id: personId, is_allowed: true });
+    setBusy(false);
+    if (permissionError) { setError("Não foi possível permitir novas solicitações desta pessoa."); return; }
+    setNotice("Solicitações desta pessoa permitidas novamente.");
+    await load(userId);
+  }
+
   async function unblockPerson(personId: string) {
     setBusy(true); setError(""); setNotice("");
     const { error: unblockError } = await supabase.rpc("direct_unblock_user", { target_user_id: personId });
@@ -353,7 +369,7 @@ function DirectPage() {
               ["show_last_seen","Mostrar último acesso","Exibe seu último acesso às conversas."],
               ["read_receipts","Confirmações de leitura","Permite que remetentes saibam quando você visualizou mensagens."],
               ["auto_play_voice","Reproduzir áudios automaticamente","Reproduz mensagens de voz em sequência quando o recurso estiver disponível."]
-            ] as [keyof DirectSettings,string,string][]).map(([key,label,description]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-4 py-4"><span><span className="block text-sm font-medium">{label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span></span><input type="checkbox" checked={settings[key]} onChange={(e) => void saveSetting(key,e.target.checked)} className="h-5 w-5 shrink-0 accent-blue-700" /></label>)}</div><div className="mt-6 border-t border-border pt-5"><h3 className="font-semibold">Pessoas bloqueadas</h3>{blockedUsers.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Você não bloqueou ninguém.</p> : blockedUsers.map((person) => <div key={person.blocked_id} className="flex items-center justify-between gap-3 border-b border-border py-3"><span className="text-xs text-muted-foreground">Estudante {person.blocked_id.slice(0,8)}…</span><button disabled={busy} onClick={() => void unblockPerson(person.blocked_id)} className="rounded-lg border border-border px-3 py-2 text-xs">Desbloquear</button></div>)}</div></div>}
+            ] as [keyof DirectSettings,string,string][]).map(([key,label,description]) => <label key={key} className="flex cursor-pointer items-center justify-between gap-4 py-4"><span><span className="block text-sm font-medium">{label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span></span><input type="checkbox" checked={settings[key]} onChange={(e) => void saveSetting(key,e.target.checked)} className="h-5 w-5 shrink-0 accent-blue-700" /></label>)}</div><div className="mt-6 border-t border-border pt-5"><h3 className="font-semibold">Solicitações recusadas</h3><p className="mt-1 text-xs text-muted-foreground">Você pode permitir novamente que uma pessoa envie uma solicitação. Ela precisará pedir e aguardar seu aceite.</p>{restrictedRequesters.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhuma restrição individual ativa.</p> : restrictedRequesters.map((person) => <div key={person.requester_id} className="flex items-center justify-between gap-3 border-b border-border py-3"><span className="text-xs">{person.display_name}</span><button disabled={busy} onClick={() => void reallowRequester(person.requester_id)} className="rounded-lg border border-border px-3 py-2 text-xs">Permitir novamente</button></div>)}</div><div className="mt-6 border-t border-border pt-5"><h3 className="font-semibold">Pessoas bloqueadas</h3>{blockedUsers.length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Você não bloqueou ninguém.</p> : blockedUsers.map((person) => <div key={person.blocked_id} className="flex items-center justify-between gap-3 border-b border-border py-3"><span className="text-xs text-muted-foreground">Estudante {person.blocked_id.slice(0,8)}…</span><button disabled={busy} onClick={() => void unblockPerson(person.blocked_id)} className="rounded-lg border border-border px-3 py-2 text-xs">Desbloquear</button></div>)}</div></div>}
 
             {tab === "suggestion" && <form onSubmit={submitSuggestion} className="p-5 sm:p-7"><h2 className="text-xl font-semibold">Enviar sugestão anônima</h2><p className="mb-4 mt-2 text-sm leading-6 text-muted-foreground">Compartilhe uma ideia para melhorar o Direct. Não inclua nome, telefone, e-mail, dados acadêmicos identificáveis ou outros dados pessoais. Não anexe arquivos.</p><label htmlFor="direct-suggestion" className="mb-2 block text-sm font-medium">Sua sugestão</label><textarea id="direct-suggestion" value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} maxLength={3000} rows={6} placeholder="Escreva sua sugestão (até 3.000 caracteres)" className="w-full rounded-xl border border-border bg-background p-3 text-sm outline-none focus:border-blue-600" /><p className="mb-4 mt-1 text-right text-xs text-muted-foreground">{suggestionText.length}/3000</p><label className="mb-5 flex items-start gap-3 text-sm leading-5"><input type="checkbox" checked={confirmNoPersonalData} onChange={(e) => setConfirmNoPersonalData(e.target.checked)} required className="mt-1 h-4 w-4 accent-blue-700" /><span>Confirmo que o texto não contém dados pessoais nem conteúdo de conversas privadas.</span></label><button disabled={busy || !suggestionText.trim() || !confirmNoPersonalData} className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Enviar sugestão</button><p className="mt-4 text-xs text-muted-foreground">Após o envio, você verá apenas a confirmação de recebimento. Não há acompanhamento de status nem promessa de resposta.</p></form>}
           </section>
