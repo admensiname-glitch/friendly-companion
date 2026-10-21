@@ -22,6 +22,10 @@ function DirectPage() {
   const [restrictedRequesters, setRestrictedRequesters] = useState<{ requester_id: string; display_name: string }[]>([]);
   const [recording, setRecording] = useState(false);
   const [voiceDraft, setVoiceDraft] = useState<Blob | null>(null);
+  const [voiceDraftPath, setVoiceDraftPath] = useState<string | null>(null);
+  const [voiceDraftId, setVoiceDraftId] = useState<string | null>(null);
+  const [voiceDraftUrl, setVoiceDraftUrl] = useState<string | null>(null);
+  const [voiceDraftConversationId, setVoiceDraftConversationId] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
@@ -130,6 +134,14 @@ function DirectPage() {
       return { ...row, audioUrl: signed?.signedUrl };
     }));
     setMessages(hydrated);
+    setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null);
+    const { data: drafts } = await supabase.from("direct_voice_drafts").select("id,storage_path,duration_seconds").eq("conversation_id", conversation.id).eq("user_id", userId).order("created_at", { ascending: false }).limit(1);
+    const draft = drafts?.[0];
+    if (draft) {
+      const { data: draftUrl } = await supabase.storage.from("direct-voice").createSignedUrl(draft.storage_path, 3600);
+      setVoiceDraftPath(draft.storage_path); setVoiceDraftId(draft.id); setVoiceDraftUrl(draftUrl?.signedUrl ?? null);
+      setVoiceDraftConversationId(conversation.id); setRecordingSeconds(draft.duration_seconds ?? 0);
+    }
     await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null, should_pin: null, mark_read: true });
   }
 
@@ -207,8 +219,28 @@ function DirectPage() {
       recorder.ondataavailable = (event) => { if (event.data.size) audioChunksRef.current.push(event.data); };
       recorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        setVoiceDraft(blob);
+        const duration = Math.max(1, Math.round((Date.now() - recordingStartRef.current) / 1000));
+        const draftId = crypto.randomUUID();
+        const extension = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+        const path = `${activeConversation.id}/${userId}/draft-${draftId}.${extension}`;
+        setVoiceDraft(blob); setVoiceDraftUrl(URL.createObjectURL(blob)); setVoiceDraftId(draftId);
+        setVoiceDraftConversationId(activeConversation.id); setRecordingSeconds(duration);
         stream.getTracks().forEach((track) => track.stop());
+        setBusy(true);
+        void (async () => {
+          const { error: uploadError } = await supabase.storage.from("direct-voice").upload(path, blob, { contentType: blob.type || "audio/webm", upsert: false });
+          if (uploadError) { setBusy(false); setError("Áudio mantido neste dispositivo. Não foi possível sincronizar o rascunho."); return; }
+          const { error: draftError } = await supabase.from("direct_voice_drafts").insert({
+            id: draftId, user_id: userId, conversation_id: activeConversation.id, storage_path: path, duration_seconds: duration, sync_status: "synced"
+          });
+          if (draftError) {
+            await supabase.storage.from("direct-voice").remove([path]);
+            setBusy(false); setError("Áudio mantido neste dispositivo, mas o rascunho não foi sincronizado."); return;
+          }
+          const { data: signed } = await supabase.storage.from("direct-voice").createSignedUrl(path, 3600);
+          setVoiceDraftPath(path); setVoiceDraftUrl(signed?.signedUrl ?? URL.createObjectURL(blob));
+          setBusy(false); setNotice("Rascunho de áudio salvo e sincronizado.");
+        })();
       };
       recorderRef.current = recorder;
       recordingStartRef.current = Date.now();
@@ -227,12 +259,16 @@ function DirectPage() {
   }
 
   async function sendVoiceMessage() {
-    if (!activeConversation || !voiceDraft || !userId) return;
+    if (!activeConversation || (!voiceDraft && !voiceDraftPath) || !userId || voiceDraftConversationId !== activeConversation.id) return;
     setBusy(true); setError(""); setNotice("");
-    const extension = voiceDraft.type.includes("mp4") ? "m4a" : voiceDraft.type.includes("ogg") ? "ogg" : "webm";
-    const path = `${activeConversation.id}/${userId}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("direct-voice").upload(path, voiceDraft, { contentType: voiceDraft.type || "audio/webm", upsert: false });
-    if (uploadError) { setBusy(false); setError("O áudio foi mantido neste campo, mas não foi enviado. Tente novamente."); return; }
+    let path = voiceDraftPath;
+    if (!path && voiceDraft) {
+      const extension = voiceDraft.type.includes("mp4") ? "m4a" : voiceDraft.type.includes("ogg") ? "ogg" : "webm";
+      path = `${activeConversation.id}/${userId}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("direct-voice").upload(path, voiceDraft, { contentType: voiceDraft.type || "audio/webm", upsert: false });
+      if (uploadError) { setBusy(false); setError("O áudio foi mantido neste campo, mas não foi enviado. Tente novamente."); return; }
+    }
+    if (!path) { setBusy(false); return; }
     const { error: sendError } = await supabase.from("direct_messages").insert({
       conversation_id: activeConversation.id, sender_id: userId, message_type: "voice", media_path: path, duration_seconds: recordingSeconds
     });
@@ -241,7 +277,8 @@ function DirectPage() {
       setError("O áudio foi preservado no armazenamento, mas a mensagem não foi enviada. Tente novamente.");
       return;
     }
-    setVoiceDraft(null); setRecordingSeconds(0); setBusy(false);
+    if (voiceDraftId) await supabase.from("direct_voice_drafts").delete().eq("id", voiceDraftId).eq("user_id", userId);
+    setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null); setRecordingSeconds(0); setBusy(false);
     await openConversation(activeConversation);
     await load(userId);
   }
@@ -360,7 +397,7 @@ function DirectPage() {
               <div className="flex max-h-[480px] min-h-[300px] flex-col gap-3 overflow-y-auto p-4">
                 {messages.length === 0 ? <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">Esta conversa está pronta. Envie a primeira mensagem para começar.</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${message.sender_id === userId ? "ml-auto bg-blue-700 text-white" : "mr-auto bg-muted text-foreground"}`}>{message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}<p className={`mt-1 text-[10px] ${message.sender_id === userId ? "text-blue-100" : "text-muted-foreground"}`}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? ` · ${message.duration_seconds}s` : ""}</p></div>)}
               </div>
-              <div className="border-t border-border p-3"><div className="mb-3 flex flex-wrap items-center gap-2">{!recording ? <button type="button" disabled={busy} onClick={() => void startVoiceRecording()} className="rounded-xl border border-border px-3 py-2 text-sm">Gravar áudio</button> : <button type="button" onClick={stopVoiceRecording} className="rounded-xl border border-red-300 px-3 py-2 text-sm text-red-700">Parar gravação · {recordingSeconds}s</button>}{voiceDraft && <><span className="text-xs text-muted-foreground">Áudio pronto · {recordingSeconds}s</span><audio controls src={URL.createObjectURL(voiceDraft)} className="max-w-full" /><button type="button" disabled={busy} onClick={() => void sendVoiceMessage()} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Enviar áudio</button><button type="button" onClick={() => { setVoiceDraft(null); setRecordingSeconds(0); }} className="rounded-xl border border-border px-3 py-2 text-sm">Descartar</button></>}</div><form onSubmit={sendMessage}><div className="flex items-end gap-2"><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} maxLength={5000} rows={2} placeholder="Escreva uma mensagem…" className="min-h-[48px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-blue-600" /><button disabled={busy || !messageText.trim()} className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Enviar</button></div></form></div>
+              <div className="border-t border-border p-3"><div className="mb-3 flex flex-wrap items-center gap-2">{!recording ? <button type="button" disabled={busy} onClick={() => void startVoiceRecording()} className="rounded-xl border border-border px-3 py-2 text-sm">Gravar áudio</button> : <button type="button" onClick={stopVoiceRecording} className="rounded-xl border border-red-300 px-3 py-2 text-sm text-red-700">Parar gravação · {recordingSeconds}s</button>}{(voiceDraft || voiceDraftPath) && <><span className="text-xs text-muted-foreground">Rascunho de áudio · {recordingSeconds}s</span>{voiceDraftUrl && <audio controls src={voiceDraftUrl} className="max-w-full" />}<button type="button" disabled={busy} onClick={() => void sendVoiceMessage()} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Enviar áudio</button><button type="button" disabled={busy} onClick={async () => { if (voiceDraftPath) await supabase.storage.from("direct-voice").remove([voiceDraftPath]); if (voiceDraftId) await supabase.from("direct_voice_drafts").delete().eq("id", voiceDraftId).eq("user_id", userId); setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null); setRecordingSeconds(0); }} className="rounded-xl border border-border px-3 py-2 text-sm">Descartar</button></>}</div><form onSubmit={sendMessage}><div className="flex items-end gap-2"><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} maxLength={5000} rows={2} placeholder="Escreva uma mensagem…" className="min-h-[48px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-blue-600" /><button disabled={busy || !messageText.trim()} className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Enviar</button></div></form></div>
             </> : (tab === "individual" || tab === "groups") ? <div className="flex h-full min-h-[440px] flex-col items-center justify-center p-8 text-center"><div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">💬</div><h2 className="text-xl font-semibold">Suas conversas, em um só lugar</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Selecione uma conversa à esquerda ou pesquise um estudante para iniciar uma solicitação.</p><div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3 text-left"><div className="rounded-xl border border-border p-3"><p className="font-semibold">{individuals.length}</p><p className="text-xs text-muted-foreground">Conversas individuais</p></div><div className="rounded-xl border border-border p-3"><p className="font-semibold">{groups.length}</p><p className="text-xs text-muted-foreground">Grupos</p></div></div></div> : null}
 
             {tab === "settings" && <div className="p-5 sm:p-7"><h2 className="text-xl font-semibold">Privacidade e segurança</h2><p className="mb-5 mt-2 text-sm text-muted-foreground">As alterações são sincronizadas com sua conta.</p><div className="divide-y divide-border">{([
