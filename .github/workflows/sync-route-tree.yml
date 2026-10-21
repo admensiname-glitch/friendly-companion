@@ -2,11 +2,11 @@ name: Sync generated route tree
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/direct-foundation]
   workflow_dispatch:
 
 concurrency:
-  group: ensina-me-route-tree-sync
+  group: ensina-me-route-tree-sync-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
