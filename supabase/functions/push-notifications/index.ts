@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
     let recipients: string[] = [];
     let title = "Nova mensagem no Direct";
     let body = "Você recebeu uma nova mensagem.";
-    let url = "/app/comunidade";
+    const url = "/app/comunidade";
     let conversationId: string | null = null;
 
     if (isRequest) {
