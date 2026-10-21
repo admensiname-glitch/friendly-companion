@@ -20,6 +20,7 @@ function DirectPage() {
   const [memberPreferences, setMemberPreferences] = useState<Record<string, { archived_at: string | null; pinned_at: string | null; hidden_at: string | null }>>({});
   const [blockedUsers, setBlockedUsers] = useState<{ blocked_id: string; created_at: string }[]>([]);
   const [restrictedRequesters, setRestrictedRequesters] = useState<{ requester_id: string; display_name: string }[]>([]);
+  const [groupNotificationsEnabled, setGroupNotificationsEnabled] = useState(true);
   const [recording, setRecording] = useState(false);
   const [voiceDraft, setVoiceDraft] = useState<Blob | null>(null);
   const [voiceDraftPath, setVoiceDraftPath] = useState<string | null>(null);
@@ -127,6 +128,10 @@ function DirectPage() {
     setActiveConversation(conversation); setError("");
     const { data, error: messageError } = await supabase.from("direct_messages").select("id,conversation_id,sender_id,message_type,body,media_path,duration_seconds,created_at").eq("conversation_id", conversation.id).order("created_at", { ascending: true }).limit(200);
     if (messageError) { setError("Não foi possível carregar as mensagens desta conversa."); return; }
+    if (conversation.kind === "group") {
+      const { data: groupPreference } = await supabase.from("direct_group_notification_preferences").select("notifications_enabled").eq("user_id", userId).eq("conversation_id", conversation.id).maybeSingle();
+      setGroupNotificationsEnabled(groupPreference?.notifications_enabled ?? true);
+    } else setGroupNotificationsEnabled(true);
     const hydrated = await Promise.all((data ?? []).map(async (message) => {
       const row = message as Message;
       if (row.message_type !== "voice" || !row.media_path) return row;
@@ -284,6 +289,16 @@ function DirectPage() {
     await load(userId);
   }
 
+  async function saveGroupNotifications(enabled: boolean) {
+    if (!activeConversation || activeConversation.kind !== "group") return;
+    setGroupNotificationsEnabled(enabled); setError(""); setNotice("Aguardando sincronização…");
+    const { error: preferenceError } = await supabase.from("direct_group_notification_preferences").upsert({
+      user_id: userId, conversation_id: activeConversation.id, notifications_enabled: enabled, updated_at: new Date().toISOString()
+    }, { onConflict: "user_id,conversation_id" });
+    if (preferenceError) { setGroupNotificationsEnabled(!enabled); setError("Não foi possível salvar as notificações deste grupo."); setNotice(""); return; }
+    setNotice("Preferência de notificações do grupo salva.");
+  }
+
   async function updateConversationPreference(kind: "archive" | "pin", enabled: boolean) {
     if (!activeConversation) return;
     setBusy(true); setError(""); setNotice("");
@@ -394,7 +409,7 @@ function DirectPage() {
 
           <section className="min-h-[440px] overflow-hidden rounded-2xl border border-border bg-card">
             {(tab === "individual" || tab === "groups") && activeConversation ? <>
-              <header className="flex items-center gap-3 border-b border-border px-4 py-4"><button onClick={() => setActiveConversation(null)} className="rounded-lg px-2 py-1 text-sm hover:bg-muted">←</button><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{activeConversation.title || (activeConversation.kind === "group" ? "Grupo" : "Conversa individual")}</h2><p className="text-xs text-muted-foreground">Mensagens privadas • histórico autorizado</p></div><button disabled={busy} onClick={() => void updateConversationPreference("pin", !memberPreferences[activeConversation.id]?.pinned_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.pinned_at ? "Desafixar" : "Fixar"}</button><button disabled={busy} onClick={() => void updateConversationPreference("archive", !memberPreferences[activeConversation.id]?.archived_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.archived_at ? "Desarquivar" : "Arquivar"}</button></header>
+              <header className="flex items-center gap-3 border-b border-border px-4 py-4"><button onClick={() => setActiveConversation(null)} className="rounded-lg px-2 py-1 text-sm hover:bg-muted">←</button><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{activeConversation.title || (activeConversation.kind === "group" ? "Grupo" : "Conversa individual")}</h2><p className="text-xs text-muted-foreground">Mensagens privadas • histórico autorizado</p></div>{activeConversation.kind === "group" && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={groupNotificationsEnabled} onChange={(e) => void saveGroupNotifications(e.target.checked)} className="h-4 w-4 accent-blue-700" />Notificações</label>}<button disabled={busy} onClick={() => void updateConversationPreference("pin", !memberPreferences[activeConversation.id]?.pinned_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.pinned_at ? "Desafixar" : "Fixar"}</button><button disabled={busy} onClick={() => void updateConversationPreference("archive", !memberPreferences[activeConversation.id]?.archived_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.archived_at ? "Desarquivar" : "Arquivar"}</button></header>
               <div className="flex max-h-[480px] min-h-[300px] flex-col gap-3 overflow-y-auto p-4">
                 {messages.length === 0 ? <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">Esta conversa está pronta. Envie a primeira mensagem para começar.</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${message.sender_id === userId ? "ml-auto bg-blue-700 text-white" : "mr-auto bg-muted text-foreground"}`}>{message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}<p className={`mt-1 text-[10px] ${message.sender_id === userId ? "text-blue-100" : "text-muted-foreground"}`}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? ` · ${message.duration_seconds}s` : ""}</p></div>)}
               </div>
