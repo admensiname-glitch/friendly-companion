@@ -463,9 +463,9 @@ function AppLayout() {
         })}
       </nav>
 
-      <main className={"app-main-scroll lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px] " + (location.pathname === "/app/direct" ? "h-[calc(100dvh-76px)] overflow-hidden pb-0 lg:h-[100dvh]" : "")}>
-        <div className={"app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0 " + (location.pathname === "/app/direct" ? "h-full max-w-none px-0 pb-0" : "")}>
-          <div key={location.pathname} className={"app-route-stage " + (location.pathname === "/app/direct" ? "h-full min-h-0" : "")}>
+      <main className="app-main-scroll lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px]">
+        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
+          <div key={location.pathname} className="app-route-stage">
             <Outlet />
           </div>
         </div>
