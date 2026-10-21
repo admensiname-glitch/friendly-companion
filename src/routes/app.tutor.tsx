@@ -1187,6 +1187,7 @@ function TutorPage() {
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
+    }
 
     } catch (sendError) {
       console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
