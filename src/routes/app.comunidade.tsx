@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { DirectPage } from "@/routes/app.direct";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app/comunidade")({ component: CommunityPage });
@@ -114,7 +113,6 @@ const COMMON_EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","
 
 
 function CommunityPage() {
-  const [communityTab, setCommunityTab] = useState<"feed" | "direct">("feed");
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [courses, setCourses] = useState<Course[]>([]);
@@ -507,14 +505,19 @@ function CommunityPage() {
           <h1 id="community-title" className="mt-2 text-[34px] font-black tracking-[-0.04em] text-[#172334] sm:text-[42px]">Aprenda junto.</h1>
           <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">Dúvidas, trabalhos, dicas e descobertas de outros estudantes — sempre conectados ao estudo.</p>
         </div>
-        <Link to="/app/estude-agora" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0242D7] px-4 text-sm font-black text-white">Estudar agora</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/app/direct" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#C8D8F8] bg-[#EEF4FF] px-4 text-sm font-black text-[#0242D7] hover:bg-[#E3ECFF] dark:border-[#343434] dark:bg-[#171717] dark:text-white">✉ Abrir Direct</Link>
+          <Link to="/app/estude-agora" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0242D7] px-4 text-sm font-black text-white">Estudar agora</Link>
+        </div>
       </header>
 
-      <div className="mt-6 flex gap-2 rounded-2xl border border-[#DCE5F0] bg-white p-1.5 dark:border-[#2B3A4F] dark:bg-[#111B2A]" role="tablist" aria-label="Seções da comunidade">
-        <button type="button" role="tab" aria-selected={communityTab === "feed"} onClick={() => setCommunityTab("feed")} className={"min-h-11 flex-1 rounded-xl px-4 text-sm font-extrabold " + (communityTab === "feed" ? "bg-[#0242D7] text-white" : "text-[#405064] dark:text-[#D1DCE8]")}>Comunidade</button>
-        <button type="button" role="tab" aria-selected={communityTab === "direct"} onClick={() => setCommunityTab("direct")} className={"min-h-11 flex-1 rounded-xl px-4 text-sm font-extrabold " + (communityTab === "direct" ? "bg-[#0242D7] text-white" : "text-[#405064] dark:text-[#D1DCE8]")}>Direct</button>
+      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-[#292929] dark:bg-[#101010]">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] text-xl text-white" aria-hidden="true">✉</span>
+          <div><p className="text-sm font-black text-[#172334] dark:text-white">Converse com outros estudantes no Direct</p><p className="mt-1 text-sm leading-5 text-[#526174] dark:text-[#B6B6B6]">Mensagens individuais, grupos e privacidade têm uma área própria, separada do mural da comunidade.</p></div>
+        </div>
+        <Link to="/app/direct" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] px-4 text-sm font-black text-white">Ir para o Direct →</Link>
       </div>
-      {communityTab === "direct" ? <div className="mt-6"><DirectPage /></div> : <>
       <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-5">
           <section className="rounded-2xl border border-[#DCE5F0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,.05)]">
@@ -670,7 +673,6 @@ function CommunityPage() {
         </aside>
       </div>
       {profileEditing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/40 p-4"><div className="w-full max-w-md rounded-2xl border border-[#DCE5F0] bg-white p-6 shadow-2xl"><p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#0242D7]">Seu perfil</p><h2 className="mt-2 text-2xl font-black text-[#172334]">Atualize sua foto de perfil.</h2><label className="mt-5 block text-sm font-bold text-[#334155]">Foto de perfil<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" /></label><p className="mt-2 text-xs text-[#64748B]">JPG, PNG ou WebP · até 5 MB.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setProfileEditing(false)} className="rounded-lg border border-[#D3DEEA] px-4 py-2 text-sm font-bold text-[#56667A]">Cancelar</button><button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-black text-white disabled:opacity-50">{profileSaving ? "Salvando…" : "Salvar perfil"}</button></div></div></div>}
-      </>}
     </section>
   );
 }
