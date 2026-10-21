@@ -5,9 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/app/direct")({ component: DirectPage });
 
 type Person = { user_id: string; display_name: string; avatar_url: string | null; allow_requests: boolean };
-type RequestRow = { id: string; sender_id: string; recipient_id: string; status: string; created_at: string };
+type RequestRow = { id: string; sender_id: string; recipient_id: string; status: string; created_at: string; other_name?: string };
 type Conversation = { id: string; kind: "individual" | "group"; title: string | null; last_message_at: string; created_at: string };
-type Message = { id: string; conversation_id: string; sender_id: string; message_type: string; body: string | null; media_path?: string | null; duration_seconds?: number | null; created_at: string; audioUrl?: string };
+type Message = { id: string; conversation_id: string; sender_id: string; message_type: string; body: string | null; media_path?: string | null; duration_seconds?: number | null; deleted_for_everyone_at?: string | null; created_at: string; audioUrl?: string };
 type ReadReceipt = { user_id: string; display_name: string; last_read_at: string };
 type DirectSettings = { allow_requests: boolean; show_online_status: boolean; show_last_seen: boolean; read_receipts: boolean; auto_play_voice: boolean };
 
@@ -71,7 +71,13 @@ function DirectPage() {
       const names = await supabase.from("student_profiles").select("user_id,display_name").in("user_id", requesterIds);
       setRestrictedRequesters(requesterIds.map((requester_id) => ({ requester_id, display_name: names.data?.find((p) => p.user_id === requester_id)?.display_name || `Estudante ${requester_id.slice(0, 8)}…` })));
     } else setRestrictedRequesters([]);
-    setRequests((requestResult.data ?? []) as RequestRow[]);
+    const requestRows = (requestResult.data ?? []) as RequestRow[];
+    const peerIds = [...new Set(requestRows.map((row) => row.sender_id === id ? row.recipient_id : row.sender_id))];
+    const requestNames = peerIds.length ? await supabase.from("student_profiles").select("user_id,display_name").in("user_id", peerIds) : { data: [] };
+    setRequests(requestRows.map((row) => ({
+      ...row,
+      other_name: requestNames.data?.find((person) => person.user_id === (row.sender_id === id ? row.recipient_id : row.sender_id))?.display_name || "Estudante"
+    })));
     const memberRows = memberResult.data ?? [];
     setMemberPreferences(Object.fromEntries(memberRows.map((m) => [m.conversation_id, { archived_at: m.archived_at, pinned_at: m.pinned_at, hidden_at: m.hidden_at }])));
     const ids = memberRows.map((m) => m.conversation_id);
@@ -116,6 +122,8 @@ function DirectPage() {
     setNotice("Solicitação aceita. A conversa está liberada.");
     setTab("individual");
     await load(userId);
+    const { data: acceptedConversation } = await supabase.from("direct_conversations").select("id,kind,title,last_message_at,created_at").eq("id", acceptedConversationId).maybeSingle();
+    if (acceptedConversation) await openConversation(acceptedConversation as Conversation);
   }
 
   async function cancelRequest(request: RequestRow) {
@@ -128,13 +136,16 @@ function DirectPage() {
 
   const openConversation = useCallback(async (conversation: Conversation) => {
     setActiveConversation(conversation); setError("");
-    const { data, error: messageError } = await supabase.from("direct_messages").select("id,conversation_id,sender_id,message_type,body,media_path,duration_seconds,created_at").eq("conversation_id", conversation.id).order("created_at", { ascending: true }).limit(200);
+    const { data, error: messageError } = await supabase.from("direct_messages").select("id,conversation_id,sender_id,message_type,body,media_path,duration_seconds,deleted_for_everyone_at,created_at").eq("conversation_id", conversation.id).order("created_at", { ascending: true }).limit(200);
     if (messageError) { setError("Não foi possível carregar as mensagens desta conversa."); return; }
     if (conversation.kind === "group") {
       const { data: groupPreference } = await supabase.from("direct_group_notification_preferences").select("notifications_enabled").eq("user_id", userId).eq("conversation_id", conversation.id).maybeSingle();
       setGroupNotificationsEnabled(groupPreference?.notifications_enabled ?? true);
     } else setGroupNotificationsEnabled(true);
-    const hydrated = await Promise.all((data ?? []).map(async (message) => {
+    const messageRows = (data ?? []) as Message[];
+    const hiddenResult = messageRows.length ? await supabase.from("direct_message_hides").select("message_id").eq("user_id", userId).in("message_id", messageRows.map((message) => message.id)) : { data: [] };
+    const hiddenIds = new Set((hiddenResult.data ?? []).map((row) => row.message_id));
+    const hydrated = await Promise.all(messageRows.filter((message) => !hiddenIds.has(message.id)).map(async (message) => {
       const row = message as Message;
       if (row.message_type !== "voice" || !row.media_path) return row;
       const { data: signed } = await supabase.storage.from("direct-voice").createSignedUrl(row.media_path, 3600);
@@ -153,6 +164,16 @@ function DirectPage() {
     }
     await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null, should_pin: null, mark_read: true });
   }, [userId]);
+
+  async function deleteMessage(messageId: string) {
+    if (!activeConversation) return;
+    setBusy(true); setError(""); setNotice("");
+    const { data: deleteMode, error: deleteError } = await supabase.rpc("direct_delete_message", { target_message_id: messageId });
+    setBusy(false);
+    if (deleteError) { setError("Não foi possível apagar esta mensagem."); return; }
+    setNotice(deleteMode === "everyone" ? "Mensagem apagada para todos." : "Mensagem removida da sua visualização.");
+    await openConversation(activeConversation);
+  }
 
   async function sendMessage(event: FormEvent) {
     event.preventDefault();
@@ -407,7 +428,7 @@ function DirectPage() {
 
             {tab === "requests" && <div className="rounded-2xl border border-border bg-card p-4">
               <div className="mb-4 flex gap-2"><button onClick={() => setRequestsMode("received")} className={`rounded-lg px-3 py-2 text-sm ${requestsMode === "received" ? "bg-blue-700 text-white" : "bg-muted"}`}>Recebidas ({received.length})</button><button onClick={() => setRequestsMode("sent")} className={`rounded-lg px-3 py-2 text-sm ${requestsMode === "sent" ? "bg-blue-700 text-white" : "bg-muted"}`}>Enviadas ({sent.length})</button></div>
-              {(requestsMode === "received" ? received : sent).length === 0 ? <p className="py-5 text-sm text-muted-foreground">Nenhuma solicitação pendente.</p> : (requestsMode === "received" ? received : sent).map((request) => <div key={request.id} className="border-t border-border py-3"><p className="text-sm font-medium">{request.sender_id === userId ? "Solicitação enviada" : "Nova solicitação"}</p><p className="my-1 text-xs text-muted-foreground">{dateLabel(request.created_at)}</p><p className="break-all text-xs text-muted-foreground">ID do estudante: {(request.sender_id === userId ? request.recipient_id : request.sender_id).slice(0,8)}…</p><div className="mt-2 flex gap-2">{requestsMode === "received" ? <><button disabled={busy} onClick={() => void acceptRequest(request)} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Aceitar</button><button disabled={busy} onClick={async () => { const { error: declineError } = await supabase.rpc("direct_decline_request", { request_id: request.id }); if (declineError) setError("Não foi possível recusar."); else { setNotice("Solicitação recusada."); await load(userId); } }} className="rounded-lg border border-border px-3 py-2 text-xs">Recusar</button></> : <button disabled={busy} onClick={() => void cancelRequest(request)} className="rounded-lg border border-border px-3 py-2 text-xs">Cancelar solicitação</button>}</div></div>)}
+              {(requestsMode === "received" ? received : sent).length === 0 ? <p className="py-5 text-sm text-muted-foreground">Nenhuma solicitação pendente.</p> : (requestsMode === "received" ? received : sent).map((request) => <div key={request.id} className="border-t border-border py-3"><p className="text-sm font-medium">{request.sender_id === userId ? "Solicitação enviada" : "Nova solicitação"}</p><p className="my-1 text-xs text-muted-foreground">{dateLabel(request.created_at)}</p><p className="text-xs text-muted-foreground">{request.other_name || "Estudante"}</p><div className="mt-2 flex gap-2">{requestsMode === "received" ? <><button disabled={busy} onClick={() => void acceptRequest(request)} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Aceitar</button><button disabled={busy} onClick={async () => { const { error: declineError } = await supabase.rpc("direct_decline_request", { request_id: request.id }); if (declineError) setError("Não foi possível recusar."); else { setNotice("Solicitação recusada."); await load(userId); } }} className="rounded-lg border border-border px-3 py-2 text-xs">Recusar</button></> : <button disabled={busy} onClick={() => void cancelRequest(request)} className="rounded-lg border border-border px-3 py-2 text-xs">Cancelar solicitação</button>}</div></div>)}
             </div>}
           </section>
 
@@ -415,7 +436,7 @@ function DirectPage() {
             {(tab === "individual" || tab === "groups") && activeConversation ? <>
               <header className="flex items-center gap-3 border-b border-border px-4 py-4"><button onClick={() => setActiveConversation(null)} className="rounded-lg px-2 py-1 text-sm hover:bg-muted">←</button><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{activeConversation.title || (activeConversation.kind === "group" ? "Grupo" : "Conversa individual")}</h2><p className="text-xs text-muted-foreground">Mensagens privadas • histórico autorizado</p></div>{activeConversation.kind === "group" && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={groupNotificationsEnabled} onChange={(e) => void saveGroupNotifications(e.target.checked)} className="h-4 w-4 accent-blue-700" />Notificações</label>}<button disabled={busy} onClick={() => void updateConversationPreference("pin", !memberPreferences[activeConversation.id]?.pinned_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.pinned_at ? "Desafixar" : "Fixar"}</button><button disabled={busy} onClick={() => void updateConversationPreference("archive", !memberPreferences[activeConversation.id]?.archived_at)} className="rounded-lg border border-border px-2 py-2 text-xs">{memberPreferences[activeConversation.id]?.archived_at ? "Desarquivar" : "Arquivar"}</button></header>
               <div className="flex max-h-[480px] min-h-[300px] flex-col gap-3 overflow-y-auto p-4">
-                {messages.length === 0 ? <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">Esta conversa está pronta. Envie a primeira mensagem para começar.</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${message.sender_id === userId ? "ml-auto bg-blue-700 text-white" : "mr-auto bg-muted text-foreground"}`}>{message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}<p className={`mt-1 text-[10px] ${message.sender_id === userId ? "text-blue-100" : "text-muted-foreground"}`}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? ` · ${message.duration_seconds}s` : ""}{message.sender_id === userId && readReceipts.some((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()) ? ` · Lida${readReceipts.filter((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()).length > 1 ? " por participantes" : ""}` : ""}</p></div>)}
+                {messages.length === 0 ? <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">Esta conversa está pronta. Envie a primeira mensagem para começar.</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${message.sender_id === userId ? "ml-auto bg-blue-700 text-white" : "mr-auto bg-muted text-foreground"}`}>{message.deleted_for_everyone_at ? <p className="italic opacity-80">Esta mensagem foi apagada.</p> : message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}{message.sender_id === userId && !message.deleted_for_everyone_at && <button type="button" disabled={busy} onClick={() => void deleteMessage(message.id)} className={`mt-1 block text-[10px] underline ${message.sender_id === userId ? "text-blue-100" : "text-muted-foreground"}`}>Apagar mensagem</button>}<p className={`mt-1 text-[10px] ${message.sender_id === userId ? "text-blue-100" : "text-muted-foreground"}`}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? ` · ${message.duration_seconds}s` : ""}{message.sender_id === userId && readReceipts.some((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()) ? ` · Lida${readReceipts.filter((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()).length > 1 ? " por participantes" : ""}` : ""}</p></div>)}
               </div>
               <div className="border-t border-border p-3"><div className="mb-3 flex flex-wrap items-center gap-2">{!recording ? <button type="button" disabled={busy} onClick={() => void startVoiceRecording()} className="rounded-xl border border-border px-3 py-2 text-sm">Gravar áudio</button> : <button type="button" onClick={stopVoiceRecording} className="rounded-xl border border-red-300 px-3 py-2 text-sm text-red-700">Parar gravação · {recordingSeconds}s</button>}{(voiceDraft || voiceDraftPath) && <><span className="text-xs text-muted-foreground">Rascunho de áudio · {recordingSeconds}s</span>{voiceDraftUrl && <audio controls src={voiceDraftUrl} className="max-w-full" />}<button type="button" disabled={busy} onClick={() => void sendVoiceMessage()} className="rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Enviar áudio</button><button type="button" disabled={busy} onClick={async () => { if (voiceDraftPath) await supabase.storage.from("direct-voice").remove([voiceDraftPath]); if (voiceDraftId) await supabase.from("direct_voice_drafts").delete().eq("id", voiceDraftId).eq("user_id", userId); setVoiceDraft(null); setVoiceDraftPath(null); setVoiceDraftId(null); setVoiceDraftUrl(null); setVoiceDraftConversationId(null); setRecordingSeconds(0); }} className="rounded-xl border border-border px-3 py-2 text-sm">Descartar</button></>}</div><form onSubmit={sendMessage}><div className="flex items-end gap-2"><textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} maxLength={5000} rows={2} placeholder="Escreva uma mensagem…" className="min-h-[48px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none focus:border-blue-600" /><button disabled={busy || !messageText.trim()} className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">Enviar</button></div></form></div>
             </> : (tab === "individual" || tab === "groups") ? <div className="flex h-full min-h-[440px] flex-col items-center justify-center p-8 text-center"><div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">💬</div><h2 className="text-xl font-semibold">Suas conversas, em um só lugar</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Selecione uma conversa à esquerda ou pesquise um estudante para iniciar uma solicitação.</p><div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3 text-left"><div className="rounded-xl border border-border p-3"><p className="font-semibold">{individuals.length}</p><p className="text-xs text-muted-foreground">Conversas individuais</p></div><div className="rounded-xl border border-border p-3"><p className="font-semibold">{groups.length}</p><p className="text-xs text-muted-foreground">Grupos</p></div></div></div> : null}
