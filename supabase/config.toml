@@ -2,3 +2,6 @@ project_id = "gcnbekkfulppfbsrgksd"
 
 [functions.ai-tutor]
 verify_jwt = true
+
+[functions.push-notifications]
+verify_jwt = true
