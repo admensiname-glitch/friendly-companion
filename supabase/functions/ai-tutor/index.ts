@@ -1214,6 +1214,17 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Corpo da requisição inválido." }, 400);
     }
 
+    if (
+      body.action === "answer_microassessment" ||
+      body.action === "generate_initial_microassessment" ||
+      body.action === "generate_next_microassessment" ||
+      body.action === "generate_recovery_question"
+    ) {
+      return json({
+        error: "O Tutor foi configurado para responder e explicar, sem elaborar ou corrigir questões. Use o modo Prova para avaliações.",
+      }, 410);
+    }
+
     if (body.action === "start_formal_evaluation") {
       const topicId = body.topic_id?.trim();
       if (!topicId) {
@@ -2587,25 +2598,12 @@ Deno.serve(async (req: Request) => {
       "- Se a relação for apenas genérica com o tópico, use enabled=false.\n" +
       "- O sistema fará uma busca no YouTube usando a pergunta atual e o contexto do tópico.\n" +
       "- reason deve explicar em uma frase por que o vídeo encontrado ajuda exatamente nesta pergunta.\n\n" +
-      "MICROAVALIAÇÃO ADAPTATIVA\n" +
-      "- O campo microassessment só pode ter enabled=true quando MICROAVALIAÇÃO=GERAR.\n" +
-      "- Após uma explicação acadêmica substantiva, verifique automaticamente se o aluno compreendeu o que acabou de ser ensinado; o aluno não precisa pedir uma questão.\n" +
-      "- Gere microavaliação quando o aluno pediu para ser testado, pediu questão, quiz, exercício ou prática.\n" +
-      "- Não gere microavaliação para saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno explicitamente disser que não quer ser testado.\n" +
-      "- A microavaliação NÃO é uma questão aleatória do banco/conteúdo do tópico. Ela é uma verificação da compreensão da CONVERSA ATUAL.\n" +
-      "- Antes de criar a questão, identifique a dúvida, pergunta, conceito ou raciocínio que o aluno acabou de discutir com o Tutor.\n" +
-      "- Quando o pedido atual for uma continuação como 'quero a pergunta', 'pode me testar', 'manda a questão' ou equivalente, NUNCA trate esse texto como o assunto da questão. Volte ao histórico e use a última dúvida substantiva do aluno e a explicação do Tutor imediatamente anterior.\n" +
-      "- A pergunta deve verificar se o aluno realmente compreendeu aquela explicação específica: relação causal, mecanismo, distinção conceitual, aplicação ou raciocínio discutido na conversa.\n" +
-      "- O TÓPICO ACADÊMICO é apenas uma fronteira de segurança e fonte de precisão; ele NÃO deve substituir o foco da conversa.\n" +
-      "- Se não houver histórico substantivo suficiente para identificar o que o aluno queria entender, não invente um foco e não escolha uma questão genérica do tópico; mantenha microassessment.enabled=false.\n" +
-      "- Faça exatamente uma questão de múltipla escolha com 4 alternativas.\n" +
-      "- A alternativa correta deve ser inequivocamente correta com base na explicação e no contexto acadêmico.\n- correct_option_index é um índice zero-based: use somente 0, 1, 2 ou 3; nunca use -1.\n" +
-      "- Evite pistas óbvias, pegadinhas artificiais e ambiguidades.\n" +
-      "- Quando uma microavaliação for gerada, NÃO repita a questão nem as alternativas no campo message; no texto, apenas convide o aluno a responder a questão apresentada abaixo.\n" +
-      "- Explique o gabarito de forma curta e pedagógica.\n" +
-      "- Ajuste a dificuldade: introductory para primeira compreensão, intermediate para aplicação, advanced para análise.\n" +
-      "- concept_tags deve conter de 1 a 3 conceitos avaliados e deve refletir o conceito discutido na conversa, não um conceito aleatório do tópico.\n" +
-      "PRECISÃO EM ALFABETIZAÇÃO E LINGUAGEM\n" +
+      "RESPONDER AO ALUNO — SEM ELABORAR QUESTÕES\n" +
+    "- Sua função é responder às mensagens do aluno, explicar conceitos, esclarecer dúvidas e corrigir raciocínios quando ele pedir.\n" +
+    "- Nunca elabore, proponha, ofereça ou apresente perguntas de prova, quizzes, exercícios ou testes.\n" +
+    "- Não termine a resposta convidando o aluno a responder uma questão ou perguntando se quer ser testado.\n" +
+    "- Se o aluno pedir uma questão, explique com naturalidade que o Tutor está configurado para explicar e responder dúvidas, sem gerar questões.\n" +
+    "PRECISÃO EM ALFABETIZAÇÃO E LINGUAGEM\n" +
       "- Não confunda consciência fonológica, consciência fonêmica, fonema, sílaba, rima, aliteração, grafema e relação grafofonêmica.\n" +
       "- Em exemplos de rima, confirme a semelhança sonora relevante na terminação; compartilhar apenas uma vogal final não basta.\n\n" +
       "ESTILO\n" +
@@ -2617,43 +2615,10 @@ Deno.serve(async (req: Request) => {
       "\n\nHISTÓRICO DA CONVERSA — FONTE PRIORITÁRIA PARA MICROAVALIAÇÃO:\n" +
       (conversationContext || "Nenhum histórico disponível.");
 
-    const normalizedUserMessage = userMessage
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\\u0300-\\u036f]/g, "");
-
-    const isContinuationPracticeRequest =
-      /^(quero|pode|manda|me manda|envia|envie|pode mandar|quero ver|vamos|bora).{0,80}(pergunta|questao|questão|teste|quiz|exercicio|exercício)/i.test(userMessage.trim());
-
-    const explicitlyDeclinesPractice =
-      /(nao quero|não quero|sem pergunta|sem questao|sem questão|nao me teste|não me teste|nao precisa testar|não precisa testar)/i.test(
-        userMessage.trim(),
-      );
-
-    const isCasualOrNavigationMessage =
-      /^(oi|ola|olá|bom dia|boa tarde|boa noite|obrigado|obrigada|valeu|beleza|ok|tá bom|ta bom|entendi|certo|sim|não|nao|voltar|sair|menu|ajuda)$/i.test(
-        normalizedUserMessage.trim(),
-      );
-
-    const isSubstantiveAcademicTurn =
-      !isCasualOrNavigationMessage &&
-      !explicitlyDeclinesPractice &&
-      userMessage.trim().length >= 18;
-
-    const shouldGenerateComprehensionCheck =
-      learningAction === "practice" ||
-      isSubstantiveAcademicTurn ||
-      hasSubstantiveConversationHistory;
-
-    const priorQuestionGuard = recentMicroAssessmentQuestions.length
-      ? "\n\nQUESTÕES JÁ APRESENTADAS NESTE TÓPICO — NÃO REPITA NENHUMA, NEM COM PEQUENAS TROCAS DE PALAVRAS:\n" +
-        recentMicroAssessmentQuestions.slice(0, 20).map((question, index) => (index + 1) + ". " + question).join("\n") +
-        "\nCrie uma questão genuinamente diferente, com outro cenário, operação mental ou aplicação do conceito."
-      : "";
+    const shouldGenerateComprehensionCheck = false;
+    const explicitlyDeclinesPractice = true;
     const microAssessmentDirective =
-      shouldGenerateComprehensionCheck && (!explicitlyDeclinesPractice)
-        ? "MICROAVALIAÇÃO=GERAR: após ensinar ou esclarecer uma dúvida acadêmica substantiva, verifique automaticamente a compreensão do aluno com exatamente 1 questão de múltipla escolha e 4 alternativas. A questão deve avaliar o conceito/raciocínio que acabou de ser ensinado, não outro assunto. Se o aluno tiver pedido explicitamente uma questão/teste/exercício, gere-a da mesma forma. Não gere em saudações, navegação, agradecimentos, confirmações curtas ou quando o aluno disser explicitamente que não quer ser testado." + priorQuestionGuard
-        : "MICROAVALIAÇÃO=NÃO GERAR: mantenha microassessment.enabled=false e envie options=[], question=\\\"\\\", explanation=\\\"\\\", concept_tags=[] e correct_option_index=0.";
+      "MICROAVALIAÇÃO=NÃO GERAR: responda apenas à dúvida do aluno. Não gere nem ofereça questões, quizzes, exercícios ou testes. Se o aluno pedir uma questão, explique que o Tutor está disponível para responder e explicar, sem elaborar perguntas.";
 
     const messages = [
       {
@@ -2838,8 +2803,8 @@ Deno.serve(async (req: Request) => {
               role: "system",
               content: [
                 "Você é o Tutor acadêmico do Ensina-me. Responda em português do Brasil, com precisão e clareza.",
-                "Retorne exclusivamente um objeto JSON válido, sem Markdown, com as chaves: message (string), learning_observations (array), shareable (boolean), visual_aid (objeto com enabled, type, title, items, caption), microassessment (objeto com enabled, question, options, correct_option_index, explanation, difficulty, concept_tags) e video_recommendation (objeto com enabled, reason).",
-                "Se gerar microavaliação: exatamente 4 alternativas não vazias, correct_option_index inteiro zero-based entre 0 e 3 (NUNCA -1), explicação correta e 1 a 3 concept_tags. Se não gerar: enabled=false, question=\"\", options=[], correct_option_index=0, explanation=\"\", concept_tags=[].",
+                "Retorne exclusivamente um objeto JSON válido, sem Markdown, com as chaves: message (string), learning_observations (array), shareable (boolean), visual_aid (objeto com enabled, type, title, items, caption), microassessment (sempre enabled=false, question vazio, options vazio, correct_option_index=0, explanation vazia, concept_tags vazio) e video_recommendation (objeto com enabled, reason).",
+                "Não elabore questões em nenhuma circunstância. microassessment deve sempre ser: enabled=false, question=\"\", options=[], correct_option_index=0, explanation=\"\", concept_tags=[].",
                 "Se não houver base suficiente, explique o que é possível afirmar sem inventar fontes. Mantenha visual_aid.items com no máximo 6 itens e learning_observations com no máximo 4 itens.",
                 "CONTEXTO ACADÊMICO (resumo): " + safeContext.slice(0, 5000),
                 "HISTÓRICO RECENTE (resumo): " + conversationContext.slice(-1800),
@@ -2960,7 +2925,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const assistantMessage = tutorResult.message;
-    let generatedAssessment = tutorResult.microassessment;
+    let generatedAssessment: GeneratedMicroAssessment | null = null;
 
     if (
       generatedAssessment?.enabled &&
@@ -3196,7 +3161,7 @@ Deno.serve(async (req: Request) => {
     return json({
       conversation_id: conversationId,
       message: assistantMessage,
-      should_generate_comprehension_check: shouldGenerateComprehensionCheck && !explicitlyDeclinesPractice,
+      should_generate_comprehension_check: false,
       learning_observations: tutorResult.learningObservations,
       learning_action: learningAction,
       learning_signals: learningSignals,
