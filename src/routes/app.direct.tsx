@@ -15,7 +15,7 @@ const initialSettings: DirectSettings = { allow_requests: true, show_online_stat
 const dateLabel = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 export function DirectPage() {
-  const [demoMode] = useState(() => typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1"));
+  const [demoMode] = useState(() => typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1" || new URLSearchParams(window.location.search).get("directTest") === "1"));
   const [userId, setUserId] = useState("");
   const [tab, setTab] = useState<"individual" | "groups" | "requests" | "settings" | "suggestion">("individual");
   const [showArchived, setShowArchived] = useState(false);
@@ -128,6 +128,7 @@ export function DirectPage() {
         { user_id: "demo-mariana", display_name: "Mariana Costa", avatar_url: null, allow_requests: true },
         { user_id: "demo-joao", display_name: "João Pedro", avatar_url: null, allow_requests: true },
         { user_id: "demo-ana", display_name: "Ana Beatriz", avatar_url: null, allow_requests: true },
+        { user_id: "demo-alexandre", display_name: "Alexandre (teste)", avatar_url: null, allow_requests: true },
       ];
       setPeople(value.trim().length < 2 ? [] : demoPeople.filter((p) => p.display_name.toLowerCase().includes(value.toLowerCase()) && !conversations.some((c) => c.title === p.display_name)));
       return;
@@ -136,6 +137,14 @@ export function DirectPage() {
     const { data, error: searchError } = await supabase.rpc("direct_find_people", { search_text: value.trim() });
     if (searchError) { setError("Não foi possível pesquisar estudantes agora."); setPeople([]); return; }
     setPeople((data ?? []) as Person[]);
+  }
+
+  async function openTestChat(person: Person) {
+    const conversation: Conversation = { id: "demo-alexandre-chat", kind: "individual", title: "Alexandre (teste)", last_message_at: new Date().toISOString(), created_at: new Date().toISOString() };
+    setConversations((items) => items.some((item) => item.id === conversation.id) ? items : [conversation, ...items]);
+    setTab("individual"); setSearch(""); setPeople([]);
+    await openConversation(conversation);
+    setNotice("Chat de teste aberto com Alexandre. Mensagens, áudio e imagens ficam apenas nesta sessão; nada é enviado ao banco ou a estudantes reais.");
   }
 
   async function sendRequest(person: Person) {
@@ -496,7 +505,7 @@ export function DirectPage() {
                 {people.length > 0 && <div className="mt-3 divide-y divide-border">{people.map((person) => <div key={person.user_id} className="flex items-center gap-3 py-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F4F8FF] text-sm font-semibold text-[#0242D7]">{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-full w-full object-cover" /> : person.display_name.slice(0,1).toUpperCase()}</div>
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{person.display_name}</p><p className="text-xs text-muted-foreground">Estudante do Ensina-me</p></div>
-                  {tab === "individual" ? <div className="flex gap-1"><button disabled={busy} onClick={() => void sendRequest(person)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Solicitar</button><button disabled={busy} onClick={() => void blockPerson(person.user_id)} className="rounded-lg border border-border px-2 py-2 text-xs">Bloquear</button></div> : <input aria-label={`Adicionar ${person.display_name} ao grupo`} type="checkbox" checked={selectedMembers.includes(person.user_id)} onChange={(e) => setSelectedMembers((old) => e.target.checked ? [...old, person.user_id] : old.filter((id) => id !== person.user_id))} className="h-4 w-4 accent-blue-700" />}
+                  {tab === "individual" ? <div className="flex gap-1">{demoMode && person.user_id === "demo-alexandre" ? <button disabled={busy} onClick={() => void openTestChat(person)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Abrir chat de teste</button> : <button disabled={busy} onClick={() => void sendRequest(person)} className="rounded-lg bg-[#0242D7] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Solicitar</button>}{!(demoMode && person.user_id === "demo-alexandre") && <button disabled={busy} onClick={() => void blockPerson(person.user_id)} className="rounded-lg border border-border px-2 py-2 text-xs">Bloquear</button>}</div> : <input aria-label={`Adicionar ${person.display_name} ao grupo`} type="checkbox" checked={selectedMembers.includes(person.user_id)} onChange={(e) => setSelectedMembers((old) => e.target.checked ? [...old, person.user_id] : old.filter((id) => id !== person.user_id))} className="h-4 w-4 accent-blue-700" />}
                 </div>)}</div>}
               </div>
               {tab === "groups" && <form onSubmit={createGroup} className="rounded-2xl border border-border bg-card p-4">
