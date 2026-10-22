@@ -678,7 +678,7 @@ export function DirectPage() {
             </div>
           </aside>
 
-          <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8F7F3] dark:bg-[#101010]" aria-label="Conversa selecionada">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-black" aria-label="Conversa selecionada">
             {activeConversation ? <>
               <header className="flex shrink-0 items-center gap-3 border-b border-[#E5EAF1] bg-white px-3 py-3 sm:px-5 dark:border-[#252525] dark:bg-black">
                 <button type="button" onClick={() => setContactsDrawerOpen((open) => !open)} aria-label={contactsDrawerOpen ? "Fechar lista de contatos" : "Abrir lista de contatos"} aria-expanded={contactsDrawerOpen} title="Contatos" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-lg font-bold text-[#0242D7] hover:bg-[#EAF1FF] dark:border-[#333] dark:text-white dark:hover:bg-[#171717]">☰</button>
@@ -700,7 +700,7 @@ export function DirectPage() {
                   </div>
                 </details>
               </header>
-              <div ref={messagesScrollRef} onScroll={(event) => { const el = event.currentTarget; shouldAutoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96; }} className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
+              <div ref={messagesScrollRef} onScroll={(event) => { const el = event.currentTarget; shouldAutoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96; }} className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto bg-black p-4 sm:p-6">
                 {messages.length === 0 ? <div className="m-auto flex h-full max-w-sm flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-[#171717]">☏</div><h3 className="mt-4 text-lg font-black">Esta conversa está pronta</h3><p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Envie a primeira mensagem para começar.</p></div> : messages.map((message) => (
                   <div key={message.id} className={"flex " + (message.sender_id === userId ? "justify-end" : "justify-start")}>
                     <div className={"max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-6 shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#0242D7] text-white dark:bg-[#0242D7] dark:text-white" : "rounded-bl-md bg-[#F7F5EF] text-[#172334] dark:bg-[#F2F0E8] dark:text-[#172334]")}>
@@ -726,7 +726,7 @@ export function DirectPage() {
                 </form>
               </div>
             </> : (
-              <div className="direct-message-wallpaper flex min-h-[420px] flex-1 flex-col items-center justify-center p-7 text-center lg:min-h-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
+              <div className="direct-message-wallpaper flex min-h-[420px] flex-1 flex-col items-center justify-center bg-black p-7 text-center lg:min-h-0">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm dark:bg-[#171717]">✉</div>
                 <h2 className="mt-4 text-xl font-black">Suas conversas, em um só lugar</h2>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Escolha uma conversa à esquerda ou pesquise pelo código de amizade de um estudante para iniciar uma solicitação.</p>
