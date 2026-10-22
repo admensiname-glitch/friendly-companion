@@ -608,8 +608,8 @@ export function DirectPage() {
 
       </header>
 
-      {(error || notice) && <div role={error ? "alert" : "status"} className={"mx-3 mt-3 flex shrink-0 items-start gap-3 rounded-xl border px-4 py-3 text-sm font-semibold leading-relaxed sm:mx-5 " + (error ? "border-[#E7A4A4] bg-[#FFF1F1] text-[#7F1D1D] dark:border-[#7F3030] dark:bg-[#2B1111] dark:text-[#FFE4E4]" : "border-[#B8CCFF] bg-[#EEF4FF] text-[#173A8A] dark:border-[#454545] dark:bg-[#171717] dark:text-white")}>
-        <span aria-hidden="true" className="mt-0.5 shrink-0">{error ? "!" : "✓"}</span><p className="min-w-0 break-words">{error || notice}</p>
+      {error && <div role="alert" className="mx-3 mt-3 flex shrink-0 items-start gap-3 rounded-xl border border-[#E7A4A4] bg-[#FFF1F1] px-4 py-3 text-sm font-semibold leading-relaxed text-[#7F1D1D] sm:mx-5 dark:border-[#7F3030] dark:bg-[#2B1111] dark:text-[#FFE4E4]">
+        <span aria-hidden="true" className="mt-0.5 shrink-0">!</span><p className="min-w-0 break-words">{error}</p>
       </div>}
 
       {loading ? (
@@ -704,7 +704,7 @@ export function DirectPage() {
                 {messages.length === 0 ? <div className="m-auto flex h-full max-w-sm flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-[#171717]">☏</div><h3 className="mt-4 text-lg font-black">Esta conversa está pronta</h3><p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Envie a primeira mensagem para começar.</p></div> : messages.map((message) => (
                   <div key={message.id} className={"flex " + (message.sender_id === userId ? "justify-end" : "justify-start")}>
                     <div className={"max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-6 shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#0242D7] text-white dark:bg-[#0242D7] dark:text-white" : "rounded-bl-md bg-[#F7F5EF] text-[#172334] dark:bg-[#F2F0E8] dark:text-[#172334]")}>
-                      {message.deleted_for_everyone_at ? <p className="italic opacity-80">Esta mensagem foi apagada.</p> : message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : message.message_type === "image" && message.body ? <img src={message.body} alt="Imagem anexada" className="max-h-72 max-w-full rounded-lg object-contain" /> : <p className="whitespace-pre-wrap break-words">{message.body || "Mensagem"}</p>}
+                      {message.deleted_for_everyone_at ? <p className="italic opacity-80">Esta mensagem foi apagada.</p> : message.message_type === "voice" ? (message.audioUrl ? <audio controls preload="none" src={message.audioUrl} className="max-w-full" /> : <p>Áudio indisponível</p>) : message.message_type === "image" && message.body ? <img src={message.body} alt="Imagem anexada" className="max-h-72 max-w-full rounded-lg object-contain" /> : <p className="whitespace-pre-wrap break-words text-base font-semibold leading-6">{message.body || "Mensagem"}</p>}
                       {message.sender_id === userId && !message.deleted_for_everyone_at && <button type="button" disabled={busy} onClick={() => void deleteMessage(message.id)} className="mt-1 block text-[10px] underline opacity-70">Apagar mensagem</button>}
                       <p className={"mt-1 text-right text-[10px] " + (message.sender_id === userId ? "text-white/80" : "text-[#596273]")}>{dateLabel(message.created_at)}{message.message_type === "voice" && message.duration_seconds ? " · " + message.duration_seconds + "s" : ""}{message.sender_id === userId && readReceipts.some((receipt) => new Date(receipt.last_read_at).getTime() >= new Date(message.created_at).getTime()) ? " · Lida" : ""}</p>
                     </div>
