@@ -575,7 +575,7 @@ export function DirectPage() {
 
   return (
     <section className="direct-shell fixed inset-x-0 top-[60px] bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex min-h-0 flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none lg:bottom-0 lg:left-[252px] lg:right-0 lg:top-[58px] dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
-      <header className={(activeConversation ? "hidden " : "") + "shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
+      <header className={(activeConversation ? "hidden " : "") + "shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black"}>
         <div className="flex min-h-[58px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setContactsDrawerOpen((open) => !open)} aria-label={contactsDrawerOpen ? "Fechar lista de contatos" : "Abrir lista de contatos"} aria-expanded={contactsDrawerOpen} title="Contatos" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] bg-white text-xl font-bold text-[#0242D7] shadow-sm hover:bg-[#EAF1FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] dark:border-[#3A3A3A] dark:bg-[#151515] dark:text-white dark:hover:bg-[#252525]">☰</button>
