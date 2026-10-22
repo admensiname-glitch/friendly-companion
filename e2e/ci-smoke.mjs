@@ -44,8 +44,30 @@ try {
   const sitemapResponse = await page.request.get(baseURL + "/sitemap.xml");
   if (!sitemapResponse.ok()) throw new Error(`sitemap returned HTTP ${sitemapResponse.status()}`);
   const sitemap = await sitemapResponse.text();
-  if (!sitemap.includes("https://ensina-buddy-app.lovable.app/")) throw new Error("sitemap is missing canonical homepage");
-  if (!sitemap.includes("/termos") || !sitemap.includes("/privacidade")) throw new Error("sitemap is missing public legal pages");
+  const sitemapDocument = new DOMParser().parseFromString(sitemap, "application/xml");
+  if (sitemapDocument.querySelector("parsererror")) throw new Error("sitemap is not valid XML");
+  const sitemapLocations = [...sitemapDocument.getElementsByTagNameNS("*", "loc")]
+    .map((node) => {
+      try {
+        const url = new URL(node.textContent ?? "");
+        return url.protocol === "https:" ? url : null;
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  const canonicalHomepage = new URL("https://ensina-buddy-app.lovable.app/");
+  const hasCanonicalHomepage = sitemapLocations.some((url) =>
+    url.origin === canonicalHomepage.origin && url.pathname === canonicalHomepage.pathname
+  );
+  const hasTermsPage = sitemapLocations.some((url) =>
+    url.origin === canonicalHomepage.origin && url.pathname === "/termos"
+  );
+  const hasPrivacyPage = sitemapLocations.some((url) =>
+    url.origin === canonicalHomepage.origin && url.pathname === "/privacidade"
+  );
+  if (!hasCanonicalHomepage) throw new Error("sitemap is missing canonical homepage");
+  if (!hasTermsPage || !hasPrivacyPage) throw new Error("sitemap is missing public legal pages");
   console.log("PASS: public sitemap");
 
   for (const [path, expectedTitle, expectedDescription] of [
