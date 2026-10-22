@@ -42,6 +42,8 @@ export function DirectPage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [settings, setSettings] = useState<DirectSettings>(initialSettings);
   const [search, setSearch] = useState("");
@@ -126,6 +128,12 @@ export function DirectPage() {
   }, [demoMode]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const container = messagesScrollRef.current;
+    if (!container || !shouldAutoScrollRef.current) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [messages, activeConversation?.id]);
 
   useEffect(() => {
     if (!userId || demoMode) return;
@@ -319,7 +327,7 @@ export function DirectPage() {
     if (demoMode) {
       if (!activeConversation || !messageText.trim()) return;
       setMessages((items) => [...items, { id: crypto.randomUUID(), conversation_id: activeConversation.id, sender_id: userId, message_type: "text", body: messageText.trim(), created_at: new Date().toISOString() }]);
-      setMessageText(""); setNotice("Mensagem adicionada localmente na demonstração."); return;
+      setMessageText(""); setNotice(""); return;
     }
     if (!activeConversation || !messageText.trim()) return;
     setBusy(true); setError("");
@@ -567,7 +575,7 @@ export function DirectPage() {
 
   return (
     <section className="direct-shell fixed inset-x-0 top-[60px] bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex min-h-0 flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none lg:bottom-0 lg:left-[252px] lg:right-0 lg:top-[58px] dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
-      <header className="shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
+      <header className={(activeConversation ? "hidden " : "") + "shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
         <div className="flex min-h-[58px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setContactsDrawerOpen((open) => !open)} aria-label={contactsDrawerOpen ? "Fechar lista de contatos" : "Abrir lista de contatos"} aria-expanded={contactsDrawerOpen} title="Contatos" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] bg-white text-xl font-bold text-[#0242D7] shadow-sm hover:bg-[#EAF1FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] dark:border-[#3A3A3A] dark:bg-[#151515] dark:text-white dark:hover:bg-[#252525]">☰</button>
@@ -673,7 +681,7 @@ export function DirectPage() {
           <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8F7F3] dark:bg-[#101010]" aria-label="Conversa selecionada">
             {activeConversation ? <>
               <header className="flex shrink-0 items-center gap-3 border-b border-[#E5EAF1] bg-white px-3 py-3 sm:px-5 dark:border-[#252525] dark:bg-black">
-                <button type="button" onClick={() => setActiveConversation(null)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-[#F2F4F7] lg:hidden dark:hover:bg-[#171717]" aria-label="Voltar para conversas">←</button>
+                <button type="button" onClick={() => setContactsDrawerOpen((open) => !open)} aria-label={contactsDrawerOpen ? "Fechar lista de contatos" : "Abrir lista de contatos"} aria-expanded={contactsDrawerOpen} title="Contatos" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-lg font-bold text-[#0242D7] hover:bg-[#EAF1FF] dark:border-[#333] dark:text-white dark:hover:bg-[#171717]">☰</button>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#EAF1FF] font-black text-[#0242D7] dark:bg-[#222] dark:text-white">{activeConversation.kind === "group" ? "👥" : activeConversation.avatar_url ? <img src={activeConversation.avatar_url} alt="" className="h-full w-full object-cover" /> : (activeConversation.title || "E").slice(0, 1).toUpperCase()}</div>
                 <div className="min-w-0 flex-1"><h2 className="truncate text-sm font-black sm:text-base">{activeConversation.title || (activeConversation.kind === "group" ? "Grupo de estudos" : "Conversa individual")}</h2><p className="mt-0.5 text-xs text-[#718096] dark:text-[#B6B6B6]">{activeConversation.kind === "group" ? "Grupo do Ensina-me" : "Mensagens privadas · histórico autorizado"}</p></div>
                 {activeConversation.kind === "group" && <label className="hidden items-center gap-2 text-xs sm:flex"><input type="checkbox" checked={groupNotificationsEnabled} onChange={(e) => void saveGroupNotifications(e.target.checked)} className="h-4 w-4 accent-blue-700" />Notificações</label>}
@@ -681,7 +689,7 @@ export function DirectPage() {
                 <button disabled={busy} onClick={() => void updateConversationPreference("archive", !memberPreferences[activeConversation.id]?.archived_at)} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-sm hover:bg-[#F6F8FB] disabled:opacity-50 sm:flex dark:border-[#333] dark:hover:bg-[#171717]" title={memberPreferences[activeConversation.id]?.archived_at ? "Desarquivar conversa" : "Arquivar conversa"} aria-label={memberPreferences[activeConversation.id]?.archived_at ? "Desarquivar conversa" : "Arquivar conversa"}>{memberPreferences[activeConversation.id]?.archived_at ? "↩" : "▤"}</button>
                 <button type="button" onClick={() => changeView("settings")} className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] text-sm hover:bg-[#F6F8FB] sm:flex dark:border-[#333] dark:hover:bg-[#171717]" title="Privacidade e segurança" aria-label="Privacidade e segurança">⋯</button>
               </header>
-              <div className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
+              <div ref={messagesScrollRef} onScroll={(event) => { const el = event.currentTarget; shouldAutoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96; }} className="direct-message-wallpaper min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-6" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(100,116,139,0.12) 1px, transparent 0)", backgroundSize: "22px 22px" }}>
                 {messages.length === 0 ? <div className="m-auto flex h-full max-w-sm flex-col items-center justify-center text-center"><div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm dark:bg-[#171717]">☏</div><h3 className="mt-4 text-lg font-black">Esta conversa está pronta</h3><p className="mt-2 text-sm leading-6 text-[#687688] dark:text-[#B6B6B6]">Envie a primeira mensagem para começar.</p></div> : messages.map((message) => (
                   <div key={message.id} className={"flex " + (message.sender_id === userId ? "justify-end" : "justify-start")}>
                     <div className={"max-w-[88%] rounded-2xl px-4 py-3 text-[15px] leading-6 shadow-sm sm:max-w-[78%] " + (message.sender_id === userId ? "rounded-br-md bg-[#0242D7] text-white dark:bg-[#0242D7] dark:text-white" : "rounded-bl-md bg-[#F7F5EF] text-[#172334] dark:bg-[#F2F0E8] dark:text-[#172334]")}>
