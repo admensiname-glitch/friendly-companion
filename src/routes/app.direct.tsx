@@ -15,7 +15,7 @@ const initialSettings: DirectSettings = { allow_requests: true, show_online_stat
 const dateLabel = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 export function DirectPage() {
-  const [demoMode] = useState(() => typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1" || new URLSearchParams(window.location.search).get("directTest") === "1"));
+  const [demoMode] = useState(() => import.meta.env.DEV && typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1" || new URLSearchParams(window.location.search).get("directTest") === "1"));
   const [userId, setUserId] = useState("");
   const [tab, setTab] = useState<"individual" | "groups" | "requests" | "settings" | "suggestion">("individual");
   const [showArchived, setShowArchived] = useState(false);
