@@ -15,7 +15,7 @@ const initialSettings: DirectSettings = { allow_requests: true, show_online_stat
 const dateLabel = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 export function DirectPage() {
-  const [demoMode] = useState(() => typeof window !== "undefined" && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1" || new URLSearchParams(window.location.search).get("directTest") === "1"));
+  const [demoMode] = useState(() => typeof window !== "undefined" && (import.meta.env.DEV && (window.location.pathname === "/direct-demo" || new URLSearchParams(window.location.search).get("demo") === "1")));
   const [userId, setUserId] = useState("");
   const [tab, setTab] = useState<"individual" | "groups" | "requests" | "settings" | "suggestion">("individual");
   const [showArchived, setShowArchived] = useState(false);
@@ -174,13 +174,6 @@ export function DirectPage() {
       const person = demoCodes[code];
       setPeople(person && !conversations.some((conversation) => conversation.title === person.display_name) ? [person] : []);
       if (!person) setError("Nenhum estudante encontrado com esse código de amizade.");
-      setFriendCodeLookup(false);
-      return;
-    }
-    // Perfil fictício isolado para validar o Direct sem criar uma conta falsa no banco de produção.
-    if (code === "A7B4C9") {
-      setPeople([{ user_id: "demo-alexandre", display_name: "Alexandre (teste)", avatar_url: null, allow_requests: true }]);
-      setNotice("Perfil fictício de teste encontrado. Use “Abrir chat de teste” para experimentar sem gravar dados no banco.");
       setFriendCodeLookup(false);
       return;
     }
