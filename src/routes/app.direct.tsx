@@ -21,6 +21,7 @@ export function DirectPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [conversationSearch, setConversationSearch] = useState("");
+  const [contactsDrawerOpen, setContactsDrawerOpen] = useState(false);
   const [memberPreferences, setMemberPreferences] = useState<Record<string, { archived_at: string | null; pinned_at: string | null; hidden_at: string | null }>>({});
   const [blockedUsers, setBlockedUsers] = useState<{ blocked_id: string; created_at: string }[]>([]);
   const [restrictedRequesters, setRestrictedRequesters] = useState<{ requester_id: string; display_name: string }[]>([]);
@@ -244,7 +245,7 @@ export function DirectPage() {
   }
 
   const openConversation = useCallback(async (conversation: Conversation) => {
-    setActiveConversation(conversation); setError("");
+    setActiveConversation(conversation); setContactsDrawerOpen(false); setError("");
     if (demoMode) {
       const now = new Date();
       const isAlexandreTest = conversation.id.includes("alexandre") || (conversation.title || "").toLowerCase().includes("alexandre");
@@ -568,7 +569,8 @@ export function DirectPage() {
     <section className="direct-shell fixed inset-x-0 top-[60px] bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 flex min-h-0 flex-col overflow-hidden border-0 bg-white text-[#172334] shadow-none lg:bottom-0 lg:left-[252px] lg:right-0 lg:top-[58px] dark:bg-black dark:text-white" aria-label="Direct do Ensina-me">
       <header className="shrink-0 border-b border-[#E5EAF1] bg-white dark:border-[#252525] dark:bg-black">
         <div className="flex min-h-[58px] items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <button type="button" onClick={() => setContactsDrawerOpen((open) => !open)} aria-label={contactsDrawerOpen ? "Fechar lista de contatos" : "Abrir lista de contatos"} aria-expanded={contactsDrawerOpen} title="Contatos" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DDE4ED] bg-white text-xl font-bold text-[#0242D7] shadow-sm hover:bg-[#EAF1FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] dark:border-[#3A3A3A] dark:bg-[#151515] dark:text-white dark:hover:bg-[#252525]">☰</button>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0242D7] text-lg text-white" aria-hidden="true">✉</div>
             <div className="min-w-0">
               <h1 className="truncate text-lg font-black tracking-tight sm:text-xl">Direct</h1>
@@ -629,8 +631,9 @@ export function DirectPage() {
       ) : tab === "suggestion" ? (
         <form onSubmit={submitSuggestion} className="m-4 min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[#E5EAF1] bg-white p-4 sm:m-6 sm:p-6 dark:border-[#252525] dark:bg-black"><h2 className="text-xl font-black">Enviar sugestão anônima</h2><p className="mb-5 mt-2 max-w-2xl text-sm leading-6 text-[#718096] dark:text-[#B6B6B6]">Compartilhe uma ideia para melhorar o Direct. Não inclua nome, telefone, e-mail, dados acadêmicos identificáveis ou outros dados pessoais. Não anexe arquivos.</p><label htmlFor="direct-suggestion" className="mb-2 block text-sm font-bold">Sua sugestão</label><textarea id="direct-suggestion" value={suggestionText} onChange={(e) => setSuggestionText(e.target.value)} maxLength={3000} rows={7} placeholder="Escreva sua sugestão (até 3.000 caracteres)" className="w-full rounded-xl border border-[#DDE4ED] bg-white p-4 text-sm leading-6 outline-none focus:border-[#0242D7] dark:border-[#333] dark:bg-[#111] dark:text-white" /><p className="mb-4 mt-1 text-right text-xs text-[#718096] dark:text-[#B6B6B6]">{suggestionText.length}/3000</p><label className="mb-5 flex items-start gap-3 text-sm leading-5"><input type="checkbox" checked={confirmNoPersonalData} onChange={(e) => setConfirmNoPersonalData(e.target.checked)} required className="mt-1 h-4 w-4 accent-blue-700" /><span>Confirmo que o texto não contém dados pessoais nem conteúdo de conversas privadas.</span></label><button disabled={busy || !suggestionText.trim() || !confirmNoPersonalData} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">Enviar sugestão anônima</button><p className="mt-4 text-xs text-[#718096] dark:text-[#B6B6B6]">Após o envio, você verá apenas a confirmação de recebimento. Não há acompanhamento de status nem promessa de resposta.</p></form>
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]">
-          <aside className={(activeConversation ? "hidden lg:flex" : "flex") + " min-h-0 flex-col border-b border-[#E5EAF1] bg-white lg:border-b-0 lg:border-r dark:border-[#252525] dark:bg-black"} aria-label="Lista de conversas">
+        <div className="relative flex min-h-0 min-w-0 flex-1">
+          {contactsDrawerOpen && <button type="button" aria-label="Fechar painel de contatos" onClick={() => setContactsDrawerOpen(false)} className="absolute inset-0 z-30 cursor-default bg-black/35 backdrop-blur-[1px]" />}
+          <aside className={(contactsDrawerOpen ? "flex" : "hidden") + " absolute inset-y-0 left-0 z-40 w-[min(88vw,360px)] min-h-0 flex-col border-r border-[#DDE4ED] bg-white shadow-2xl dark:border-[#303030] dark:bg-[#080808]"} aria-label="Lista de contatos">
             <div className="shrink-0 border-b border-[#E5EAF1] p-3 sm:p-4 dark:border-[#252525]">
               <label htmlFor="direct-conversation-search" className="sr-only">Buscar conversas</label>
               <div className="flex items-center gap-2 rounded-xl bg-[#F0F2F5] px-3 dark:bg-[#161616]">
@@ -653,7 +656,7 @@ export function DirectPage() {
               </details>
               {tab === "groups" && <form onSubmit={createGroup} className="mt-3 rounded-xl border border-[#E2E8F0] p-3 dark:border-[#303030]"><h3 className="text-sm font-black">Criar grupo</h3><label htmlFor="direct-group-title" className="mb-1 mt-3 block text-xs font-bold">Nome do grupo</label><input id="direct-group-title" value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} maxLength={80} minLength={2} required placeholder="Ex.: Estudos de Alfabetização" className="w-full rounded-lg border border-[#DDE4ED] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0242D7] dark:border-[#333] dark:bg-[#111] dark:text-white" /><p className="mt-2 text-xs text-[#718096] dark:text-[#B6B6B6]">{selectedMembers.length} pessoa(s) selecionada(s). Busque os códigos acima para adicionar participantes.</p><button disabled={busy || selectedMembers.length < 1} className="mt-3 w-full rounded-lg bg-[#0242D7] px-3 py-2.5 text-sm font-bold text-white disabled:opacity-50">Criar grupo</button></form>}
             </div>
-            <div className="flex items-center justify-between px-4 py-3"><h2 className="text-xs font-black uppercase tracking-[0.12em] text-[#7A8796] dark:text-[#B6B6B6]">{showArchived ? "Arquivadas" : favoriteOnly ? "Favoritas" : tab === "groups" ? "Seus grupos" : "Contatos"}</h2><span className="text-xs text-[#7A8796] dark:text-[#B6B6B6]">{visibleConversations.length}</span></div>
+            <div className="flex items-center justify-between px-4 py-3"><h2 className="text-xs font-black uppercase tracking-[0.12em] text-[#7A8796] dark:text-[#B6B6B6]">{showArchived ? "Arquivadas" : favoriteOnly ? "Favoritas" : tab === "groups" ? "Seus grupos" : "Contatos"}</h2><button type="button" onClick={() => setContactsDrawerOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full text-lg hover:bg-[#F1F4F9] dark:hover:bg-[#191919]" aria-label="Fechar contatos">×</button></div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {visibleConversations.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center"><span className="text-3xl">✉</span><p className="mt-3 text-sm font-bold">{favoriteOnly ? "Nenhuma conversa favorita" : showArchived ? "Nenhuma conversa arquivada" : conversationSearch ? "Nenhuma conversa encontrada" : tab === "groups" ? "Você ainda não participa de grupos" : "Sua caixa de entrada está vazia"}</p><p className="mt-1 max-w-[250px] text-xs leading-5 text-[#718096] dark:text-[#B6B6B6]">{tab === "groups" ? "Encontre estudantes e organize um grupo de estudos." : "Pesquise o código de amizade de um estudante para começar uma conversa."}</p></div> : visibleConversations.map((conversation) => (
                 <div key={conversation.id} className={"group flex items-center gap-3 border-b border-[#F0F2F5] px-3 py-3 transition-colors dark:border-[#202020] " + (activeConversation?.id === conversation.id ? "bg-[#EAF1FF] dark:bg-[#171717]" : "hover:bg-[#F8FAFC] dark:hover:bg-[#111]")}>
@@ -667,7 +670,7 @@ export function DirectPage() {
             </div>
           </aside>
 
-          <section className={(activeConversation ? "flex" : "hidden lg:flex") + " min-h-0 min-w-0 flex-col bg-[#F8F7F3] dark:bg-[#101010]"} aria-label="Conversa selecionada">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8F7F3] dark:bg-[#101010]" aria-label="Conversa selecionada">
             {activeConversation ? <>
               <header className="flex shrink-0 items-center gap-3 border-b border-[#E5EAF1] bg-white px-3 py-3 sm:px-5 dark:border-[#252525] dark:bg-black">
                 <button type="button" onClick={() => setActiveConversation(null)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl hover:bg-[#F2F4F7] lg:hidden dark:hover:bg-[#171717]" aria-label="Voltar para conversas">←</button>
