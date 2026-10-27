@@ -512,7 +512,7 @@ function CommunityPage() {
 
       <div className="mt-6 flex gap-2 rounded-2xl border border-[#DCE5F0] bg-white p-1.5 dark:border-[#2B3A4F] dark:bg-[#111B2A]" role="tablist" aria-label="Seções da comunidade">
         <button type="button" role="tab" aria-selected={communityTab === "feed"} onClick={() => setCommunityTab("feed")} className={"min-h-11 flex-1 rounded-xl px-4 text-sm font-extrabold " + (communityTab === "feed" ? "bg-[#0242D7] text-white" : "text-[#405064] dark:text-[#D1DCE8]")}>Comunidade</button>
-        <button type="button" role="tab" aria-selected={communityTab === "direct"} onClick={() => setCommunityTab("direct")} className={"min-h-11 flex-1 rounded-xl px-4 text-sm font-extrabold " + (communityTab === "direct" ? "bg-[#0242D7] text-white" : "text-[#405064] dark:text-[#D1DCE8]")}>Direct</button>
+        <button type="button" role="tab" aria-selected={communityTab === "direct"} onClick={() => setCommunityTab("direct")} className={"min-h-11 flex-1 rounded-xl px-4 text-sm font-extrabold " + (communityTab === "direct" ? "bg-[#0242D7] text-white" : "text-[#405064] dark:text-[#D1DCE8]")}>Abrir Direct</button>
       </div>
       {communityTab === "direct" ? <div className="mt-6"><DirectPage /></div> : <>
       <div className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
