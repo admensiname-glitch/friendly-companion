@@ -52,8 +52,21 @@ function safeFileName(name: string | undefined, fallback: string): string {
   return cleaned || fallback;
 }
 
+function normalizedAudioMime(input: MediaInput): string {
+  const provided = (input.mime_type ?? "").toLowerCase().split(";")[0].trim();
+  if (AUDIO_MIME_TYPES.has(provided)) return provided;
+  const extension = (input.file_name ?? "").split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    m4a: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
+    webm: "audio/webm", ogg: "audio/ogg", oga: "audio/oga",
+    flac: "audio/flac", mp4: "video/mp4", mpeg: "audio/mpeg",
+    mpga: "audio/mpeg",
+  };
+  return (extension && byExtension[extension]) || provided;
+}
+
 async function transcribeAudio(input: MediaInput, apiKey: string): Promise<string> {
-  const mime = (input.mime_type ?? "").toLowerCase().split(";")[0].trim();
+  const mime = normalizedAudioMime(input);
   if (!AUDIO_MIME_TYPES.has(mime)) {
     throw new Error("Formato de áudio não compatível. Use WEBM, MP3, WAV, M4A, OGG ou MP4.");
   }
@@ -83,8 +96,19 @@ async function transcribeAudio(input: MediaInput, apiKey: string): Promise<strin
   return transcript.slice(0, 12000);
 }
 
+function normalizedImageMime(input: MediaInput): string {
+  const provided = (input.mime_type ?? "").toLowerCase().split(";")[0].trim();
+  if (IMAGE_MIME_TYPES.has(provided)) return provided;
+  const extension = (input.file_name ?? "").split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+    webp: "image/webp", gif: "image/gif",
+  };
+  return (extension && byExtension[extension]) || provided;
+}
+
 async function describeImage(input: MediaInput, apiKey: string): Promise<string> {
-  const mime = (input.mime_type ?? "").toLowerCase().split(";")[0].trim();
+  const mime = normalizedImageMime(input);
   if (!IMAGE_MIME_TYPES.has(mime)) {
     throw new Error("Formato de imagem não compatível. Use JPG, PNG, WebP ou GIF.");
   }
