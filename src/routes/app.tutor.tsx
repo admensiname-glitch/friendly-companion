@@ -1055,6 +1055,8 @@ function TutorPage() {
           learningNextStep: data.learning_next_step ?? null,
         },
       ]);
+      setAudioFile(null);
+      setImageFile(null);
     }
 
     } catch (sendError) {
@@ -1062,8 +1064,6 @@ function TutorPage() {
       setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
     } finally {
       setSending(false);
-      setAudioFile(null);
-      setImageFile(null);
     }
   }
 
