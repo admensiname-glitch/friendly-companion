@@ -521,6 +521,8 @@
   }
 
   .app-content {
+    width: 100%;
+    max-width: none;
     min-height: calc(100dvh - 60px);
     padding-left: 16px;
     padding-right: 16px;
