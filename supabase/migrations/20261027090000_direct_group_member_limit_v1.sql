@@ -26,28 +26,28 @@ begin
 
   if exists (
     select 1
-    from unnest(member_ids) as x
-    where x is null or x = auth.uid()
+    from unnest(member_ids) as u(member_id)
+    where u.member_id is null or u.member_id = auth.uid()
   ) then
     raise exception 'Invalid group members';
   end if;
 
   if (
-    select count(*) from unnest(member_ids) as x
+    select count(*) from unnest(member_ids) as u(member_id)
   ) <> (
-    select count(distinct x) from unnest(member_ids) as x
+    select count(distinct u.member_id) from unnest(member_ids) as u(member_id)
   ) then
     raise exception 'Duplicate group members';
   end if;
 
   if exists (
     select 1
-    from unnest(member_ids) as x
+    from unnest(member_ids) as u(member_id)
     where exists (
       select 1
       from public.direct_blocks b
-      where (b.blocker_id = auth.uid() and b.blocked_id = x)
-         or (b.blocker_id = x and b.blocked_id = auth.uid())
+      where (b.blocker_id = auth.uid() and b.blocked_id = u.member_id)
+         or (b.blocker_id = u.member_id and b.blocked_id = auth.uid())
     )
   ) then
     raise exception 'A selected member is blocked';
