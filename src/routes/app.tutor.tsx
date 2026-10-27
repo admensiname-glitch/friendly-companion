@@ -21,6 +21,16 @@ function fileToBase64(file: File): Promise<string> {
 const MAX_TUTOR_AUDIO_BYTES = 6 * 1024 * 1024;
 const MAX_TUTOR_IMAGE_BYTES = 4 * 1024 * 1024;
 
+function audioExtensionForMime(mime: string): string {
+  const normalized = mime.toLowerCase().split(";")[0].trim();
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("ogg")) return "ogg";
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("mpeg") || normalized.includes("mp3")) return "mp3";
+  if (normalized.includes("flac")) return "flac";
+  return "webm";
+}
+
 function getAudioMimeType(file: File): string {
   if (file.type.startsWith("audio/") || file.type === "video/mp4") return file.type;
   const extension = file.name.split(".").pop()?.toLowerCase();
@@ -981,7 +991,8 @@ function TutorPage() {
         if (blob.size > MAX_TUTOR_AUDIO_BYTES) {
           setError("O áudio gravado ultrapassou o limite de 6 MB. Grave um trecho menor.");
         } else if (blob.size > 0) {
-          setAudioFile(new File([blob], "gravacao-tutor.webm", { type: blob.type || "audio/webm" }));
+          const recordingMime = blob.type || "audio/webm";
+          setAudioFile(new File([blob], `gravacao-tutor.${audioExtensionForMime(recordingMime)}`, { type: recordingMime }));
           setError(null);
         }
         stream.getTracks().forEach((track) => track.stop());
