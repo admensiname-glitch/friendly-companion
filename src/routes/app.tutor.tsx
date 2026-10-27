@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { LearningEngine, type StudyRecommendation } from "@/lib/learning-engine";
 import { retryDelayMs } from "@/lib/tutor-retry-policy";
 
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo selecionado."));
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const separator = result.indexOf(",");
+      resolve(separator >= 0 ? result.slice(separator + 1) : result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const MAX_TUTOR_AUDIO_BYTES = 6 * 1024 * 1024;
+const MAX_TUTOR_IMAGE_BYTES = 4 * 1024 * 1024;
+
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 // Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
 
@@ -699,6 +716,10 @@ function TutorPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -916,30 +937,94 @@ function TutorPage() {
     })();
   }, []);
 
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setError("Este navegador não permite gravar áudio. Você ainda pode anexar um arquivo de áudio.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const chunks: BlobPart[] = [];
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onerror = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setRecording(false);
+        setMediaRecorder(null);
+        setError("Não foi possível gravar o áudio. Tente novamente ou anexe um arquivo.");
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        if (blob.size > MAX_TUTOR_AUDIO_BYTES) {
+          setError("O áudio gravado ultrapassou o limite de 6 MB. Grave um trecho menor.");
+        } else if (blob.size > 0) {
+          setAudioFile(new File([blob], "gravacao-tutor.webm", { type: blob.type || "audio/webm" }));
+          setError(null);
+        }
+        stream.getTracks().forEach((track) => track.stop());
+        setRecording(false);
+        setMediaRecorder(null);
+      };
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecording(true);
+      setError(null);
+    } catch {
+      setError("Permita o acesso ao microfone para gravar, ou anexe um arquivo de áudio.");
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
-    if (!message || sending) return;
+    if (sending || recording) return;
+    if (!message && !audioFile && !imageFile) return;
     if (!topicId) {
       setError("Abra um tópico de estudo primeiro para que o Tutor tenha contexto acadêmico.");
+      return;
+    }
+    if (audioFile && audioFile.size > MAX_TUTOR_AUDIO_BYTES) {
+      setError("O áudio deve ter no máximo 6 MB.");
+      return;
+    }
+    if (imageFile && imageFile.size > MAX_TUTOR_IMAGE_BYTES) {
+      setError("A imagem deve ter no máximo 4 MB.");
       return;
     }
 
     setSending(true);
     setError(null);
     setInput("");
+    const userText = [
+      message,
+      audioFile ? `Áudio anexado: ${audioFile.name}` : "",
+      imageFile ? `Imagem anexada: ${imageFile.name}` : "",
+    ].filter(Boolean).join("\n");
+    const displayText = userText || "Anexos enviados para análise.";
     const userMessageId = crypto.randomUUID();
-    setMessages((current) => [...current, { id: userMessageId, role: "user", content: message }]);
+    setMessages((current) => [...current, { id: userMessageId, role: "user", content: displayText }]);
 
     try {
-    const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor", {
-      body: {
-        action: "chat",
-        topic_id: topicId,
-        message,
-        conversation_id: conversationId,
-      },
-    });
+      const [audioBase64, imageBase64] = await Promise.all([
+        audioFile ? fileToBase64(audioFile) : Promise.resolve(null),
+        imageFile ? fileToBase64(imageFile) : Promise.resolve(null),
+      ]);
+      const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor-media-preview", {
+        body: {
+          action: "chat",
+          topic_id: topicId,
+          message,
+          conversation_id: conversationId,
+          audio: audioFile ? { data: audioBase64, mime_type: audioFile.type || "audio/webm", file_name: audioFile.name } : null,
+          image: imageFile ? { data: imageBase64, mime_type: imageFile.type, file_name: imageFile.name } : null,
+        },
+      });
 
     if (invokeError || data?.error) {
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
@@ -977,6 +1062,8 @@ function TutorPage() {
       setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
     } finally {
       setSending(false);
+      setAudioFile(null);
+      setImageFile(null);
     }
   }
 
@@ -1036,10 +1123,50 @@ function TutorPage() {
 
           <form onSubmit={send} className="border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
-            <div className="flex gap-2">
-              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ex.: por que eu errei essa questão?" className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] px-4 py-3 text-sm outline-none focus:border-[#0242D7]" disabled={loading || sending} />
-              <button type="submit" disabled={loading || sending || !input.trim()} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Enviar</button>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <label htmlFor="tutor-audio-file" className="inline-flex cursor-pointer items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC]">
+                Anexar áudio
+              </label>
+              <input id="tutor-audio-file" type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.mp4" className="sr-only" disabled={loading || sending || recording} onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                event.currentTarget.value = "";
+                if (file && file.size > MAX_TUTOR_AUDIO_BYTES) { setError("O áudio deve ter no máximo 6 MB."); return; }
+                if (file && !file.type.startsWith("audio/") && !/\.(m4a|mp3|wav|webm|ogg|mp4)$/i.test(file.name)) { setError("Escolha um arquivo de áudio compatível."); return; }
+                setAudioFile(file);
+                setError(null);
+              }} />
+              <label htmlFor="tutor-image-file" className="inline-flex cursor-pointer items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC]">
+                Anexar imagem
+              </label>
+              <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                event.currentTarget.value = "";
+                if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
+                if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
+                setImageFile(file);
+                setError(null);
+              }} />
+              {!recording ? (
+                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} className="inline-flex items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC] disabled:opacity-50">
+                  Gravar áudio
+                </button>
+              ) : (
+                <button type="button" onClick={stopRecording} className="inline-flex items-center rounded-lg border border-[#F4B4B4] bg-[#FFF5F5] px-3 py-2 text-xs font-bold text-[#B42318]">
+                  Parar gravação
+                </button>
+              )}
             </div>
+            {(audioFile || imageFile) && (
+              <div className="mb-3 flex flex-wrap gap-2 text-xs text-[#475467]">
+                {audioFile && <span className="rounded-lg bg-[#F2F4F7] px-3 py-2">Áudio: {audioFile.name} <button type="button" aria-label="Remover áudio" onClick={() => setAudioFile(null)} className="ml-2 font-black">×</button></span>}
+                {imageFile && <span className="rounded-lg bg-[#F2F4F7] px-3 py-2">Imagem: {imageFile.name} <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="ml-2 font-black">×</button></span>}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ex.: por que eu errei essa questão?" className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] px-4 py-3 text-sm outline-none focus:border-[#0242D7]" disabled={loading || sending || recording} />
+              <button type="submit" disabled={loading || sending || recording || (!input.trim() && !audioFile && !imageFile)} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Enviar</button>
+            </div>
+            <p className="mt-2 text-[11px] leading-4 text-[#687688]">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
             {error && <p className="mt-3 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
           </form>
         </section>
