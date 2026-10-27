@@ -21,6 +21,27 @@ function fileToBase64(file: File): Promise<string> {
 const MAX_TUTOR_AUDIO_BYTES = 6 * 1024 * 1024;
 const MAX_TUTOR_IMAGE_BYTES = 4 * 1024 * 1024;
 
+function getAudioMimeType(file: File): string {
+  if (file.type.startsWith("audio/") || file.type === "video/mp4") return file.type;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    m4a: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
+    webm: "audio/webm", ogg: "audio/ogg", oga: "audio/oga",
+    flac: "audio/flac", mp4: "video/mp4",
+  };
+  return (extension && byExtension[extension]) || file.type;
+}
+
+function getImageMimeType(file: File): string {
+  if (["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) return file.type;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+    webp: "image/webp", gif: "image/gif",
+  };
+  return (extension && byExtension[extension]) || file.type;
+}
+
 export const Route = createFileRoute("/app/tutor")({ component: TutorPage });
 // Tutor integrado ao percurso do aluno — próximo passo personalizado vem do backend.
 
@@ -1021,12 +1042,14 @@ function TutorPage() {
           topic_id: topicId,
           message,
           conversation_id: conversationId,
-          audio: audioFile ? { data: audioBase64, mime_type: audioFile.type || "audio/webm", file_name: audioFile.name } : null,
-          image: imageFile ? { data: imageBase64, mime_type: imageFile.type, file_name: imageFile.name } : null,
+          audio: audioFile ? { data: audioBase64, mime_type: getAudioMimeType(audioFile) || "audio/webm", file_name: audioFile.name } : null,
+          image: imageFile ? { data: imageBase64, mime_type: getImageMimeType(imageFile), file_name: imageFile.name } : null,
         },
       });
 
     if (invokeError || data?.error) {
+      setMessages((current) => current.filter((item) => item.id !== userMessageId));
+      setInput(message);
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
       if (typeof data.conversation_id === "string" && data.conversation_id.trim()) {
@@ -1061,6 +1084,8 @@ function TutorPage() {
 
     } catch (sendError) {
       console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
+      setMessages((current) => current.filter((item) => item.id !== userMessageId));
+      setInput(message);
       setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
     } finally {
       setSending(false);
@@ -1142,7 +1167,7 @@ function TutorPage() {
                 const file = event.currentTarget.files?.[0] ?? null;
                 event.currentTarget.value = "";
                 if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
-                if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
+                if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
                 setImageFile(file);
                 setError(null);
               }} />
