@@ -63,7 +63,6 @@ const navigation = [
   { to: "/app/estude-agora" as const, label: "Estudar agora", icon: "spark" as const },
   { to: "/app/tutor" as const, label: "Tutor", icon: "tutor" as const },
   { to: "/app/comunidade" as const, label: "Comunidade", icon: "community" as const },
-  { to: "/app/direct" as const, label: "Direct", icon: "messages" as const },
   { to: "/app/prova" as const, label: "Praticar", icon: "exam" as const },
   { to: "/app/revisao" as const, label: "Revisão", icon: "review" as const },
   { to: "/app/desempenho" as const, label: "Desempenho", icon: "chart" as const },
@@ -464,7 +463,7 @@ function AppLayout() {
       </nav>
 
       <main className={"app-main-scroll lg:ml-[252px] pt-[60px] pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0 lg:pt-[58px] " + (location.pathname === "/app/direct" ? "h-[calc(100dvh-60px)] overflow-hidden pb-0 lg:h-[calc(100dvh-58px)]" : "")}>
-        <div className="app-content mx-auto w-full max-w-[1280px] px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
+        <div className="app-content w-full max-w-none px-4 pb-8 pt-0 sm:px-6 sm:pt-0 lg:px-8 lg:pb-12 lg:pt-0">
           <div key={location.pathname} className="app-route-stage">
             <Outlet />
           </div>
