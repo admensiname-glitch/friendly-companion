@@ -976,7 +976,8 @@
   }
 
   .app-content {
-    max-width: 1480px;
+    width: 100%;
+    max-width: none;
     min-height: calc(100vh - 74px);
     background: #FFFFFF;
   }
