@@ -154,6 +154,37 @@ async function describeImage(input: MediaInput, apiKey: string, studentQuestion 
   return description.trim().slice(0, 6000);
 }
 
+
+async function researchImageOnWeb(imageDescription: string, studentQuestion: string, apiKey: string): Promise<string> {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "openai/gpt-oss-120b",
+      reasoning_effort: "low",
+      temperature: 0.1,
+      max_completion_tokens: 1400,
+      citation_options: "enabled",
+      tool_choice: "required",
+      tools: [{ type: "browser_search" }],
+      messages: [
+        { role: "system", content: "Use a busca na internet para verificar entidades públicas, marcas, logotipos, produtos, placas ou documentos claramente visíveis. Nunca tente identificar pessoas. Diferencie correspondência confirmada, possível correspondência e ausência de confirmação. Compare nome, símbolo e contexto; siglas iguais não provam que sejam a mesma entidade. Priorize fontes oficiais. Retorne fatos objetivos e URLs. Não invente fontes." },
+        { role: "user", content: "Descrição visual observada:\\n" + imageDescription.slice(0, 3500) + "\\n\\nPergunta do estudante: " + (studentQuestion.trim() || "O que é este elemento?").slice(0, 1200) + "\\n\\nPesquise nomes, siglas ou logotipos públicos claramente visíveis. Se houver ambiguidade, apresente alternativas e explique o que foi possível confirmar." }
+      ]
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) {
+    console.warn("[ai-tutor-media-preview] pesquisa web indisponível", response.status);
+    return "Pesquisa na internet indisponível; não confirme informações externas e limite-se ao que é visível.";
+  }
+  const payload = await response.json();
+  const result = payload?.choices?.[0]?.message?.content;
+  return typeof result === "string" && result.trim()
+    ? result.trim().slice(0, 7000)
+    : "A busca não retornou fontes verificáveis; não confirme informações externas.";
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
@@ -234,12 +265,14 @@ Deno.serve(async (req: Request) => {
       audio ? transcribeAudio(audio, groqApiKey) : Promise.resolve(""),
       image ? describeImage(image, groqApiKey, message) : Promise.resolve(""),
     ]);
+    const webResearch = image ? await researchImageOnWeb(imageDescription, message, groqApiKey) : "";
 
     const enrichedMessage = [
       message,
       transcript ? "DÚVIDA FALADA PELO ALUNO (transcrição do áudio):\n" + transcript : "",
-      imageDescription ? "CONTEÚDO OBSERVADO NA IMAGEM ANEXADA (use como contexto; reconheça limites de leitura):\n" + imageDescription : "",
-      "Responda em português brasileiro, em texto, considerando a pergunta do estudante e o contexto de qualquer imagem ou áudio anexado, acadêmico ou não. Use apenas informações sustentadas pelo contexto; se algo estiver ambíguo ou ilegível, peça esclarecimento em vez de adivinhar.",
+      imageDescription ? "OBSERVAÇÃO VISUAL DA IMAGEM:\n" + imageDescription : "",
+      webResearch ? "VERIFICAÇÃO NA INTERNET:\n" + webResearch : "",
+      "Responda em português brasileiro. Para imagens, separe o que é visível, o que a pesquisa confirmou (com links) e o que continua incerto. Nunca transforme inferência em fato nem confunda entidades com siglas iguais. Se a pesquisa falhar, informe isso e limite-se à observação visual.",
     ].filter(Boolean).join("\n\n").slice(0, 12000);
 
     const forward = await fetch(supabaseUrl + "/functions/v1/ai-tutor", {
