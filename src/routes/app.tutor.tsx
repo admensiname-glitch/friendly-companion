@@ -749,6 +749,7 @@ function TutorPage() {
   const [input, setInput] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -970,7 +971,7 @@ function TutorPage() {
 
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Este navegador não permite gravar áudio. Você ainda pode anexar um arquivo de áudio.");
+      setError("Este navegador não permite gravar áudio. Verifique as permissões do microfone ou use um navegador compatível.");
       return;
     }
     try {
@@ -1004,7 +1005,7 @@ function TutorPage() {
       setRecording(true);
       setError(null);
     } catch {
-      setError("Permita o acesso ao microfone para gravar, ou anexe um arquivo de áudio.");
+      setError("Permita o acesso ao microfone para gravar sua mensagem.");
     }
   }
 
@@ -1160,26 +1161,27 @@ function TutorPage() {
           <form onSubmit={send} className="border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
             <div className="mb-3 flex items-center gap-2">
-              <label htmlFor="tutor-audio-file" title="Selecionar arquivo de áudio" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7]">
-                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg><span className="sr-only">Selecionar áudio</span>
-              </label>
-              <input id="tutor-audio-file" type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.mp4" className="sr-only" disabled={loading || sending || recording} onChange={(event) => {
-                const file = event.currentTarget.files?.[0] ?? null;
-                event.currentTarget.value = "";
-                if (file && file.size > MAX_TUTOR_AUDIO_BYTES) { setError("O áudio deve ter no máximo 6 MB."); return; }
-                if (file && !file.type.startsWith("audio/") && !/\.(m4a|mp3|wav|webm|ogg|mp4)$/i.test(file.name)) { setError("Escolha um arquivo de áudio compatível."); return; }
-                setAudioFile(file); setError(null);
-              }} />
-              <label htmlFor="tutor-image-file" title="Anexar imagem" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7]">
-                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span className="sr-only">Anexar imagem</span>
-              </label>
-              <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => {
-                const file = event.currentTarget.files?.[0] ?? null;
-                event.currentTarget.value = "";
-                if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
-                if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
-                setImageFile(file); setError(null);
-              }} />
+              <div className="relative">
+                <button type="button" onClick={() => setAttachmentMenuOpen((open) => !open)} disabled={loading || sending || recording} title="Anexar arquivo" aria-label="Abrir anexos" aria-expanded={attachmentMenuOpen} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+                {attachmentMenuOpen && (
+                  <div className="absolute bottom-12 left-0 z-20 min-w-40 rounded-xl border border-[#D8E0EA] bg-background p-2 shadow-lg">
+                    <label htmlFor="tutor-image-file" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      Imagem
+                    </label>
+                  </div>
+                )}
+                <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => {
+                  const file = event.currentTarget.files?.[0] ?? null;
+                  event.currentTarget.value = "";
+                  setAttachmentMenuOpen(false);
+                  if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
+                  if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
+                  setImageFile(file); setError(null);
+                }} />
+              </div>
               {recording && <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#B42318]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</span>}
             </div>
             {(audioFile || imageFile) && (
