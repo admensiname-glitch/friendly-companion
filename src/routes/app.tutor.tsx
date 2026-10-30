@@ -1159,48 +1159,49 @@ function TutorPage() {
 
           <form onSubmit={send} className="border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <label htmlFor="tutor-audio-file" className="inline-flex cursor-pointer items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC]">
-                Anexar áudio
+            <div className="mb-3 flex items-center gap-2">
+              <label htmlFor="tutor-audio-file" title="Selecionar arquivo de áudio" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7]">
+                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg><span className="sr-only">Selecionar áudio</span>
               </label>
               <input id="tutor-audio-file" type="file" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg,.mp4" className="sr-only" disabled={loading || sending || recording} onChange={(event) => {
                 const file = event.currentTarget.files?.[0] ?? null;
                 event.currentTarget.value = "";
                 if (file && file.size > MAX_TUTOR_AUDIO_BYTES) { setError("O áudio deve ter no máximo 6 MB."); return; }
                 if (file && !file.type.startsWith("audio/") && !/\.(m4a|mp3|wav|webm|ogg|mp4)$/i.test(file.name)) { setError("Escolha um arquivo de áudio compatível."); return; }
-                setAudioFile(file);
-                setError(null);
+                setAudioFile(file); setError(null);
               }} />
-              <label htmlFor="tutor-image-file" className="inline-flex cursor-pointer items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC]">
-                Anexar imagem
+              <label htmlFor="tutor-image-file" title="Anexar imagem" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7]">
+                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span className="sr-only">Anexar imagem</span>
               </label>
               <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => {
                 const file = event.currentTarget.files?.[0] ?? null;
                 event.currentTarget.value = "";
                 if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
                 if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
-                setImageFile(file);
-                setError(null);
+                setImageFile(file); setError(null);
               }} />
-              {!recording ? (
-                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} className="inline-flex items-center rounded-lg border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#344054] hover:bg-[#F8FAFC] disabled:opacity-50">
-                  Gravar áudio
-                </button>
-              ) : (
-                <button type="button" onClick={stopRecording} className="inline-flex items-center rounded-lg border border-[#F4B4B4] bg-[#FFF5F5] px-3 py-2 text-xs font-bold text-[#B42318]">
-                  Parar gravação
-                </button>
-              )}
+              {recording && <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#B42318]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</span>}
             </div>
             {(audioFile || imageFile) && (
               <div className="mb-3 flex flex-wrap gap-2 text-xs text-[#475467]">
-                {audioFile && <span className="rounded-lg bg-[#F2F4F7] px-3 py-2">Áudio: {audioFile.name} <button type="button" aria-label="Remover áudio" onClick={() => setAudioFile(null)} className="ml-2 font-black">×</button></span>}
-                {imageFile && <span className="rounded-lg bg-[#F2F4F7] px-3 py-2">Imagem: {imageFile.name} <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="ml-2 font-black">×</button></span>}
+                {audioFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#EEF4FF] px-3 py-2 font-semibold text-[#0242D7]">♫ Áudio pronto <button type="button" aria-label="Remover áudio" onClick={() => setAudioFile(null)} className="font-black">×</button></span>}
+                {imageFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F4F7] px-3 py-2 font-semibold">▧ Imagem pronta <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>}
               </div>
             )}
-            <div className="flex gap-2">
-              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ex.: por que eu errei essa questão?" className="min-w-0 flex-1 rounded-xl border border-[#CBD5E1] px-4 py-3 text-sm outline-none focus:border-[#0242D7]" disabled={loading || sending || recording} />
-              <button type="submit" disabled={loading || sending || recording || (!input.trim() && !audioFile && !imageFile)} className="rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Enviar</button>
+            <div className="flex items-center gap-2 rounded-2xl border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
+              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Escreva sua dúvida…" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" disabled={loading || sending || recording} />
+              {!recording ? (
+                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0242D7] disabled:opacity-40">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
+                </button>
+              ) : (
+                <button type="button" onClick={stopRecording} title="Concluir gravação" aria-label="Concluir gravação" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEE4E2] text-[#B42318] transition hover:bg-[#FECDCA]">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
+                </button>
+              )}
+              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !audioFile && !imageFile)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+              </button>
             </div>
             <p className="mt-2 text-[11px] leading-4 text-[#687688]">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
             {error && <p className="mt-3 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
