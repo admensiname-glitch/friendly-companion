@@ -169,7 +169,7 @@ async function researchImageOnWeb(imageDescription: string, studentQuestion: str
       tools: [{ type: "browser_search" }],
       messages: [
         { role: "system", content: "Use a busca na internet para verificar entidades públicas, marcas, logotipos, produtos, placas ou documentos claramente visíveis. Nunca tente identificar pessoas. Diferencie correspondência confirmada, possível correspondência e ausência de confirmação. Compare nome, símbolo e contexto; siglas iguais não provam que sejam a mesma entidade. Priorize fontes oficiais. Retorne fatos objetivos e URLs. Não invente fontes." },
-        { role: "user", content: "Descrição visual observada:\\n" + imageDescription.slice(0, 3500) + "\\n\\nPergunta do estudante: " + (studentQuestion.trim() || "O que é este elemento?").slice(0, 1200) + "\\n\\nPesquise nomes, siglas ou logotipos públicos claramente visíveis. Se houver ambiguidade, apresente alternativas e explique o que foi possível confirmar." }
+        { role: "user", content: "Descrição visual observada:\n" + imageDescription.slice(0, 3500) + "\n\nPergunta do estudante: " + (studentQuestion.trim() || "O que é este elemento?").slice(0, 1200) + "\n\nPesquise nomes, siglas ou logotipos públicos claramente visíveis. Se houver ambiguidade, apresente alternativas e explique o que foi possível confirmar." }
       ]
     }),
     signal: AbortSignal.timeout(30000),
@@ -193,7 +193,7 @@ async function researchImageOnWeb(imageDescription: string, studentQuestion: str
     console.warn("[ai-tutor-media-preview] browser_search_empty", JSON.stringify({ responseKeys: Object.keys(payload ?? {}), choiceKeys: Object.keys(choice ?? {}) }));
     return "A busca na internet não retornou conteúdo verificável. Não confirme informações externas.";
   }
-  return [result, citations.length ? "FONTES:\\n" + citations.join("\\n") : "Nenhuma URL de fonte foi fornecida pela busca; não apresente afirmações externas como confirmadas."].join("\\n\\n").slice(0, 7000);
+  return [result, citations.length ? "FONTES:\n" + citations.join("\n") : "Nenhuma URL de fonte foi fornecida pela busca; não apresente afirmações externas como confirmadas."].join("\n\n").slice(0, 7000);
 }
 
 Deno.serve(async (req: Request) => {
