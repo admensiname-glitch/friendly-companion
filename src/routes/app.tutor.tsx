@@ -75,6 +75,7 @@ type Message = {
   id?: string;
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string | null;
   shareable?: boolean;
   visualAid?: VisualAid | null;
   videoRecommendation?: {
@@ -970,59 +971,37 @@ function TutorPage() {
   }, []);
 
   async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Este navegador não permite gravar áudio. Verifique as permissões do microfone ou use um navegador compatível.");
-      return;
-    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setError("Este navegador não permite gravar áudio. Verifique as permissões do microfone."); return; }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       const chunks: BlobPart[] = [];
-      const recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onerror = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        setRecording(false);
-        setMediaRecorder(null);
-        setError("Não foi possível gravar o áudio. Tente novamente ou anexe um arquivo.");
-      };
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunks.push(event.data); };
+      recorder.onerror = () => { stream.getTracks().forEach((track) => track.stop()); setRecording(false); setMediaRecorder(null); setError("Não foi possível gravar o áudio. Tente novamente."); };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-        if (blob.size > MAX_TUTOR_AUDIO_BYTES) {
-          setError("O áudio gravado ultrapassou o limite de 6 MB. Grave um trecho menor.");
-        } else if (blob.size > 0) {
-          const recordingMime = blob.type || "audio/webm";
-          setAudioFile(new File([blob], `gravacao-tutor.${audioExtensionForMime(recordingMime)}`, { type: recordingMime }));
-          setError(null);
-        }
-        stream.getTracks().forEach((track) => track.stop());
-        setRecording(false);
-        setMediaRecorder(null);
+        stream.getTracks().forEach((track) => track.stop()); setRecording(false); setMediaRecorder(null);
+        if (blob.size > MAX_TUTOR_AUDIO_BYTES) { setError("O áudio gravado ultrapassou 6 MB. Grave um trecho menor."); return; }
+        if (blob.size > 0) { const mt = blob.type || "audio/webm"; const audio = new File([blob], "mensagem-tutor." + audioExtensionForMime(mt), { type: mt }); void send(undefined, audio); }
       };
-      recorder.start();
-      setMediaRecorder(recorder);
-      setRecording(true);
-      setError(null);
-    } catch {
-      setError("Permita o acesso ao microfone para gravar sua mensagem.");
-    }
+      recorder.start(250); setMediaRecorder(recorder); setRecording(true); setError(null);
+    } catch { setError("Permita o acesso ao microfone para gravar sua mensagem."); }
   }
 
-  function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-  }
+  function stopRecording() { if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop(); }
 
-  async function send(event: FormEvent) {
-    event.preventDefault();
+  async function send(event?: FormEvent, recordedAudio?: File) {
+    event?.preventDefault();
     const message = input.trim();
-    if (sending || recording) return;
-    if (!message && !audioFile && !imageFile) return;
+    const outgoingAudio = recordedAudio ?? audioFile;
+    if (sending || (recording && !recordedAudio)) return;
+    if (!message && !outgoingAudio && !imageFile) return;
     if (!topicId) {
       setError("Abra um tópico de estudo primeiro para que o Tutor tenha contexto acadêmico.");
       return;
     }
-    if (audioFile && audioFile.size > MAX_TUTOR_AUDIO_BYTES) {
+    if (outgoingAudio && outgoingAudio.size > MAX_TUTOR_AUDIO_BYTES) {
       setError("O áudio deve ter no máximo 6 MB.");
       return;
     }
@@ -1034,13 +1013,14 @@ function TutorPage() {
     setSending(true);
     setError(null);
     setInput("");
-    const displayText = [message, audioFile ? "🎙️ Mensagem de voz" : "", imageFile ? "Imagem enviada para análise" : ""].filter(Boolean).join("\n") || "Anexos enviados para análise.";
+    const displayText = [message, outgoingAudio ? "🎙️ Transcrevendo mensagem de voz…" : ""].filter(Boolean).join("\n") || (imageFile ? "Imagem enviada para análise" : "Mensagem enviada.");
     const userMessageId = crypto.randomUUID();
-    setMessages((current) => [...current, { id: userMessageId, role: "user", content: displayText }]);
+    const imageUrl = imageFile ? URL.createObjectURL(imageFile) : null;
+    setMessages((current) => [...current, { id: userMessageId, role: "user", content: displayText, imageUrl }]);
 
     try {
       const [audioBase64, imageBase64] = await Promise.all([
-        audioFile ? fileToBase64(audioFile) : Promise.resolve(null),
+        outgoingAudio ? fileToBase64(outgoingAudio) : Promise.resolve(null),
         imageFile ? fileToBase64(imageFile) : Promise.resolve(null),
       ]);
       const { data, error: invokeError } = await supabase.functions.invoke("ai-tutor-media-preview", {
@@ -1049,15 +1029,15 @@ function TutorPage() {
           topic_id: topicId,
           message,
           conversation_id: conversationId,
-          audio: audioFile ? { data: audioBase64, mime_type: getAudioMimeType(audioFile) || "audio/webm", file_name: audioFile.name } : null,
+          audio: outgoingAudio ? { data: audioBase64, mime_type: getAudioMimeType(outgoingAudio) || "audio/webm", file_name: outgoingAudio.name } : null,
           image: imageFile ? { data: imageBase64, mime_type: getImageMimeType(imageFile), file_name: imageFile.name } : null,
         },
       });
 
     if (invokeError || data?.error) {
-      setMessages((current) => current.filter((item) => item.id !== userMessageId));
+      setMessages((current) => current.map((item) => item.id === userMessageId ? { ...item, content: outgoingAudio ? "🎙️ Áudio enviado. A transcrição não ficou disponível." : item.content } : item));
       setInput(message);
-      setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
+      setError(data?.error ?? invokeError?.message ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
       if (typeof data.transcription === "string" && data.transcription.trim()) {
         setMessages((current) => current.map((item) => item.id === userMessageId
@@ -1096,9 +1076,9 @@ function TutorPage() {
 
     } catch (sendError) {
       console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
-      setMessages((current) => current.filter((item) => item.id !== userMessageId));
+      setMessages((current) => current.map((item) => item.id === userMessageId ? { ...item, content: outgoingAudio ? "🎙️ Áudio enviado. Não foi possível obter a transcrição." : item.content } : item));
       setInput(message);
-      setError("A comunicação com o Tutor falhou. Tente novamente em instantes.");
+      setError(sendError instanceof Error ? sendError.message : "A comunicação com o Tutor falhou. Tente novamente em instantes.");
     } finally {
       setSending(false);
     }
@@ -1128,7 +1108,7 @@ function TutorPage() {
 
             {messages.map((message, index) => (
               <div key={message.id ?? `${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-4 text-sm leading-6 text-[#273547]" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
-                {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : message.content}
+                {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : (<><>{message.imageUrl && <img src={message.imageUrl} alt="Imagem enviada ao Tutor" className="mb-3 max-h-72 max-w-full rounded-xl object-contain" />}</><p className="whitespace-pre-wrap">{message.content}</p></>)}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
                 )}
@@ -1158,40 +1138,22 @@ function TutorPage() {
             {sending && <div className="max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
           </div>
 
-          <form onSubmit={send} className="border-t border-[#E4EAF1] p-4 sm:p-5">
+          <form onSubmit={(event) => void send(event)} className="border-t border-[#E4EAF1] bg-background/95 p-3 sm:p-4">
             <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
             <div className="mb-3 flex items-center gap-2">
-              <div className="relative">
-                <button type="button" onClick={() => setAttachmentMenuOpen((open) => !open)} disabled={loading || sending || recording} title="Anexar arquivo" aria-label="Abrir anexos" aria-expanded={attachmentMenuOpen} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
-                {attachmentMenuOpen && (
-                  <div className="absolute bottom-12 left-0 z-20 min-w-40 rounded-xl border border-[#D8E0EA] bg-background p-2 shadow-lg">
-                    <label htmlFor="tutor-image-file" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-                      Imagem
-                    </label>
-                  </div>
-                )}
-                <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => {
-                  const file = event.currentTarget.files?.[0] ?? null;
-                  event.currentTarget.value = "";
-                  setAttachmentMenuOpen(false);
-                  if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; }
-                  if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; }
-                  setImageFile(file); setError(null);
-                }} />
+              <div>
+                <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem" aria-label="Anexar imagem" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+                <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; event.currentTarget.value = ""; if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; } if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; } setImageFile(file); setError(null); }} />
               </div>
               {recording && <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#B42318]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</span>}
             </div>
-            {(audioFile || imageFile) && (
+            {imageFile && (
               <div className="mb-3 flex flex-wrap gap-2 text-xs text-[#475467]">
-                {audioFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#EEF4FF] px-3 py-2 font-semibold text-[#0242D7]">♫ Áudio pronto <button type="button" aria-label="Remover áudio" onClick={() => setAudioFile(null)} className="font-black">×</button></span>}
-                {imageFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F4F7] px-3 py-2 font-semibold">▧ Imagem pronta <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>}
+                {imageFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F4F7] px-3 py-2 font-semibold">▧ Imagem selecionada <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>}
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-2xl border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
-              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Escreva sua dúvida…" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" disabled={loading || sending || recording} />
+            <div className="flex items-center gap-2 rounded-full border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
+              <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mensagem para o Tutor…" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" disabled={loading || sending || recording} />
               {!recording ? (
                 <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0242D7] disabled:opacity-40">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
@@ -1201,7 +1163,7 @@ function TutorPage() {
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
                 </button>
               )}
-              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !audioFile && !imageFile)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !imageFile)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
               </button>
             </div>
