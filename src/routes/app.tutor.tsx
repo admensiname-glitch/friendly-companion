@@ -1140,7 +1140,7 @@ function TutorPage() {
             {sending && <div className="max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
           </div>
 
-          <form onSubmit={(event) => void send(event)} className="border-t border-[#E4EAF1] p-4 sm:p-5">
+          <form onSubmit={(event) => void send(event)} className="tutor-chat-composer border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Mensagem para o Tutor</label>
             {recording && <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold text-[#D92D20]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</div>}
             {imageFile && (
@@ -1148,7 +1148,7 @@ function TutorPage() {
                 <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 font-semibold">Imagem selecionada <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-2xl border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
+            <div className="tutor-chat-composer-field flex items-center gap-2 rounded-2xl border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
               <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem ou arquivo" aria-label="Anexar imagem ou arquivo" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
               </button>
