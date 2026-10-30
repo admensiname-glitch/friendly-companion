@@ -30,3 +30,4 @@ bun run dev
 
 
 <!-- CI: verified learning-platform surface -->
+<!-- Preview sync check: 2026-10-29 -->
