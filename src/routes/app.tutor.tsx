@@ -1033,12 +1033,7 @@ function TutorPage() {
     setSending(true);
     setError(null);
     setInput("");
-    const userText = [
-      message,
-      audioFile ? `Áudio anexado: ${audioFile.name}` : "",
-      imageFile ? `Imagem anexada: ${imageFile.name}` : "",
-    ].filter(Boolean).join("\n");
-    const displayText = userText || "Anexos enviados para análise.";
+    const displayText = [message, audioFile ? "🎙️ Mensagem de voz" : "", imageFile ? "Imagem enviada para análise" : ""].filter(Boolean).join("\n") || "Anexos enviados para análise.";
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [...current, { id: userMessageId, role: "user", content: displayText }]);
 
@@ -1063,6 +1058,11 @@ function TutorPage() {
       setInput(message);
       setError(data?.error ?? "O Tutor não conseguiu responder agora. Tente novamente.");
     } else if (data?.message) {
+      if (typeof data.transcription === "string" && data.transcription.trim()) {
+        setMessages((current) => current.map((item) => item.id === userMessageId
+          ? { ...item, content: [message, data.transcription.trim()].filter(Boolean).join("\n") }
+          : item));
+      }
       if (typeof data.conversation_id === "string" && data.conversation_id.trim()) {
         setConversationId(data.conversation_id);
       }
