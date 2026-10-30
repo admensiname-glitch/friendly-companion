@@ -256,10 +256,23 @@ Deno.serve(async (req: Request) => {
       }),
       signal: AbortSignal.timeout(45000),
     });
-    return new Response(await forward.text(), {
-      status: forward.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const forwardText = await forward.text();
+    if (!forward.ok) {
+      return new Response(forwardText, {
+        status: forward.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let tutorPayload: Record<string, unknown>;
+    try {
+      tutorPayload = JSON.parse(forwardText);
+    } catch {
+      return new Response(forwardText, {
+        status: forward.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return json({ ...tutorPayload, transcription: transcript || null }, forward.status);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado ao processar os anexos.";
     console.error("[ai-tutor-media-preview] falha controlada no processamento");
