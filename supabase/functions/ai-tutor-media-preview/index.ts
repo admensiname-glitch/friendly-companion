@@ -164,7 +164,6 @@ async function researchImageOnWeb(imageDescription: string, studentQuestion: str
       reasoning_effort: "low",
       temperature: 0.1,
       max_completion_tokens: 1400,
-      citation_options: "enabled",
       tool_choice: "required",
       tools: [{ type: "browser_search" }],
       messages: [
