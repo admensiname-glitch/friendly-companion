@@ -74,7 +74,8 @@ async function transcribeAudio(input: MediaInput, apiKey: string): Promise<strin
   const extension = safeFileName(input.file_name, mime === "audio/mpeg" ? "audio.mp3" : "audio.webm");
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: mime }), extension);
-  form.append("model", "whisper-large-v3-turbo");
+  form.append("model", "whisper-large-v3");
+  form.append("prompt", "Transcreva em português brasileiro. O estudante pode chamar o assistente de Tutor e falar sobre estudos. Preserve as palavras efetivamente pronunciadas; não complete, interprete ou reformule a frase.");
   form.append("language", "pt");
   form.append("response_format", "json");
 
@@ -107,7 +108,7 @@ function normalizedImageMime(input: MediaInput): string {
   return (extension && byExtension[extension]) || provided;
 }
 
-async function describeImage(input: MediaInput, apiKey: string): Promise<string> {
+async function describeImage(input: MediaInput, apiKey: string, studentQuestion = ""): Promise<string> {
   const mime = normalizedImageMime(input);
   if (!IMAGE_MIME_TYPES.has(mime)) {
     throw new Error("Formato de imagem não compatível. Use JPG, PNG, WebP ou GIF.");
@@ -121,18 +122,18 @@ async function describeImage(input: MediaInput, apiKey: string): Promise<string>
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      model: "qwen/qwen3.8-27b",
       temperature: 0.1,
       max_tokens: 900,
       messages: [
         {
           role: "system",
-          content: "Você analisa imagens enviadas por estudantes. Descreva apenas o que consegue observar, leia textos e fórmulas visíveis quando possível e diferencie observação de inferência. Se algo estiver ilegível, diga isso. Não invente conteúdo. Responda em português brasileiro, de forma concisa, para contextualizar a dúvida do estudante.",
+          content: "Você é o recurso de compreensão visual do Tutor. Analise qualquer tipo de imagem enviada pelo estudante, não apenas imagens acadêmicas: fotos, pessoas, objetos, animais, documentos, telas, cenas, desenhos, gráficos e textos. Descreva o que realmente está visível, responda à pergunta do estudante sobre a imagem e diferencie observação de inferência. Não identifique pessoas reais nem invente detalhes. Se algo estiver pouco visível ou ambíguo, explique a limitação e faça uma pergunta objetiva. Responda em português brasileiro, com clareza e concisão.",
         },
         {
           role: "user",
           content: [
-            { type: "text", text: "Analise esta imagem para apoiar uma explicação acadêmica. Transcreva o enunciado, os dados, fórmulas, gráficos ou anotações legíveis. Não resolva além do que a imagem permite concluir." },
+            { type: "text", text: "Analise a imagem e responda ao que o estudante perguntou. Se a pergunta estiver vazia, descreva os elementos relevantes da imagem. Pergunta do estudante: " + (studentQuestion.trim() || "O que você consegue observar nesta imagem?") + ". Leia textos quando estiverem visíveis e não restrinja a análise a conteúdo acadêmico." },
             { type: "image_url", image_url: { url: "data:" + mime + ";base64," + base64 } },
           ],
         },
@@ -231,14 +232,14 @@ Deno.serve(async (req: Request) => {
 
     const [transcript, imageDescription] = await Promise.all([
       audio ? transcribeAudio(audio, groqApiKey) : Promise.resolve(""),
-      image ? describeImage(image, groqApiKey) : Promise.resolve(""),
+      image ? describeImage(image, groqApiKey, message) : Promise.resolve(""),
     ]);
 
     const enrichedMessage = [
       message,
       transcript ? "DÚVIDA FALADA PELO ALUNO (transcrição do áudio):\n" + transcript : "",
       imageDescription ? "CONTEÚDO OBSERVADO NA IMAGEM ANEXADA (use como contexto; reconheça limites de leitura):\n" + imageDescription : "",
-      "Responda em português brasileiro, em texto, explicando o raciocínio passo a passo e usando apenas o que for sustentado pelo contexto acadêmico e pelos anexos. Se faltarem dados ou a imagem estiver ilegível, peça esclarecimento em vez de adivinhar.",
+      "Responda em português brasileiro, em texto, considerando a pergunta do estudante e o contexto de qualquer imagem ou áudio anexado, acadêmico ou não. Use apenas informações sustentadas pelo contexto; se algo estiver ambíguo ou ilegível, peça esclarecimento em vez de adivinhar.",
     ].filter(Boolean).join("\n\n").slice(0, 12000);
 
     const forward = await fetch(supabaseUrl + "/functions/v1/ai-tutor", {
