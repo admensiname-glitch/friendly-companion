@@ -1987,6 +1987,12 @@ html {
   color: #0242D7;
 }
 
+/* Tutor composer uses the exact same matte surface as the chat panel in dark mode. */
+html.dark .app-shell main .tutor-chat-composer,
+html.dark .app-shell main .tutor-chat-composer-field {
+  background-color: #101010 !important;
+}
+ 
 html.dark .app-shell main .tutor-chat-shell,
 html.dark .app-shell main .tutor-reflection-shell {
   background-color: #101010 !important;
