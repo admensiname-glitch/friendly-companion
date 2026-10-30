@@ -1140,37 +1140,35 @@ function TutorPage() {
             {sending && <div className="max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
           </div>
 
-          <form onSubmit={(event) => void send(event)} className="border-t border-[#E4EAF1] bg-background/95 p-3 sm:p-4">
-            <label htmlFor="tutor-message" className="sr-only">Pergunta ao Tutor</label>
-            <div className="mb-3 flex items-center gap-2">
-              <div>
-                <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem" aria-label="Anexar imagem" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-                <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; event.currentTarget.value = ""; if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; } if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; } setImageFile(file); setError(null); }} />
-              </div>
-              {recording && <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#B42318]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</span>}
-            </div>
+          <form onSubmit={(event) => void send(event)} className="border-t border-border/60 bg-transparent p-3 sm:p-4">
+            <label htmlFor="tutor-message" className="sr-only">Mensagem para o Tutor</label>
+            {recording && <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold text-[#D92D20]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</div>}
             {imageFile && (
-              <div className="mb-3 flex flex-wrap gap-2 text-xs text-[#475467]">
-                {imageFile && <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F4F7] px-3 py-2 font-semibold">▧ Imagem selecionada <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>}
+              <div className="mb-2 flex items-center gap-2 px-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 font-semibold">Imagem selecionada <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-full border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-2 shadow-sm transition focus-within:border-[#0242D7]">
+              <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem ou arquivo" aria-label="Anexar imagem ou arquivo" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+              <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; event.currentTarget.value = ""; if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; } if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; } setImageFile(file); setError(null); }} />
               <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mensagem para o Tutor…" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" disabled={loading || sending || recording} />
               {!recording ? (
-                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0242D7] disabled:opacity-40">
+                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-[#0242D7] disabled:opacity-40">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
                 </button>
               ) : (
-                <button type="button" onClick={stopRecording} title="Concluir gravação" aria-label="Concluir gravação" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEE4E2] text-[#B42318] transition hover:bg-[#FECDCA]">
+                <button type="button" onClick={stopRecording} title="Concluir gravação" aria-label="Concluir gravação" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FEE4E2] text-[#B42318] transition hover:bg-[#FECDCA]">
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
                 </button>
               )}
-              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !imageFile)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !imageFile)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
               </button>
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-[#687688]">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
-            {error && <p className="mt-3 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
+            <p className="mt-2 px-2 text-[11px] leading-4 text-muted-foreground">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
+            {error && <p className="mt-3 px-2 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
           </form>
         </section>
 
