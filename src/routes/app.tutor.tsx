@@ -1072,6 +1072,8 @@ function TutorPage() {
       ]);
       setAudioFile(null);
       setImageFile(null);
+    } else {
+      setError("O Tutor recebeu a mensagem, mas não retornou uma resposta válida. Tente novamente.");
     }
 
     } catch (sendError) {
