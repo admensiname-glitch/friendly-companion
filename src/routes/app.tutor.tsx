@@ -1089,7 +1089,7 @@ function TutorPage() {
   return (
     <section className="mx-auto w-full max-w-5xl" aria-labelledby="tutor-title">
       <header className="border-b border-[#DCE5F0] pb-7">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-foreground">Tutor</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7]">Tutor</p>
         <h1 id="tutor-title" className="mt-2 text-[32px] font-black tracking-[-0.04em] text-[#172334] sm:text-[42px]">Aprenda com contexto.</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-7 text-[#687688]">
           O Tutor usa os cursos do seu perfil, seu percurso e seu desempenho para explicar, comparar, corrigir raciocínios e orientar a próxima prática.
@@ -1103,13 +1103,13 @@ function TutorPage() {
               <div className="h-24 animate-pulse rounded-xl bg-muted" />
             ) : messages.length === 0 ? (
               <div className="max-w-xl">
-                <p className="text-sm font-extrabold text-foreground">Comece pelo que você não entendeu.</p>
+                <p className="text-sm font-extrabold text-[#0242D7]">Comece pelo que você não entendeu.</p>
                 <h2 className="mt-2 text-xl font-black text-[#172334]">Pergunte “por que eu errei?”, peça um exemplo ou compare dois conceitos.</h2>
               </div>
             ) : null}
 
             {messages.map((message, index) => (
-              <div key={message.id ?? `${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-black px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-border bg-muted px-4 py-4 text-sm leading-6 text-foreground" : "max-w-[90%] rounded-2xl border border-border bg-muted px-4 py-3 text-sm leading-6 text-foreground"}>
+              <div key={message.id ?? `${message.role}-${index}`} className={message.role === "user" ? "ml-auto max-w-[85%] rounded-2xl bg-[#0242D7] px-4 py-3 text-sm leading-6 text-white" : message.visualAid?.enabled ? "w-full rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-4 text-sm leading-6 text-[#273547]" : "max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm leading-6 text-[#273547]"}>
                 {message.role === "assistant" ? <TutorMessageContent content={message.content} /> : (<><>{message.imageUrl && <img src={message.imageUrl} alt="Imagem enviada ao Tutor" className="mb-3 max-h-72 max-w-full rounded-xl object-contain" />}</><p className="whitespace-pre-wrap">{message.content}</p></>)}
                 {message.role === "assistant" && message.visualAid?.enabled && (
                   <VisualAidCard visualAid={message.visualAid} />
@@ -1118,11 +1118,11 @@ function TutorPage() {
                   <VideoRecommendation recommendation={message.videoRecommendation} />
                 )}
                 {message.role === "assistant" && message.learningNextStep?.enabled && (
-                  <div className="mt-5 rounded-2xl border border-border bg-muted p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-foreground">Próximo passo para você</p>
+                  <div className="mt-5 rounded-2xl border border-[#CFE0FF] bg-[#F4F8FF] p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0242D7]">Próximo passo para você</p>
                     <p className="mt-1 text-sm font-black text-[#172334]">{message.learningNextStep.title}</p>
                     <p className="mt-2 text-xs leading-5 text-[#687688]">{message.learningNextStep.reason}</p>
-                    <button type="button" onClick={() => setInput(message.learningNextStep.prompt)} className="mt-4 rounded-xl bg-black px-4 py-2.5 text-xs font-black text-white">
+                    <button type="button" onClick={() => setInput(message.learningNextStep.prompt)} className="mt-4 rounded-xl bg-[#0242D7] px-4 py-2.5 text-xs font-black text-white">
                       Praticar agora
                     </button>
                   </div>
@@ -1130,17 +1130,17 @@ function TutorPage() {
                 {message.role === "assistant" && message.shareable === true && (
                   <a
                     href={buildTutorShareUrl(message, topicId, recommendation?.discipline_id ?? null)}
-                    className="mt-3 inline-flex text-xs font-bold text-foreground hover:underline"
+                    className="mt-3 inline-flex text-xs font-bold text-[#0242D7] hover:underline"
                   >
                     Compartilhar esta explicação
                   </a>
                 )}
               </div>
             ))}
-            {sending && <div className="max-w-[90%] rounded-2xl border border-border bg-muted px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
+            {sending && <div className="max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
           </div>
 
-          <form onSubmit={(event) => void send(event)} className="border-t border-border/60 bg-transparent p-3 sm:p-4">
+          <form onSubmit={(event) => void send(event)} className="border-t border-[#E4EAF1] p-4 sm:p-5">
             <label htmlFor="tutor-message" className="sr-only">Mensagem para o Tutor</label>
             {recording && <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold text-[#D92D20]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#D92D20]" />Gravando sua mensagem…</div>}
             {imageFile && (
@@ -1148,14 +1148,14 @@ function TutorPage() {
                 <span className="inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-2 font-semibold">Imagem selecionada <button type="button" aria-label="Remover imagem" onClick={() => setImageFile(null)} className="font-black">×</button></span>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-full border border-border bg-black px-2 py-2 shadow-sm transition focus-within:border-neutral-500">
-              <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem ou arquivo" aria-label="Anexar imagem ou arquivo" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40">
+            <div className="flex items-center gap-2 rounded-2xl border border-[#D8E0EA] bg-background p-1.5 pl-4 shadow-sm focus-within:border-[#0242D7]">
+              <button type="button" onClick={() => document.getElementById("tutor-image-file")?.click()} disabled={loading || sending || recording} title="Anexar imagem ou arquivo" aria-label="Anexar imagem ou arquivo" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#D8E0EA] text-[#64748B] transition hover:border-[#0242D7] hover:text-[#0242D7] disabled:opacity-40">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
               </button>
               <input id="tutor-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" disabled={loading || sending} onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; event.currentTarget.value = ""; if (file && file.size > MAX_TUTOR_IMAGE_BYTES) { setError("A imagem deve ter no máximo 4 MB."); return; } if (file && !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(getImageMimeType(file))) { setError("Use uma imagem JPG, PNG, WebP ou GIF."); return; } setImageFile(file); setError(null); }} />
               <input id="tutor-message" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mensagem para o Tutor…" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" disabled={loading || sending || recording} />
               {!recording ? (
-                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40">
+                <button type="button" onClick={() => void startRecording()} disabled={loading || sending} title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#64748B] transition hover:bg-[#F1F5F9] hover:text-[#0242D7] disabled:opacity-40">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg>
                 </button>
               ) : (
@@ -1163,11 +1163,11 @@ function TutorPage() {
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>
                 </button>
               )}
-              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !imageFile)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="submit" title="Enviar mensagem" aria-label="Enviar mensagem" disabled={loading || sending || recording || (!input.trim() && !imageFile)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0242D7] text-white transition hover:bg-[#0036B5] disabled:cursor-not-allowed disabled:opacity-40">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
               </button>
             </div>
-            <p className="mt-2 px-2 text-[11px] leading-4 text-muted-foreground">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
+            <p className="mt-2 text-[11px] leading-4 text-[#687688]">Áudio até 6 MB · Imagem até 4 MB. Os anexos são processados para responder à sua dúvida, sem serem publicados.</p>
             {error && <p className="mt-3 px-2 text-xs font-bold text-[#B42318]" role="alert">{error}</p>}
           </form>
         </section>
