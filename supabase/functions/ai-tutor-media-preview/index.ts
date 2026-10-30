@@ -128,7 +128,7 @@ async function describeImage(input: MediaInput, apiKey: string, studentQuestion 
       messages: [
         {
           role: "system",
-          content: "Você é o recurso de compreensão visual do Tutor. Analise qualquer tipo de imagem enviada pelo estudante, não apenas imagens acadêmicas: fotos, pessoas, objetos, animais, documentos, telas, cenas, desenhos, gráficos e textos. Descreva o que realmente está visível, responda à pergunta do estudante sobre a imagem e diferencie observação de inferência. Não identifique pessoas reais nem invente detalhes. Se algo estiver pouco visível ou ambíguo, explique a limitação e faça uma pergunta objetiva. Responda em português brasileiro, com clareza e concisão.",
+          content: "Você é o recurso de compreensão visual do Tutor. Priorize o objeto, logotipo, texto ou elemento que a pergunta do estudante quer investigar. Não descreva o cenário de fundo nem pessoas incidentalmente visíveis, a menos que sejam relevantes à pergunta. Leia com atenção nomes, siglas e palavras; se a pergunta mencionar uma sigla ou marca, procure primeiro esse texto na imagem e descreva seus elementos gráficos distintivos. Analise qualquer tipo de imagem, diferencie observação de inferência, não identifique pessoas reais e não invente detalhes. Se o elemento relevante não estiver legível, diga isso claramente. Responda em português brasileiro, com clareza e concisão.",
         },
         {
           role: "user",
@@ -175,14 +175,25 @@ async function researchImageOnWeb(imageDescription: string, studentQuestion: str
     signal: AbortSignal.timeout(30000),
   });
   if (!response.ok) {
-    console.warn("[ai-tutor-media-preview] pesquisa web indisponível", response.status);
-    return "Pesquisa na internet indisponível; não confirme informações externas e limite-se ao que é visível.";
+    const errorBody = await response.text().catch(() => "");
+    let providerMessage = "";
+    try { providerMessage = JSON.parse(errorBody)?.error?.message ?? ""; } catch { /* resposta não JSON */ }
+    console.error("[ai-tutor-media-preview] browser_search_failed", JSON.stringify({ status: response.status, providerMessage: providerMessage.slice(0, 500) }));
+    return `PESQUISA_WEB_FALHOU (HTTP ${response.status}). Não confirme informações externas; limite-se à observação visual.`;
   }
   const payload = await response.json();
-  const result = payload?.choices?.[0]?.message?.content;
-  return typeof result === "string" && result.trim()
-    ? result.trim().slice(0, 7000)
-    : "A busca não retornou fontes verificáveis; não confirme informações externas.";
+  const choice = payload?.choices?.[0]?.message;
+  const result = typeof choice?.content === "string" ? choice.content.trim() : "";
+  const citations = Array.isArray(choice?.annotations) ? choice.annotations.flatMap((item: any) => {
+    const citation = item?.url_citation;
+    return citation?.url ? [`- ${citation.title || "Fonte consultada"}: ${citation.url}`] : [];
+  }) : [];
+  console.info("[ai-tutor-media-preview] browser_search_completed", JSON.stringify({ hasContent: Boolean(result), citationCount: citations.length, usage: payload?.usage ?? null }));
+  if (!result) {
+    console.warn("[ai-tutor-media-preview] browser_search_empty", JSON.stringify({ responseKeys: Object.keys(payload ?? {}), choiceKeys: Object.keys(choice ?? {}) }));
+    return "A busca na internet não retornou conteúdo verificável. Não confirme informações externas.";
+  }
+  return [result, citations.length ? "FONTES:\\n" + citations.join("\\n") : "Nenhuma URL de fonte foi fornecida pela busca; não apresente afirmações externas como confirmadas."].join("\\n\\n").slice(0, 7000);
 }
 
 Deno.serve(async (req: Request) => {
@@ -309,7 +320,7 @@ Deno.serve(async (req: Request) => {
     return json({ ...tutorPayload, transcription: transcript || null }, forward.status);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado ao processar os anexos.";
-    console.error("[ai-tutor-media-preview] falha controlada no processamento");
+    console.error("[ai-tutor-media-preview] processing_failed", JSON.stringify({ name: error instanceof Error ? error.name : "UnknownError", message: message.slice(0, 500) }));
     return json({ error: message }, 500);
   }
 });
