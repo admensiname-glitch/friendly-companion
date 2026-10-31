@@ -2575,11 +2575,31 @@ Deno.serve(async (req: Request) => {
     // Short greetings receive a short social reply, independent of academic context.
     const normalizedGreeting = userMessage.toLowerCase().normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "").replace(/[!.,?¿¡…]+/g, " ").replace(/\s+/g, " ").trim();
-    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite|tudo bem|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
+    const greetingKey = normalizedGreeting.replace(/ tutor$/, "");
+    const greetingReplies: Record<string, string[]> = {
+      oi: ["Oi! 😊 Que bom ter você por aqui. Em que posso ajudar?", "Oii! Como você está? O que vamos conversar hoje?"],
+      ola: ["Olá! 😊 Me conta, como você está?", "Olá! Que bom te ver por aqui. Como posso te ajudar?"],
+      opa: ["Opa! 😄 Tudo certo por aí?", "Opa! Manda aí, como você está?"],
+      "e ai": ["E aí! Tudo tranquilo? Como você tá?", "E aí! 😄 Tudo bem com você?"],
+      eae: ["E aí! Tudo certo por aí?", "Salve! 😊 Como você está?"],
+      "de boa": ["Tudo tranquilo por aqui! E você, como está?", "De boa também! 😄 Como você tá?"],
+      tranquilo: ["Tudo tranquilo! E você, como tá?", "Tudo sim! E por aí, como estão as coisas?"],
+      tranquila: ["Tudo tranquilo! E você, como tá?", "Tudo sim! E por aí, como estão as coisas?"],
+      "tudo certo": ["Tudo certo por aqui! E com você?", "Por aqui, tudo tranquilo. E aí, como você está?"],
+      "tudo bem": ["Tudo ótimo por aqui! E com você?", "Tudo bem sim! Como você está?"],
+      "bom dia": ["Bom dia! ☀️ Como você está hoje?", "Bom dia! Que bom te encontrar por aqui. Tudo bem?"],
+      "boa tarde": ["Boa tarde! 😊 Como está sendo seu dia?", "Boa tarde! Tudo tranquilo por aí?"],
+      "boa noite": ["Boa noite! 🌙 Como você está?", "Boa noite! Tudo bem por aí?"],
+      "oi tudo bem": ["Oi! Tudo ótimo por aqui. E com você?", "Oii! Tudo bem sim 😊 Como você está?"],
+      "ola tudo bem": ["Olá! Tudo bem por aqui. E com você?", "Olá! 😊 Como você está?"],
+    };
+    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|de boa|tranquilo|tranquila|tudo certo|tudo bem|bom dia|boa tarde|boa noite|oi tudo bem|ola tudo bem)( tutor)?$/.test(greetingKey);
     if (isSimpleGreeting) {
+      const replies = greetingReplies[greetingKey] ?? greetingReplies.oi;
+      const previousGreetingReplies = recentHistory.filter((item) => item.role === "assistant").length;
       return json({
         conversation_id: conversationId,
-        message: "Olá! Tudo bem? 😊 Como posso te ajudar hoje?",
+        message: replies[previousGreetingReplies % replies.length],
         should_generate_comprehension_check: false, learning_observations: [],
         learning_action: null, learning_signals: [], micro_assessment: null,
         shareable: false, video_recommendation: { enabled: false, reason: "", video: null },
