@@ -1037,9 +1037,9 @@ function TutorPage() {
 
     // Saudações sociais não dependem de tópico acadêmico nem devem acionar o modelo.
     const normalizedGreeting = message.toLowerCase().normalize("NFD")
-      .replace(/[\\u0300-\\u036f]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[!.,?¿¡…]+/g, " ")
-      .replace(/\\s+/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
     const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite|tudo bem|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
     if (isSimpleGreeting && !outgoingAudio && !imageFile) {
