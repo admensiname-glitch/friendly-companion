@@ -1210,12 +1210,12 @@ function TutorPage() {
             ))}
             {sending && (
               <div className="flex w-fit max-w-[90%] items-center gap-3 rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]" role="status" aria-live="polite" aria-label="O Tutor está respondendo">
-                <svg viewBox="0 0 44 20" width="44" height="20" aria-hidden="true" className="shrink-0 overflow-visible">
-                  <circle cx="7" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" repeatCount="indefinite" /></circle>
-                  <circle cx="22" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" begin="0.18s" repeatCount="indefinite" /></circle>
-                  <circle cx="37" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" begin="0.36s" repeatCount="indefinite" /></circle>
-                </svg>
                 <span>O Tutor está respondendo</span>
+                <svg viewBox="0 0 32 16" width="32" height="16" aria-hidden="true" className="shrink-0 overflow-visible">
+                  <circle cx="5" cy="9" r="2" fill="currentColor"><animate attributeName="cy" values="9;4;9" dur="0.7s" repeatCount="indefinite" /></circle>
+                  <circle cx="16" cy="9" r="2" fill="currentColor"><animate attributeName="cy" values="9;4;9" dur="0.7s" begin="0.18s" repeatCount="indefinite" /></circle>
+                  <circle cx="27" cy="9" r="2" fill="currentColor"><animate attributeName="cy" values="9;4;9" dur="0.7s" begin="0.36s" repeatCount="indefinite" /></circle>
+                </svg>
               </div>
             )}
           </div>
