@@ -2583,8 +2583,14 @@ Deno.serve(async (req: Request) => {
       "e ai": ["E aí! Tudo tranquilo? Como você tá?", "E aí! 😄 Tudo bem com você?"],
       eae: ["E aí! Tudo certo por aí?", "Salve! 😊 Como você está?"],
       "de boa": ["Tudo tranquilo por aqui! E você, como está?", "De boa também! 😄 Como você tá?"],
+      suave: ["Suave por aqui! E você, tudo bem?", "Tudo na paz! 😄 E por aí, como você está?"],
       tranquilo: ["Tudo tranquilo! E você, como tá?", "Tudo sim! E por aí, como estão as coisas?"],
-      tranquila: ["Tudo tranquilo! E você, como tá?", "Tudo sim! E por aí, como estão as coisas?"],
+      tranquila: ["Tudo tranquila por aqui! E você?", "Tudo sim! E por aí, como estão as coisas?"],
+      beleza: ["Beleza por aqui! E com você?", "Tudo beleza! Como você tá?"],
+      blz: ["Tudo certo por aqui! E você?", "Na boa! 😄 Como estão as coisas por aí?"],
+      "ta de boa": ["Tá tudo de boa por aqui! E você?", "Tudo tranquilo! Como você está?"],
+      "tudo na paz": ["Tudo na paz! E por aí?", "Por aqui, tudo em ordem. E com você?"],
+      "como vai": ["Vou bem, obrigado por perguntar! E você?", "Tudo certo por aqui. Como você está?"],
       "tudo certo": ["Tudo certo por aqui! E com você?", "Por aqui, tudo tranquilo. E aí, como você está?"],
       "tudo bem": ["Tudo ótimo por aqui! E com você?", "Tudo bem sim! Como você está?"],
       "bom dia": ["Bom dia! ☀️ Como você está hoje?", "Bom dia! Que bom te encontrar por aqui. Tudo bem?"],
@@ -2593,7 +2599,7 @@ Deno.serve(async (req: Request) => {
       "oi tudo bem": ["Oi! Tudo ótimo por aqui. E com você?", "Oii! Tudo bem sim 😊 Como você está?"],
       "ola tudo bem": ["Olá! Tudo bem por aqui. E com você?", "Olá! 😊 Como você está?"],
     };
-    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|de boa|tranquilo|tranquila|tudo certo|tudo bem|bom dia|boa tarde|boa noite|oi tudo bem|ola tudo bem)( tutor)?$/.test(greetingKey);
+    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|de boa|suave|tranquilo|tranquila|beleza|blz|ta de boa|tudo na paz|como vai|tudo certo|tudo bem|bom dia|boa tarde|boa noite|oi tudo bem|ola tudo bem)( tutor)?$/.test(greetingKey);
     if (isSimpleGreeting) {
       const replies = greetingReplies[greetingKey] ?? greetingReplies.oi;
       const previousGreetingReplies = recentHistory.filter((item) => item.role === "assistant").length;
