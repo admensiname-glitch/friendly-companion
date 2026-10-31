@@ -1043,12 +1043,28 @@ function TutorPage() {
       .trim();
     const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite|tudo bem|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
     if (isSimpleGreeting && !outgoingAudio && !imageFile) {
+      const greetingReplies: Record<string, string[]> = {
+        oi: ["Oi! 😊 Que bom ter você por aqui. Em que posso ajudar?", "Oii! Como você está? O que vamos estudar hoje?"],
+        ola: ["Olá! Seja bem-vindo(a)! Qual é a boa de hoje?", "Olá! 😊 Me conta: no que posso te ajudar?"],
+        opa: ["Opa! 😄 Manda aí, o que você precisa?", "Opa, tudo certo? Como posso ajudar por aqui?"],
+        "e ai": ["E aí! Tudo tranquilo? O que vamos explorar hoje?", "E aí! 😄 Qual assunto está na sua cabeça?"],
+        eae: ["E aí! Tudo certo? Manda sua dúvida!", "Salve! 😊 O que vamos ver hoje?"],
+        "bom dia": ["Bom dia! ☀️ Como posso tornar seus estudos mais leves hoje?", "Bom dia! Que bom te ver por aqui. No que posso ajudar?"],
+        "boa tarde": ["Boa tarde! 😊 O que você gostaria de estudar agora?", "Uma ótima tarde! Me conta como posso ajudar."],
+        "boa noite": ["Boa noite! 🌙 Como posso ajudar nos seus estudos?", "Boa noite! Vamos conversar sobre o que você está aprendendo?"],
+        "tudo bem": ["Tudo ótimo por aqui! E com você? Como posso ajudar?", "Tudo certo! 😊 E por aí, tudo bem?"],
+      };
+      const greetingKey = normalizedGreeting.replace(/ tutor$/, "");
+      const replies = greetingReplies[greetingKey] ?? greetingReplies.oi;
       setInput("");
       setError(null);
-      setMessages((current) => [...current, 
-        { id: crypto.randomUUID(), role: "user", content: message },
-        { id: crypto.randomUUID(), role: "assistant", content: "Olá! Tudo bem? 😊 Como posso te ajudar hoje?", shareable: false },
-      ]);
+      setMessages((current) => {
+        const previousReplies = current.filter((item) => item.role === "assistant").length;
+        return [...current,
+          { id: crypto.randomUUID(), role: "user", content: message },
+          { id: crypto.randomUUID(), role: "assistant", content: replies[previousReplies % replies.length], shareable: false },
+        ];
+      });
       return;
     }
 
@@ -1193,17 +1209,12 @@ function TutorPage() {
               </div>
             ))}
             {sending && (
-              <div
-                className="flex w-fit max-w-[90%] items-center gap-3 rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]"
-                role="status"
-                aria-live="polite"
-                aria-label="O Tutor está respondendo"
-              >
-                <span className="flex items-center gap-1.5" aria-hidden="true">
-                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce [animation-delay:-0.3s]" />
-                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce [animation-delay:-0.15s]" />
-                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce" />
-                </span>
+              <div className="flex w-fit max-w-[90%] items-center gap-3 rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]" role="status" aria-live="polite" aria-label="O Tutor está respondendo">
+                <svg viewBox="0 0 44 20" width="44" height="20" aria-hidden="true" className="shrink-0 overflow-visible">
+                  <circle cx="7" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" repeatCount="indefinite" /></circle>
+                  <circle cx="22" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" begin="0.18s" repeatCount="indefinite" /></circle>
+                  <circle cx="37" cy="12" r="3" fill="currentColor"><animate attributeName="cy" values="12;5;12" dur="0.7s" begin="0.36s" repeatCount="indefinite" /></circle>
+                </svg>
                 <span>O Tutor está respondendo</span>
               </div>
             )}
