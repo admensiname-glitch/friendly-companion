@@ -1034,6 +1034,24 @@ function TutorPage() {
     const outgoingAudio = recordedAudio ?? audioFile;
     if (sending || (recording && !recordedAudio)) return;
     if (!message && !outgoingAudio && !imageFile) return;
+
+    // Saudações sociais não dependem de tópico acadêmico nem devem acionar o modelo.
+    const normalizedGreeting = message.toLowerCase().normalize("NFD")
+      .replace(/[\\u0300-\\u036f]/g, "")
+      .replace(/[!.,?¿¡…]+/g, " ")
+      .replace(/\\s+/g, " ")
+      .trim();
+    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite|tudo bem|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
+    if (isSimpleGreeting && !outgoingAudio && !imageFile) {
+      setInput("");
+      setError(null);
+      setMessages((current) => [...current, 
+        { id: crypto.randomUUID(), role: "user", content: message },
+        { id: crypto.randomUUID(), role: "assistant", content: "Olá! Tudo bem? 😊 Como posso te ajudar hoje?", shareable: false },
+      ]);
+      return;
+    }
+
     if (!topicId) {
       setError("Abra um tópico de estudo primeiro para que o Tutor tenha contexto acadêmico.");
       return;
@@ -1174,7 +1192,21 @@ function TutorPage() {
                 )}
               </div>
             ))}
-            {sending && <div className="max-w-[90%] rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]">O Tutor está pensando…</div>}
+            {sending && (
+              <div
+                className="flex w-fit max-w-[90%] items-center gap-3 rounded-2xl border border-[#E1E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#718096]"
+                role="status"
+                aria-live="polite"
+                aria-label="O Tutor está respondendo"
+              >
+                <span className="flex items-center gap-1.5" aria-hidden="true">
+                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 rounded-full bg-[#718096] animate-bounce" />
+                </span>
+                <span>O Tutor está respondendo</span>
+              </div>
+            )}
           </div>
 
           <form onSubmit={(event) => void send(event)} className="tutor-chat-composer border-t border-[#E4EAF1] p-4 sm:p-5">
