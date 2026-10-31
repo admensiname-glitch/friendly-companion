@@ -320,6 +320,6 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado ao processar os anexos.";
     console.error("[ai-tutor-media-preview] processing_failed", JSON.stringify({ name: error instanceof Error ? error.name : "UnknownError", message: message.slice(0, 500) }));
-    return json({ error: message }, 500);
+    return json({ error: "Não foi possível processar o anexo agora. Tente novamente ou envie sua dúvida por texto." }, 500);
   }
 });
