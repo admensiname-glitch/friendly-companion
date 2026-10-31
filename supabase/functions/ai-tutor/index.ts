@@ -665,23 +665,24 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
         }
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      try {
-        geminiResponse = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-          { ...init, signal: controller.signal, headers: requestHeaders, body: requestBody },
-        );
-      } finally {
-        clearTimeout(timeout);
+      // Retry only transient Gemini failures; invalid requests go directly to fallback.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        try {
+          geminiResponse = await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            { ...init, signal: controller.signal, headers: requestHeaders, body: requestBody },
+          );
+        } finally {
+          clearTimeout(timeout);
+        }
+        if (geminiResponse.ok) return geminiResponse;
+        const transient = [408, 429, 500, 502, 503, 504].includes(geminiResponse.status);
+        if (!transient || attempt === 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 450));
       }
-
-      // Any non-2xx provider response must allow the configured fallback to run.
-      // In particular, 400 can mean a model/schema incompatibility, not a user error.
-      if (geminiResponse.ok) {
-        return geminiResponse;
-      }
-      console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse.status);
+      console.warn("[Ensina-me] ai-tutor: Gemini indisponível; tentando Groq", geminiResponse?.status ?? "network");
     } catch (error) {
       geminiError = error;
       console.warn("[Ensina-me] ai-tutor: falha de rede/timeout no Gemini; tentando Groq");
@@ -698,15 +699,31 @@ async function fetchWithProviderFallback(init: RequestInit): Promise<Response> {
   try {
     const groqHeaders = new Headers(init.headers);
     groqHeaders.set("Authorization", "Bearer " + groqApiKey);
-    // Give the fallback its own deadline. Reusing init.signal is unsafe here:
-    // the caller's timer may already have expired while Gemini was being tried.
+    // Normalize the request for Groq: use a supported model and JSON mode.
+    let groqBody = init.body;
+    if (typeof groqBody === "string") {
+      try {
+        const parsed = JSON.parse(groqBody) as Record<string, unknown>;
+        const requestedModel = typeof parsed.model === "string" ? parsed.model : "";
+        if (!requestedModel || requestedModel.startsWith("gemini-")) parsed.model = "openai/gpt-oss-120b";
+        delete parsed.reasoning_effort;
+        delete parsed.include_reasoning;
+        if (typeof parsed.max_completion_tokens === "number") {
+          parsed.max_tokens = parsed.max_completion_tokens;
+          delete parsed.max_completion_tokens;
+        }
+        const format = parsed.response_format;
+        if (isRecord(format) && format.type === "json_schema") parsed.response_format = { type: "json_object" };
+        groqBody = JSON.stringify(parsed);
+      } catch { /* Keep the original request if it is not JSON. */ }
+    }
     const groqController = new AbortController();
-    const groqTimeout = setTimeout(() => groqController.abort(), 12000);
+    const groqTimeout = setTimeout(() => groqController.abort(), 18000);
     let groqResponse: Response;
     try {
       groqResponse = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
-        { ...init, signal: groqController.signal, headers: groqHeaders },
+        { ...init, body: groqBody, signal: groqController.signal, headers: groqHeaders },
       );
     } finally {
       clearTimeout(groqTimeout);
