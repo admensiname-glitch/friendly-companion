@@ -1037,7 +1037,7 @@ function TutorPage() {
     if (invokeError || data?.error) {
       setMessages((current) => current.map((item) => item.id === userMessageId ? { ...item, content: outgoingAudio ? "🎙️ Áudio enviado. A transcrição não ficou disponível." : item.content } : item));
       setInput(message);
-      setError(data?.error ?? invokeError?.message ?? "O Tutor não conseguiu responder agora. Tente novamente.");
+      setError("Não foi possível processar sua mensagem agora. Seu texto foi preservado; tente novamente em instantes.");
     } else if (data?.message) {
       if (typeof data.transcription === "string" && data.transcription.trim()) {
         setMessages((current) => current.map((item) => item.id === userMessageId
@@ -1080,7 +1080,7 @@ function TutorPage() {
       console.error("[Ensina-me] Falha inesperada ao enviar mensagem ao Tutor.", sendError);
       setMessages((current) => current.map((item) => item.id === userMessageId ? { ...item, content: outgoingAudio ? "🎙️ Áudio enviado. Não foi possível obter a transcrição." : item.content } : item));
       setInput(message);
-      setError(sendError instanceof Error ? sendError.message : "A comunicação com o Tutor falhou. Tente novamente em instantes.");
+      setError("A comunicação com o Tutor falhou temporariamente. Seu texto foi preservado; tente novamente em instantes.");
     } finally {
       setSending(false);
     }
