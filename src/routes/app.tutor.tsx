@@ -1041,7 +1041,7 @@ function TutorPage() {
       .replace(/[!.,?¿¡…]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|de boa|tudo bem|tudo certo|tranquilo|tranquila|bom dia|boa tarde|boa noite|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
+    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|de boa|suave|tudo bem|tudo certo|tranquilo|tranquila|beleza|blz|ta de boa|tudo na paz|como vai|bom dia|boa tarde|boa noite|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
     if (isSimpleGreeting && !outgoingAudio && !imageFile) {
       const greetingReplies: Record<string, string[]> = {
         oi: ["Oi! 😊 Que bom ter você por aqui. Em que posso ajudar?", "Oii! Como você está? O que vamos estudar hoje?"],
@@ -1050,6 +1050,12 @@ function TutorPage() {
         "e ai": ["E aí! Tudo tranquilo? O que vamos explorar hoje?", "E aí! 😄 Qual assunto está na sua cabeça?"],
         eae: ["E aí! Tudo certo? Manda sua dúvida!", "Salve! 😊 O que vamos ver hoje?"],
         "de boa": ["Tudo tranquilo por aqui! E você, como está?", "De boa também! 😄 Como você tá?"],
+        suave: ["Suave por aqui! E você, tudo bem?", "Tudo na paz! 😄 E por aí, como você está?"],
+        beleza: ["Beleza por aqui! E com você?", "Tudo beleza! Como você tá?"],
+        blz: ["Tudo certo por aqui! E você?", "Na boa! 😄 Como estão as coisas por aí?"],
+        "ta de boa": ["Tá tudo de boa por aqui! E você?", "Tudo tranquilo! Como você está?"],
+        "tudo na paz": ["Tudo na paz! E por aí?", "Por aqui, tudo em ordem. E com você?"],
+        "como vai": ["Vou bem, obrigado por perguntar! E você?", "Tudo certo por aqui. Como você está?"],
         "tudo certo": ["Tudo certo por aqui! E com você?", "Por aqui, tudo tranquilo. E aí, como você está?"],
         tranquilo: ["Tudo tranquilo! E você, como tá?", "Tudo sim! Como estão as coisas por aí?"],
         tranquila: ["Tudo tranquilo! E você, como tá?", "Tudo sim! Como estão as coisas por aí?"],
