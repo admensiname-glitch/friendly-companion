@@ -747,6 +747,7 @@ function TutorPage() {
   const [topicId, setTopicId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyStorageKey, setHistoryStorageKey] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -922,6 +923,24 @@ function TutorPage() {
         return;
       }
 
+      // Keep the current student's Tutor conversation when navigating between app routes.
+      const storageKey = "ensina-me:tutor:conversation:v1:" + data.session.user.id;
+      setHistoryStorageKey(storageKey);
+      try {
+        const saved = window.localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved) as { messages?: Message[]; conversationId?: string | null };
+          if (Array.isArray(parsed.messages)) {
+            setMessages(parsed.messages.filter((item) =>
+              item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string"
+            ).slice(-100).map((item) => ({ ...item, imageUrl: null })));
+          }
+          if (typeof parsed.conversationId === "string") setConversationId(parsed.conversationId);
+        }
+      } catch (historyError) {
+        console.warn("[Ensina-me] Não foi possível restaurar o histórico local do Tutor.", historyError);
+      }
+
       // Render the Tutor shell immediately; personalize its context as data arrives.
       setLoading(false);
 
@@ -969,6 +988,24 @@ function TutorPage() {
       setLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!historyStorageKey) return;
+    try {
+      const persistedMessages = messages.slice(-100).map((item) => ({
+        ...item,
+        // Object URLs expire when the page unmounts; never persist them.
+        imageUrl: null,
+      }));
+      window.localStorage.setItem(historyStorageKey, JSON.stringify({
+        messages: persistedMessages,
+        conversationId,
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch (historyError) {
+      console.warn("[Ensina-me] Não foi possível salvar o histórico local do Tutor.", historyError);
+    }
+  }, [historyStorageKey, messages, conversationId]);
 
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setError("Este navegador não permite gravar áudio. Verifique as permissões do microfone."); return; }
