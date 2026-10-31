@@ -2572,6 +2572,21 @@ Deno.serve(async (req: Request) => {
       (item) => item.role === "user" && item.content.trim().length > 12,
     );
 
+    // Short greetings receive a short social reply, independent of academic context.
+    const normalizedGreeting = userMessage.toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/[!.,?¿¡…]+/g, " ").replace(/\s+/g, " ").trim();
+    const isSimpleGreeting = /^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite|tudo bem|oi tudo bem|ola tudo bem|bom dia tutor|boa tarde tutor|boa noite tutor)( tutor)?$/.test(normalizedGreeting);
+    if (isSimpleGreeting) {
+      return json({
+        conversation_id: conversationId,
+        message: "Olá! Tudo bem? 😊 Como posso te ajudar hoje?",
+        should_generate_comprehension_check: false, learning_observations: [],
+        learning_action: null, learning_signals: [], micro_assessment: null,
+        shareable: false, video_recommendation: { enabled: false, reason: "", video: null },
+        visual_aid: { enabled: false, type: "flow", title: "", items: [], caption: "", image: null },
+      });
+    }
+
     const systemPrompt =
       "Você é o Tutor acadêmico do Ensina-me: um professor particular digital, paciente, preciso e orientado à aprendizagem.\n\n" +
       "MISSÃO\n" +
