@@ -289,26 +289,33 @@ function Login() {
   const showDiagnostic = import.meta.env.DEV && authDiagnostic !== null;
 
   return (
-    <main className="h-dvh min-h-0 overflow-hidden bg-white px-4 py-3 text-[#14233B] sm:px-8 sm:py-5">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col justify-center">
+    <main className="min-h-dvh overflow-y-auto bg-white px-4 py-6 text-[#14233B] sm:px-8 sm:py-8 lg:h-dvh lg:overflow-hidden lg:py-10">
+      <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center">
         <Link
           to="/"
-          className="mb-7 w-fit shrink-0 focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 sm:mb-8"
+          className="mb-6 w-fit shrink-0 focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 lg:hidden"
           aria-label="Ensina-me, página inicial"
         >
           <BrandLogo />
         </Link>
 
-        <div className="grid min-h-0 flex-1 w-full items-center gap-8 lg:grid-cols-[1fr_1fr] lg:gap-16">
+        <div className="grid w-full items-center gap-8 lg:h-full lg:grid-cols-[1.05fr_1fr] lg:gap-16">
           <aside className="hidden max-w-xl lg:block">
-            <h2 className="max-w-[560px] text-[2.75rem] font-bold leading-[1.12] tracking-[-0.05em] text-[#14233B] xl:text-[3.25rem]">
+            <Link
+              to="/"
+              className="inline-block w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+              aria-label="Ensina-me, página inicial"
+            >
+              <BrandLogo className="gap-3 [&_.brand-mark]:h-14 [&_.brand-mark]:w-16 [&>span]:text-[36px]" />
+            </Link>
+            <h2 className="mt-8 max-w-[580px] text-[3rem] font-bold leading-[1.08] tracking-[-0.05em] text-[#14233B] xl:text-[3.6rem]">
               Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
             </h2>
-            <p className="mt-6 max-w-lg text-lg leading-8 text-[#64748B]">
+            <p className="mt-6 max-w-lg text-lg leading-8 text-[#64748B] xl:text-xl xl:leading-9">
               Um pouco de cada vez também leva longe. Seu próximo avanço começa com o estudo de hoje.
             </p>
           </aside>
-          <section className="mx-auto w-full max-w-[470px] self-center rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_20px_64px_rgba(20,35,59,0.08)] sm:rounded-[28px] sm:p-8 lg:p-9" aria-labelledby="login-title">
+          <section className="mx-auto w-full max-w-[460px] self-center rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_70px_rgba(20,35,59,0.12)] sm:rounded-[28px] sm:p-8 lg:my-auto lg:max-h-full lg:overflow-y-auto lg:p-8" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Bem-vindo de volta
           </p>
