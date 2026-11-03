@@ -289,33 +289,33 @@ function Login() {
   const showDiagnostic = import.meta.env.DEV && authDiagnostic !== null;
 
   return (
-    <main className="min-h-screen bg-white px-5 py-8 text-[#14233B] sm:px-8 sm:py-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl flex-col justify-center">
+    <main className="h-dvh min-h-0 overflow-hidden bg-white px-4 py-3 text-[#14233B] sm:px-8 sm:py-5">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center">
         <Link
           to="/"
-          className="mb-12 w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+          className="mb-4 w-fit shrink-0 focus-visible:rounded-lg sm:mb-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
           aria-label="Ensina-me, página inicial"
         >
           <BrandLogo compact />
         </Link>
 
-        <div className="grid w-full items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
+        <div className="grid min-h-0 flex-1 w-full items-center gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <aside className="hidden max-w-xl lg:block">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#0242D7]">Aprendizagem universitária</p>
-            <h2 className="mt-6 text-5xl font-extrabold leading-[1.08] tracking-[-0.055em] text-[#14233B] xl:text-6xl">
+            <h2 className="mt-4 text-5xl font-extrabold leading-[1.08] tracking-[-0.055em] text-[#14233B] xl:text-6xl">
               Seu próximo passo começa com <span className="text-[#0242D7]">compreensão.</span>
             </h2>
-            <p className="mt-6 max-w-md text-lg leading-8 text-[#64748B]">
+            <p className="mt-4 max-w-md text-lg leading-8 text-[#64748B]">
               Retome seus estudos, avance no seu ritmo e transforme conhecimento em domínio.
             </p>
-            <div className="mt-10 h-px w-20 bg-[#DCE6F7]" />
+            <div className="mt-7 h-px w-20 bg-[#DCE6F7]" />
             <p className="mt-5 text-sm font-medium text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
           </aside>
-          <section className="mx-auto w-full max-w-[470px] rounded-[28px] border border-[#E8EDF5] bg-white p-6 shadow-[0_20px_70px_rgba(20,35,59,0.07)] sm:p-10" aria-labelledby="login-title">
+          <section className="mx-auto w-full max-w-[470px] rounded-[24px] border border-[#E8EDF5] bg-white p-5 shadow-[0_16px_50px_rgba(20,35,59,0.07)] sm:rounded-[28px] sm:p-8 lg:p-9" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Área do aluno
           </p>
-          <h1 id="login-title" className="mt-3 text-[2rem] font-extrabold tracking-[-0.045em] sm:text-4xl">
+          <h1 id="login-title" className="mt-3 text-[1.75rem] font-extrabold tracking-[-0.045em] sm:text-4xl">
             Entre na sua conta
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#718099]">
@@ -384,7 +384,7 @@ function Login() {
             </div>
           )}
 
-          <form className="mt-9 space-y-6" aria-label="Formulário de login" onSubmit={handleSubmit}>
+          <form className="mt-6 space-y-4 sm:mt-7 sm:space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
@@ -451,7 +451,7 @@ function Login() {
             </button>
           </form>
 
-          <p className="mt-7 text-center text-sm text-[#64748B]">
+          <p className="mt-5 text-center text-sm text-[#64748B]">
             Ainda não tem uma conta?{" "}
             <Link
               to="/cadastro"
