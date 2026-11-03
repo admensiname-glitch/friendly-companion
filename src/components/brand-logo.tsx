@@ -1,6 +1,7 @@
 type BrandLogoProps = {
   tone?: "blue" | "light";
   compact?: boolean;
+  large?: boolean;
   className?: string;
 };
 
@@ -26,6 +27,7 @@ export function BrandMark({ tone = "blue", className = "h-9 w-10" }: { tone?: "b
 export function BrandLogo({
   tone = "blue",
   compact = false,
+  large = false,
   className = "",
 }: BrandLogoProps) {
   const textColor = tone === "light" ? "text-white" : "text-[#0242D7]";
@@ -40,8 +42,8 @@ export function BrandLogo({
       ].join(" ")}
       style={{ fontFamily: '"Nunito", ui-sans-serif, system-ui, sans-serif' }}
     >
-      <BrandMark tone={tone} className={compact ? "h-8 w-9" : "h-10 w-12"} />
-      <span className={compact ? "text-[19px] leading-none" : "text-[25px] leading-none"}>
+      <BrandMark tone={tone} className={large ? "h-14 w-[4.2rem]" : compact ? "h-8 w-9" : "h-10 w-12"} />
+      <span className={large ? "text-[36px] leading-none" : compact ? "text-[19px] leading-none" : "text-[25px] leading-none"}>
         ensina-me
       </span>
     </span>

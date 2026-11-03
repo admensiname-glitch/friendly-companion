@@ -306,7 +306,7 @@ function Login() {
               className="inline-block w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
               aria-label="Ensina-me, página inicial"
             >
-              <BrandLogo className="gap-3 [&_.brand-mark]:h-14 [&_.brand-mark]:w-16 [&>span]:text-[36px]" />
+              <BrandLogo large className="gap-3" />
             </Link>
             <h2 className="mt-8 max-w-[580px] text-[3rem] font-bold leading-[1.08] tracking-[-0.05em] text-[#14233B] xl:text-[3.6rem]">
               Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
