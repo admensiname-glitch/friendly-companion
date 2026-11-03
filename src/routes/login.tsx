@@ -290,7 +290,7 @@ function Login() {
 
   return (
     <main className="h-dvh min-h-0 overflow-hidden bg-white px-4 py-3 text-[#14233B] sm:px-8 sm:py-5">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col justify-center">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col justify-center">
         <Link
           to="/"
           className="mb-4 w-fit shrink-0 focus-visible:rounded-lg sm:mb-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
@@ -299,23 +299,23 @@ function Login() {
           <BrandLogo compact />
         </Link>
 
-        <div className="grid min-h-0 flex-1 w-full items-center gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-          <aside className="hidden max-w-xl lg:block">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#0242D7]">Aprendizagem universitária</p>
-            <h2 className="mt-4 text-5xl font-extrabold leading-[1.08] tracking-[-0.055em] text-[#14233B] xl:text-6xl">
+        <div className="grid min-h-0 flex-1 w-full items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-24">
+          <aside className="hidden max-w-2xl lg:block">
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0242D7]">Aprendizagem universitária</p>
+            <h2 className="mt-6 max-w-[620px] text-[3.4rem] font-extrabold leading-[1.04] tracking-[-0.06em] text-[#14233B] xl:text-[4.25rem]">
               Seu próximo passo começa com <span className="text-[#0242D7]">compreensão.</span>
             </h2>
-            <p className="mt-4 max-w-md text-lg leading-8 text-[#64748B]">
+            <p className="mt-6 max-w-lg text-base leading-7 text-[#64748B] xl:text-lg xl:leading-8">
               Retome seus estudos, avance no seu ritmo e transforme conhecimento em domínio.
             </p>
-            <div className="mt-7 h-px w-20 bg-[#DCE6F7]" />
-            <p className="mt-5 text-sm font-medium text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
+            <div className="mt-9 h-px w-24 bg-[#DCE6F7]" />
+            <p className="mt-6 text-xs font-semibold tracking-wide text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
           </aside>
-          <section className="mx-auto w-full max-w-[470px] rounded-[24px] border border-[#E8EDF5] bg-white p-5 shadow-[0_16px_50px_rgba(20,35,59,0.07)] sm:rounded-[28px] sm:p-8 lg:p-9" aria-labelledby="login-title">
+          <section className="mx-auto w-full max-w-[500px] rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_80px_rgba(20,35,59,0.09)] sm:rounded-[30px] sm:p-9 lg:p-10" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Área do aluno
           </p>
-          <h1 id="login-title" className="mt-3 text-[1.75rem] font-extrabold tracking-[-0.045em] sm:text-4xl">
+          <h1 id="login-title" className="mt-3 text-[1.9rem] font-extrabold tracking-[-0.05em] sm:text-[2.15rem]">
             Entre na sua conta
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#718099]">
@@ -384,7 +384,7 @@ function Login() {
             </div>
           )}
 
-          <form className="mt-6 space-y-4 sm:mt-7 sm:space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
+          <form className="mt-7 space-y-5 sm:mt-8 sm:space-y-6" aria-label="Formulário de login" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
@@ -402,7 +402,7 @@ function Login() {
                   clearResendFeedback();
                 }}
                 disabled={isLoading}
-                className="mt-2 h-12 w-full rounded-xl border border-[#D9E2F0] bg-white px-4 text-sm text-[#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
+                className="mt-2 h-12 w-full rounded-xl border border-[#D9E2F0] bg-white px-4 text-sm text-[#14233B] [color-scheme:light] [-webkit-box-shadow:inset_0_0_0_1000px_#fff] [-webkit-text-fill-color:#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
                 required
               />
             </div>
@@ -426,7 +426,7 @@ function Login() {
                     clearAuthFeedback();
                   }}
                   disabled={isLoading}
-                  className="h-12 w-full rounded-xl border border-[#D9E2F0] bg-white py-2 pl-4 pr-12 text-sm text-[#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
+                  className="h-12 w-full rounded-xl border border-[#D9E2F0] bg-white py-2 pl-4 pr-12 text-sm text-[#14233B] [color-scheme:light] [-webkit-box-shadow:inset_0_0_0_1000px_#fff] [-webkit-text-fill-color:#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
                   required
                 />
                 <button
@@ -451,7 +451,7 @@ function Login() {
             </button>
           </form>
 
-          <p className="mt-5 text-center text-sm text-[#64748B]">
+          <p className="mt-6 text-center text-sm text-[#64748B]">
             Ainda não tem uma conta?{" "}
             <Link
               to="/cadastro"
