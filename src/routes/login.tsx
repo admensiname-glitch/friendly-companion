@@ -299,8 +299,8 @@ function Login() {
           <BrandLogo />
         </Link>
 
-        <div className="grid w-full items-center gap-8 lg:h-full lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-          <aside className="hidden max-w-xl lg:block">
+        <div className="grid w-full items-center gap-8 lg:h-[min(72dvh,580px)] lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <aside className="hidden h-full min-h-[500px] max-w-xl grid-rows-[auto_1fr_auto] lg:grid">
             <Link
               to="/"
               className="inline-block w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
@@ -308,10 +308,12 @@ function Login() {
             >
               <BrandLogo large className="gap-3" />
             </Link>
-            <h2 className="mt-8 max-w-[580px] text-[3rem] font-bold leading-[1.08] tracking-[-0.05em] text-[#14233B] xl:text-[3.6rem]">
-              Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
-            </h2>
-            <p className="mt-6 max-w-lg text-lg leading-8 text-[#64748B] xl:text-xl xl:leading-9">
+            <div className="flex items-center py-8">
+              <h2 className="max-w-[600px] text-[3.2rem] font-bold leading-[1.08] tracking-[-0.05em] text-[#14233B] xl:text-[3.75rem]">
+                Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
+              </h2>
+            </div>
+            <p className="max-w-lg self-end text-lg leading-8 text-[#64748B] xl:text-xl xl:leading-9">
               Um pouco de cada vez também leva longe. Seu próximo avanço começa com o estudo de hoje.
             </p>
           </aside>
