@@ -17,6 +17,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as DirectDemoRouteImport } from './routes/direct-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -78,6 +79,11 @@ const LoginRoute = LoginRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -202,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/direct-demo': typeof DirectDemoRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/planos': typeof PlanosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/direct-demo'
     | '/login'
     | '/onboarding'
+    | '/planos'
     | '/privacidade'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/direct-demo'
     | '/login'
     | '/onboarding'
+    | '/planos'
     | '/privacidade'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/direct-demo'
     | '/login'
     | '/onboarding'
+    | '/planos'
     | '/privacidade'
     | '/recuperar-senha'
     | '/redefinir-senha'
@@ -398,6 +410,7 @@ export interface RootRouteChildren {
   DirectDemoRoute: typeof DirectDemoRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  PlanosRoute: typeof PlanosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -460,6 +473,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -713,6 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   DirectDemoRoute: DirectDemoRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  PlanosRoute: PlanosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
