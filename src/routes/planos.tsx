@@ -39,6 +39,16 @@ const differences = [
     free: "Visão básica do progresso",
     complete: "Relatórios detalhados de desempenho",
   },
+  {
+    label: "Comunidade",
+    free: "Não incluída na proposta do plano",
+    complete: "Acesso à comunidade de estudantes",
+  },
+  {
+    label: "Direct",
+    free: "Não incluído na proposta do plano",
+    complete: "Mensagens e grupos",
+  },
 ];
 
 function DifferenceRow({
@@ -111,7 +121,7 @@ function PlansPage() {
               <span className="rounded-full bg-[#EEF4FF] px-2.5 py-1 text-[10px] font-extrabold text-[#0242D7]">EM BREVE</span>
             </div>
             <div className="mt-1 flex items-baseline gap-1">
-              <h2 className="text-3xl font-extrabold tracking-tight">R$ 29,90</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight">R$ 24,90</h2>
               <span className="text-sm text-[#64738A]">/mês*</span>
             </div>
             <p className="mt-2 min-h-10 text-sm leading-5 text-[#64738A]">Para quem quer aprofundar os estudos e ter mais liberdade para avançar.</p>
@@ -120,6 +130,7 @@ function PlansPage() {
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0242D7]" /> Limites ampliados para provas e Tutor</li>
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0242D7]" /> Recursos multimodais do Tutor</li>
               <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0242D7]" /> Prática, revisão e relatórios detalhados</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-[#0242D7]" /> Comunidade e Direct</li>
             </ul>
             <div className="mt-5 flex min-h-11 items-center justify-center rounded-lg bg-[#F3F6FC] px-4 text-sm font-bold text-[#526178]">Contratação ainda não disponível</div>
           </article>
@@ -141,6 +152,7 @@ function PlansPage() {
             {differences.map((item) => <DifferenceRow key={item.label} {...item} />)}
           </div>
           <p className="mt-4 text-xs leading-5 text-[#7A879A]">*Preço de referência em avaliação. Os limites do plano Completo e as condições de assinatura serão confirmados antes da contratação. Nenhuma cobrança está disponível neste momento.</p>
+          <p className="mt-2 text-xs leading-5 text-[#7A879A]">O modo “Ouvir matéria”, em formato de áudio, está no planejamento futuro e ainda não está disponível em nenhum plano.</p>
         </div>
       </section>
 
