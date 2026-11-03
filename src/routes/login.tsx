@@ -289,7 +289,7 @@ function Login() {
   const showDiagnostic = import.meta.env.DEV && authDiagnostic !== null;
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-white px-4 py-6 text-[#14233B] sm:px-8 sm:py-8 lg:h-dvh lg:overflow-hidden lg:py-10">
+    <main className="min-h-dvh overflow-y-auto bg-white px-4 py-6 text-[#14233B] sm:px-8 sm:py-8 lg:min-h-dvh lg:h-auto lg:overflow-y-auto lg:py-10">
       <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center">
         <Link
           to="/"
@@ -299,8 +299,8 @@ function Login() {
           <BrandLogo />
         </Link>
 
-        <div className="grid w-full items-center gap-8 lg:h-[min(72dvh,580px)] lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-          <aside className="hidden h-full min-h-[500px] max-w-xl grid-rows-[auto_1fr_auto] lg:grid">
+        <div className="grid w-full items-center gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+          <aside className="hidden h-[460px] max-w-xl grid-rows-[auto_1fr_auto] lg:grid">
             <Link
               to="/"
               className="inline-block w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
@@ -309,15 +309,15 @@ function Login() {
               <BrandLogo large className="gap-3" />
             </Link>
             <div className="flex items-center py-8">
-              <h2 className="max-w-[600px] text-[3.2rem] font-bold leading-[1.08] tracking-[-0.05em] text-[#14233B] xl:text-[3.75rem]">
+              <h2 className="max-w-[560px] text-[3rem] font-bold leading-[1.1] tracking-[-0.05em] text-[#14233B] xl:text-[3.5rem]">
                 Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
               </h2>
             </div>
-            <p className="max-w-lg self-end text-lg leading-8 text-[#64748B] xl:text-xl xl:leading-9">
+            <p className="max-w-lg self-end text-base leading-7 text-[#64748B] xl:text-lg xl:leading-8">
               Um pouco de cada vez também leva longe. Seu próximo avanço começa com o estudo de hoje.
             </p>
           </aside>
-          <section className="mx-auto w-full max-w-[460px] self-center rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_70px_rgba(20,35,59,0.12)] sm:rounded-[28px] sm:p-8 lg:my-auto lg:max-h-full lg:overflow-y-auto lg:p-8" aria-labelledby="login-title">
+          <section className="mx-auto w-full max-w-[460px] self-center rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_70px_rgba(20,35,59,0.12)] sm:rounded-[28px] sm:p-8 lg:min-h-[460px] lg:p-8" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Bem-vindo de volta
           </p>
