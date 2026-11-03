@@ -162,7 +162,7 @@ function AppDashboard() {
       : window.setTimeout(warmRoutes, 500);
     return () => {
       cancelled = true;
-      if (idleWindow.cancelIdleCallback && typeof idleWindow.requestIdleCallback === "function") {
+      if (idleWindow.cancelIdleCallback && idleWindow.requestIdleCallback) {
         idleWindow.cancelIdleCallback(idleId);
       } else {
         window.clearTimeout(idleId as number);
@@ -324,7 +324,7 @@ function AppDashboard() {
 
           setResumeTopics(
             progressRows
-              .map((row): ResumeTopic | null => {
+              .map((row) => {
                 const topic = topicMap.get(row.topic_id);
                 const discipline = topic ? disciplineMap.get(topic.discipline_id) : undefined;
                 const materialId = materialMap.get(row.topic_id);
