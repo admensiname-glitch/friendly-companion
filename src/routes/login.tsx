@@ -289,30 +289,42 @@ function Login() {
   const showDiagnostic = import.meta.env.DEV && authDiagnostic !== null;
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-6 py-8 text-[#0F172A] sm:py-12">
-      <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-md flex-col justify-center">
+    <main className="min-h-screen bg-white px-5 py-8 text-[#14233B] sm:px-8 sm:py-10">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-6xl flex-col justify-center">
         <Link
           to="/"
-          className="mb-10 w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+          className="mb-12 w-fit focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
           aria-label="Ensina-me, página inicial"
         >
           <BrandLogo compact />
         </Link>
 
-        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#0242D7]">
+        <div className="grid w-full items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
+          <aside className="hidden max-w-xl lg:block">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#0242D7]">Aprendizagem universitária</p>
+            <h2 className="mt-6 text-5xl font-extrabold leading-[1.08] tracking-[-0.055em] text-[#14233B] xl:text-6xl">
+              Seu próximo passo começa com <span className="text-[#0242D7]">compreensão.</span>
+            </h2>
+            <p className="mt-6 max-w-md text-lg leading-8 text-[#64748B]">
+              Retome seus estudos, avance no seu ritmo e transforme conhecimento em domínio.
+            </p>
+            <div className="mt-10 h-px w-20 bg-[#DCE6F7]" />
+            <p className="mt-5 text-sm font-medium text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
+          </aside>
+          <section className="mx-auto w-full max-w-[470px] rounded-[28px] border border-[#E8EDF5] bg-white p-6 shadow-[0_20px_70px_rgba(20,35,59,0.07)] sm:p-10" aria-labelledby="login-title">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Área do aluno
           </p>
-          <h1 id="login-title" className="mt-3 text-3xl font-bold tracking-[-0.04em]">
+          <h1 id="login-title" className="mt-3 text-[2rem] font-extrabold tracking-[-0.045em] sm:text-4xl">
             Entre na sua conta
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[#64748B]">
-            Acesse sua área de aprendizagem do Ensina-me.
+          <p className="mt-3 text-sm leading-6 text-[#718099]">
+            Entre para continuar sua jornada de aprendizagem.
           </p>
 
           {message && (
             <div
-              className={`mt-5 rounded-md border px-4 py-3 text-sm ${
+              className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
                 status === "success"
                   ? "border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]"
                   : "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]"
@@ -347,7 +359,7 @@ function Login() {
           )}
 
           {canResend && (
-            <div className="mt-4 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-sm text-[#1E3A8A]">
+            <div className="mt-4 rounded-xl border border-[#DCE7FF] bg-[#F7F9FF] p-4 text-sm text-[#34445D]">
               <p>Ainda não recebeu o e-mail?</p>
               <button
                 type="button"
@@ -372,7 +384,7 @@ function Login() {
             </div>
           )}
 
-          <form className="mt-8 space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
+          <form className="mt-9 space-y-6" aria-label="Formulário de login" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
@@ -390,7 +402,7 @@ function Login() {
                   clearResendFeedback();
                 }}
                 disabled={isLoading}
-                className="mt-2 h-11 w-full rounded-md border border-[#CBD5E1] bg-white px-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
+                className="mt-2 h-12 w-full rounded-xl border border-[#D9E2F0] bg-white px-4 text-sm text-[#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
                 required
               />
             </div>
@@ -414,7 +426,7 @@ function Login() {
                     clearAuthFeedback();
                   }}
                   disabled={isLoading}
-                  className="h-11 w-full rounded-md border border-[#CBD5E1] bg-white py-2 pl-3 pr-12 text-sm text-[#0F172A] outline-none transition placeholder:text-[#64748B] focus:border-[#0242D7] focus:ring-2 focus:ring-[#BFDBFE] disabled:cursor-not-allowed disabled:bg-[#F1F5F9]"
+                  className="h-12 w-full rounded-xl border border-[#D9E2F0] bg-white py-2 pl-4 pr-12 text-sm text-[#14233B] outline-none transition placeholder:text-[#9AA6B8] hover:border-[#B9C9E2] focus:border-[#0242D7] focus:ring-4 focus:ring-[#0242D7]/10 disabled:cursor-not-allowed disabled:bg-[#F7F9FC]"
                   required
                 />
                 <button
@@ -433,7 +445,7 @@ function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="h-11 w-full rounded-md bg-[#0242D7] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
+              className="h-12 w-full rounded-xl bg-[#0242D7] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(2,66,215,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </button>
@@ -448,7 +460,8 @@ function Login() {
               Criar conta
             </Link>
           </p>
-        </section>
+          </section>
+        </div>
       </div>
     </main>
   );
