@@ -293,29 +293,26 @@ function Login() {
       <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col justify-center">
         <Link
           to="/"
-          className="mb-4 w-fit shrink-0 focus-visible:rounded-lg sm:mb-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+          className="mb-7 w-fit shrink-0 focus-visible:rounded-lg sm:mb-8" focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
           aria-label="Ensina-me, página inicial"
         >
-          <BrandLogo compact />
+          <BrandLogo />
         </Link>
 
-        <div className="grid min-h-0 flex-1 w-full items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-24">
-          <aside className="hidden max-w-2xl lg:block">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0242D7]">Ensina-me</p>
-            <h2 className="mt-6 max-w-[620px] text-[3.4rem] font-extrabold leading-[1.04] tracking-[-0.06em] text-[#14233B] xl:text-[4.25rem]">
-              Você já começou. <span className="text-[#0242D7]">continue de onde parou.</span>
+        <div className="grid min-h-0 flex-1 w-full items-center gap-8 lg:grid-cols-[1fr_1fr] lg:gap-16">
+          <aside className="hidden max-w-xl lg:block">
+            <h2 className="max-w-[560px] text-[2.75rem] font-bold leading-[1.12] tracking-[-0.05em] text-[#14233B] xl:text-[3.25rem]">
+              Você já começou. <span className="text-[#0242D7]">Continue de onde parou.</span>
             </h2>
-            <p className="mt-6 max-w-lg text-base leading-7 text-[#64748B] xl:text-lg xl:leading-8">
+            <p className="mt-6 max-w-lg text-lg leading-8 text-[#64748B]">
               Um pouco de cada vez também leva longe. Seu próximo avanço começa com o estudo de hoje.
             </p>
-            <div className="mt-9 h-px w-24 bg-[#DCE6F7]" />
-            <p className="mt-6 text-xs font-semibold tracking-wide text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
           </aside>
-          <section className="mx-auto w-full max-w-[500px] rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_80px_rgba(20,35,59,0.09)] sm:rounded-[30px] sm:p-9 lg:p-10" aria-labelledby="login-title">
+          <section className="mx-auto w-full max-w-[470px] self-center rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_20px_64px_rgba(20,35,59,0.08)] sm:rounded-[28px] sm:p-8 lg:p-9" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
             Bem-vindo de volta
           </p>
-          <h1 id="login-title" className="mt-3 text-[1.9rem] font-extrabold tracking-[-0.05em] sm:text-[2.15rem]">
+          <h1 id="login-title" className="mt-3 text-[1.75rem] font-bold tracking-[-0.045em] sm:text-[1.9rem]">
             Que bom ter você aqui.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#718099]">
@@ -384,7 +381,7 @@ function Login() {
             </div>
           )}
 
-          <form className="mt-7 space-y-5 sm:mt-8 sm:space-y-6" aria-label="Formulário de login" onSubmit={handleSubmit}>
+          <form className="mt-6 space-y-5 sm:mt-7 sm:space-y-5" aria-label="Formulário de login" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">
                 E-mail
@@ -451,7 +448,7 @@ function Login() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-[#64748B]">
+          <p className="mt-5 text-center text-sm text-[#64748B]">
             Ainda não tem uma conta?{" "}
             <Link
               to="/cadastro"
