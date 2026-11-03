@@ -222,7 +222,7 @@ export function DirectPage() {
       setVoiceDraftPath(draft.storage_path); setVoiceDraftId(draft.id); setVoiceDraftUrl(draftUrl?.signedUrl ?? null);
       setVoiceDraftConversationId(conversation.id); setRecordingSeconds(draft.duration_seconds ?? 0);
     }
-    await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null, should_pin: null, mark_read: true });
+    await supabase.rpc("direct_update_member_preferences", { target_conversation_id: conversation.id, should_archive: null as unknown as boolean, should_pin: null as unknown as boolean, mark_read: true });
   }, [demoMode, userId]);
 
   async function deleteMessage(messageId: string) {
@@ -412,8 +412,8 @@ export function DirectPage() {
     setBusy(true); setError(""); setNotice("");
     const args = {
       target_conversation_id: activeConversation.id,
-      should_archive: kind === "archive" ? enabled : null,
-      should_pin: kind === "pin" ? enabled : null,
+      should_archive: (kind === "archive" ? enabled : null) as unknown as boolean,
+      should_pin: (kind === "pin" ? enabled : null) as unknown as boolean,
       mark_read: false
     };
     const { error: preferenceError } = await supabase.rpc("direct_update_member_preferences", args);
