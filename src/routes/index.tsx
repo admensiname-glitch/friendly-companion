@@ -51,6 +51,7 @@ function Index() {
           <Link to="/" aria-label="Ensina-me, página inicial" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"><BrandLogo /></Link>
           <nav aria-label="Navegação principal" className="flex items-center gap-2 sm:gap-4">
             <a href="#como-funciona" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-[#526178] transition hover:text-[#0242D7] sm:inline-flex">Como funciona</a>
+            <Link to="/planos" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-[#526178] transition hover:text-[#0242D7] sm:inline-flex">Planos</Link>
             <Link to="/login" className="rounded-xl px-3 py-2.5 text-sm font-bold text-[#34445D] transition hover:bg-[#F4F7FC] sm:px-4">Entrar</Link>
             <Link to="/cadastro" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0646D9] px-4 text-sm font-bold text-white shadow-[0_8px_20px_rgba(6,70,217,0.18)] transition hover:-translate-y-0.5 hover:bg-[#0039B9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0646D9] focus-visible:ring-offset-2 sm:px-5">Começar <Icon name="arrow" className="h-4 w-4" /></Link>
           </nav>
