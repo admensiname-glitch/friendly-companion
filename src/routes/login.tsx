@@ -293,7 +293,7 @@ function Login() {
       <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col justify-center">
         <Link
           to="/"
-          className="mb-7 w-fit shrink-0 focus-visible:rounded-lg sm:mb-8" focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4"
+          className="mb-7 w-fit shrink-0 focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-4 sm:mb-8"
           aria-label="Ensina-me, página inicial"
         >
           <BrandLogo />
