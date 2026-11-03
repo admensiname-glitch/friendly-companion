@@ -455,6 +455,67 @@ export type Database = {
           },
         ]
       }
+      ai_tutor_generation_requests: {
+        Row: {
+          assessment_id: string | null
+          conversation_id: string | null
+          created_at: string
+          error_code: string | null
+          idempotency_key: string
+          lease_expires_at: string
+          state: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          idempotency_key: string
+          lease_expires_at?: string
+          state: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          idempotency_key?: string
+          lease_expires_at?: string
+          state?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tutor_generation_requests_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "ai_micro_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_tutor_generation_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_tutor_generation_requests_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_comments: {
         Row: {
           author_id: string
@@ -547,19 +608,19 @@ export type Database = {
           is_official: boolean
           official_until: string | null
           topic_id: string | null
-          tutor_image_url: string | null
           tutor_image_alt: string | null
-          tutor_image_source_url: string | null
-          tutor_image_license: string | null
           tutor_image_attribution: string | null
-          tutor_visual_aid: Json | null
-          tutor_video_url: string | null
-          tutor_video_embed_url: string | null
-          tutor_video_title: string | null
-          tutor_video_description: string | null
+          tutor_image_license: string | null
+          tutor_image_source_url: string | null
+          tutor_image_url: string | null
           tutor_video_channel_name: string | null
+          tutor_video_description: string | null
           tutor_video_duration_label: string | null
+          tutor_video_embed_url: string | null
           tutor_video_reason: string | null
+          tutor_video_title: string | null
+          tutor_video_url: string | null
+          tutor_visual_aid: Json | null
           updated_at: string
         }
         Insert: {
@@ -577,19 +638,19 @@ export type Database = {
           is_official?: boolean
           official_until?: string | null
           topic_id?: string | null
-          tutor_image_url?: string | null
           tutor_image_alt?: string | null
-          tutor_image_source_url?: string | null
-          tutor_image_license?: string | null
           tutor_image_attribution?: string | null
-          tutor_visual_aid?: Json | null
-          tutor_video_url?: string | null
-          tutor_video_embed_url?: string | null
-          tutor_video_title?: string | null
-          tutor_video_description?: string | null
+          tutor_image_license?: string | null
+          tutor_image_source_url?: string | null
+          tutor_image_url?: string | null
           tutor_video_channel_name?: string | null
+          tutor_video_description?: string | null
           tutor_video_duration_label?: string | null
+          tutor_video_embed_url?: string | null
           tutor_video_reason?: string | null
+          tutor_video_title?: string | null
+          tutor_video_url?: string | null
+          tutor_visual_aid?: Json | null
           updated_at?: string
         }
         Update: {
@@ -607,19 +668,19 @@ export type Database = {
           is_official?: boolean
           official_until?: string | null
           topic_id?: string | null
-          tutor_image_url?: string | null
           tutor_image_alt?: string | null
-          tutor_image_source_url?: string | null
-          tutor_image_license?: string | null
           tutor_image_attribution?: string | null
-          tutor_visual_aid?: Json | null
-          tutor_video_url?: string | null
-          tutor_video_embed_url?: string | null
-          tutor_video_title?: string | null
-          tutor_video_description?: string | null
+          tutor_image_license?: string | null
+          tutor_image_source_url?: string | null
+          tutor_image_url?: string | null
           tutor_video_channel_name?: string | null
+          tutor_video_description?: string | null
           tutor_video_duration_label?: string | null
+          tutor_video_embed_url?: string | null
           tutor_video_reason?: string | null
+          tutor_video_title?: string | null
+          tutor_video_url?: string | null
+          tutor_visual_aid?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -695,6 +756,358 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      direct_anonymous_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          suggestion_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          suggestion_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          suggestion_text?: string
+        }
+        Relationships: []
+      }
+      direct_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      direct_conversation_members: {
+        Row: {
+          archived_at: string | null
+          conversation_id: string
+          hidden_at: string | null
+          joined_at: string
+          last_read_at: string | null
+          pinned_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          conversation_id: string
+          hidden_at?: string | null
+          joined_at?: string
+          last_read_at?: string | null
+          pinned_at?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          conversation_id?: string
+          hidden_at?: string | null
+          joined_at?: string
+          last_read_at?: string | null
+          pinned_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_conversations: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          last_message_at: string
+          pinned_at: string | null
+          title: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          kind?: string
+          last_message_at?: string
+          pinned_at?: string | null
+          title?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          last_message_at?: string
+          pinned_at?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      direct_friend_code_lookup_attempts: {
+        Row: {
+          attempted_at: string
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      direct_group_notification_preferences: {
+        Row: {
+          conversation_id: string
+          notifications_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          notifications_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          notifications_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_group_notification_preferences_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_message_hides: {
+        Row: {
+          hidden_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          hidden_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          hidden_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_hides_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          deleted_for_everyone_at: string | null
+          delivered_at: string | null
+          duration_seconds: number | null
+          edited_at: string | null
+          id: string
+          media_path: string | null
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          deleted_for_everyone_at?: string | null
+          delivered_at?: string | null
+          duration_seconds?: number | null
+          edited_at?: string | null
+          id?: string
+          media_path?: string | null
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          deleted_for_everyone_at?: string | null
+          delivered_at?: string | null
+          duration_seconds?: number | null
+          edited_at?: string | null
+          id?: string
+          media_path?: string | null
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_request_permissions: {
+        Row: {
+          allowed: boolean
+          recipient_id: string
+          requester_id: string
+          updated_at: string
+        }
+        Insert: {
+          allowed?: boolean
+          recipient_id: string
+          requester_id: string
+          updated_at?: string
+        }
+        Update: {
+          allowed?: boolean
+          recipient_id?: string
+          requester_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      direct_requests: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          recipient_id: string
+          sender_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          recipient_id: string
+          sender_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          sender_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      direct_settings: {
+        Row: {
+          allow_requests: boolean
+          auto_play_voice: boolean
+          read_receipts: boolean
+          show_last_seen: boolean
+          show_online_status: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_requests?: boolean
+          auto_play_voice?: boolean
+          read_receipts?: boolean
+          show_last_seen?: boolean
+          show_online_status?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_requests?: boolean
+          auto_play_voice?: boolean
+          read_receipts?: boolean
+          show_last_seen?: boolean
+          show_online_status?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      direct_voice_drafts: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          storage_path: string
+          sync_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          storage_path: string
+          sync_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          storage_path?: string
+          sync_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_voice_drafts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       discipline_aliases: {
         Row: {
@@ -2179,6 +2592,24 @@ export type Database = {
           },
         ]
       }
+      student_friend_codes: {
+        Row: {
+          created_at: string
+          friend_code: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_code: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_learning_signals: {
         Row: {
           concept: string
@@ -2766,6 +3197,65 @@ export type Database = {
       create_formal_evaluation_attempt: {
         Args: { _questions: Json; _topic_id: string; _user_id: string }
         Returns: Json
+      }
+      direct_accept_request: { Args: { request_id: string }; Returns: string }
+      direct_block_user: { Args: { target_user_id: string }; Returns: boolean }
+      direct_create_group: {
+        Args: { group_title: string; member_ids: string[] }
+        Returns: string
+      }
+      direct_decline_request: { Args: { request_id: string }; Returns: boolean }
+      direct_delete_message: {
+        Args: { target_message_id: string }
+        Returns: string
+      }
+      direct_find_by_friend_code: {
+        Args: { friend_code_input: string }
+        Returns: {
+          allow_requests: boolean
+          avatar_url: string
+          display_name: string
+          user_id: string
+        }[]
+      }
+      direct_find_people: {
+        Args: { search_text: string }
+        Returns: {
+          allow_requests: boolean
+          avatar_url: string
+          display_name: string
+          user_id: string
+        }[]
+      }
+      direct_get_read_receipts: {
+        Args: { target_conversation_id: string }
+        Returns: {
+          display_name: string
+          last_read_at: string
+          user_id: string
+        }[]
+      }
+      direct_my_friend_code: { Args: never; Returns: string }
+      direct_send_request: {
+        Args: { recipient_user_id: string }
+        Returns: string
+      }
+      direct_set_request_permission: {
+        Args: { is_allowed: boolean; requester_user_id: string }
+        Returns: boolean
+      }
+      direct_unblock_user: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
+      direct_update_member_preferences: {
+        Args: {
+          mark_read?: boolean
+          should_archive?: boolean
+          should_pin?: boolean
+          target_conversation_id: string
+        }
+        Returns: boolean
       }
       finalize_formal_evaluation: {
         Args: { _answers: Json; _attempt_id: string }
