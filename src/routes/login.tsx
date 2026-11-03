@@ -301,25 +301,25 @@ function Login() {
 
         <div className="grid min-h-0 flex-1 w-full items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-24">
           <aside className="hidden max-w-2xl lg:block">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0242D7]">Aprendizagem universitária</p>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-[#0242D7]">Ensina-me</p>
             <h2 className="mt-6 max-w-[620px] text-[3.4rem] font-extrabold leading-[1.04] tracking-[-0.06em] text-[#14233B] xl:text-[4.25rem]">
-              Seu próximo passo começa com <span className="text-[#0242D7]">compreensão.</span>
+              Você já começou. <span className="text-[#0242D7]">continue de onde parou.</span>
             </h2>
             <p className="mt-6 max-w-lg text-base leading-7 text-[#64748B] xl:text-lg xl:leading-8">
-              Retome seus estudos, avance no seu ritmo e transforme conhecimento em domínio.
+              Um pouco de cada vez também leva longe. Seu próximo avanço começa com o estudo de hoje.
             </p>
             <div className="mt-9 h-px w-24 bg-[#DCE6F7]" />
             <p className="mt-6 text-xs font-semibold tracking-wide text-[#718099]">Ensina-me · Aprendizagem com clareza.</p>
           </aside>
           <section className="mx-auto w-full max-w-[500px] rounded-[26px] border border-[#E6EBF3] bg-white p-6 shadow-[0_24px_80px_rgba(20,35,59,0.09)] sm:rounded-[30px] sm:p-9 lg:p-10" aria-labelledby="login-title">
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#0242D7]">
-            Área do aluno
+            Bem-vindo de volta
           </p>
           <h1 id="login-title" className="mt-3 text-[1.9rem] font-extrabold tracking-[-0.05em] sm:text-[2.15rem]">
-            Entre na sua conta
+            Que bom ter você aqui.
           </h1>
           <p className="mt-3 text-sm leading-6 text-[#718099]">
-            Entre para continuar sua jornada de aprendizagem.
+            Acesse seu espaço e continue aprendendo no seu ritmo.
           </p>
 
           {message && (
@@ -447,7 +447,7 @@ function Login() {
               disabled={isLoading}
               className="h-12 w-full rounded-xl bg-[#0242D7] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(2,66,215,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
             >
-              {isLoading ? "Entrando..." : "Entrar"}
+              {isLoading ? "Abrindo seu espaço..." : "Continuar meus estudos"}
             </button>
           </form>
 
