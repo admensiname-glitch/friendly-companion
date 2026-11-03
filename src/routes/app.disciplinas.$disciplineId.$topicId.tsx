@@ -2540,7 +2540,7 @@ function EvaluationSection({
     await onDifficultyUpdate();
   }
 
-  async function startRecovery(point: NonNullable<NonNullable<FormalEvaluationResult["analysis"]>["weak_points"]>[number]) {
+  async function startRecovery(point: NonNullable<FormalEvaluationResult["analysis"]>["weak_points"][number]) {
     setRecoveryLoading(true);
     setRecoveryFeedback(null);
     setRecoveryAnswer(null);
