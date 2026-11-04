@@ -44,12 +44,13 @@ try {
   const sitemapResponse = await page.request.get(baseURL + "/sitemap.xml");
   if (!sitemapResponse.ok()) throw new Error(`sitemap returned HTTP ${sitemapResponse.status()}`);
   const sitemap = await sitemapResponse.text();
-  const sitemapDocument = new DOMParser().parseFromString(sitemap, "application/xml");
-  if (sitemapDocument.querySelector("parsererror")) throw new Error("sitemap is not valid XML");
-  const sitemapLocations = [...sitemapDocument.getElementsByTagNameNS("*", "loc")]
-    .map((node) => {
+  if (!/^\\s*(?:<\\?xml[^>]*>\\s*)?<urlset\\b[\\s\\S]*<\\/urlset>\\s*$/i.test(sitemap)) {
+    throw new Error("sitemap is not a valid urlset XML document");
+  }
+  const sitemapLocations = [...sitemap.matchAll(/<loc>([\\s\\S]*?)<\\/loc>/gi)]
+    .map((match) => {
       try {
-        const url = new URL(node.textContent ?? "");
+        const url = new URL(match[1].trim().replace(/&amp;/g, "&"));
         return url.protocol === "https:" ? url : null;
       } catch {
         return null;
