@@ -87,10 +87,12 @@ function AdminDashboard() {
         const { data, error: invokeError } = await supabase.functions.invoke("academic-evidence-audit", { body: { limit: 5 } });
         if (invokeError) throw new Error(typeof data?.error === "string" ? data.error : invokeError.message);
         if (!data || typeof data !== "object") throw new Error("Resposta inválida do verificador.");
-        const items = Array.isArray(data.processed) ? data.processed : [];
+        const items = Array.isArray(data.processed)
+          ? (data.processed as Array<Record<string, unknown>>)
+          : [];
         processed += items.length;
-        published += items.filter((item: any) => item?.published === true).length;
-        blocked += items.filter((item: any) => Number(item?.blocked ?? 0) > 0 || item?.status === "blocked").length;
+        published += items.filter((item) => item.published === true).length;
+        blocked += items.filter((item) => Number(item.blocked ?? 0) > 0 || item.status === "blocked").length;
         remaining = Number.isFinite(Number(data.remaining_draft_materials)) ? Number(data.remaining_draft_materials) : remaining;
         setAcademicProgress({ batches: batches + 1, processed, published, blocked });
         if (data.error) throw new Error(String(data.error));
