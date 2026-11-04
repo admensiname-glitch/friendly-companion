@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -39,8 +40,13 @@ Deno.serve(async (req:Request) => {
   const {data:discipline}=topic?.discipline_id?await db.from("disciplines").select("id,published,course_id").eq("id",topic.discipline_id).maybeSingle():{data:null};
   const {data:course}=discipline?.course_id?await db.from("courses").select("id,published").eq("id",discipline.course_id).maybeSingle():{data:null};
   const hierarchy={topic_published:!!topic?.published,discipline_published:!!discipline?.published,course_published:!!course?.published};
-  const eligible=(citations?.length??0)>0&&badSources.length===0&&badCitations.length===0&&!!topic?.published&&!!discipline?.published&&!!course?.published;
-  if(body.action==="audit_material") return out(200,{material,citation_count:citations?.length??0,source_count:sources?.length??0,invalid_source_count:badSources.length,invalid_citation_count:badCitations.length,hierarchy,eligible_for_publication:eligible,sources,citations});
+  const {data:sections}=await db.from("material_sections").select("id,title,content").eq("material_id",id);
+  const verifiedSourceIds=new Set((sources??[]).filter((s:any)=>s.verification_status==="verified").map((s:any)=>s.id));
+  const approvedSectionIds=new Set((citations??[]).filter((c:any)=>c.verification_status==="approved"&&verifiedSourceIds.has(c.source_id)&&c.section_id).map((c:any)=>c.section_id));
+  const sectionQuality=sections?.length===10&&(sections??[]).every((s:any)=>!!s.title&&String(s.content??"").trim().length>=180&&!String(s.content??"").includes("{{TOPICO}}")&&!/prática em preparação|avaliação formal em preparação|as questões serão revisadas/i.test(String(s.content??"")));
+  const sectionCoverage=sections?.length===10&&(sections??[]).every((s:any)=>approvedSectionIds.has(s.id));
+  const eligible=(citations?.length??0)>0&&badSources.length===0&&badCitations.length===0&&sectionQuality&&sectionCoverage&&!!topic?.published&&!!discipline?.published&&!!course?.published;
+  if(body.action==="audit_material") return out(200,{material,citation_count:citations?.length??0,source_count:sources?.length??0,invalid_source_count:badSources.length,invalid_citation_count:badCitations.length,section_count:sections?.length??0,section_quality:!!sectionQuality,section_coverage:!!sectionCoverage,hierarchy,eligible_for_publication:eligible,sources,citations,sections});
   if(body.action==="approve_material") return out(410,{error:"Aprovação automática por preenchimento de campos foi desativada. A fonte e a citação precisam ser verificadas documentalmente antes de receber status aprovado."});
   if(body.action!=="publish_material") return out(400,{error:"Ação inválida. Use audit_material ou publish_material."});
   if(material.status==="published") return out(409,{error:"Material já publicado."});
