@@ -1169,6 +1169,70 @@ function Onboarding() {
     await navigate({ to: "/app/dashboard" });
   }
 
+  // Skip is an explicit completion path: persist the profile as completed
+  // without requiring a course or deleting any optional student data.
+  async function handleSkip() {
+    if (isLoading) return;
+
+    if (saveDebounce.current) {
+      clearTimeout(saveDebounce.current);
+      saveDebounce.current = null;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+    setTechnicalError(null);
+    setStatus("saving");
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setMessage("Sessão expirada. Faça login novamente.");
+      setStatus("error");
+      setIsLoading(false);
+      return;
+    }
+
+    const difficultiesArray = difficulties
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const { error } = await supabase
+      .from("student_profiles")
+      .upsert(
+        {
+          user_id: sessionData.session.user.id,
+          course_id: selectedCourseId,
+          institution: institution.trim() || null,
+          semester,
+          daily_study_minutes: dailyStudyMinutes,
+          difficulties: difficultiesArray.length > 0 ? difficultiesArray : null,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+
+    if (error) {
+      setMessage("Não foi possível pular a configuração agora. Tente novamente.");
+      setTechnicalError({
+        operation: "Pular configuração inicial",
+        error: {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        },
+      });
+      setStatus("error");
+      setIsLoading(false);
+      return;
+    }
+
+    setStatus("saved");
+    await navigate({ to: "/app/dashboard", replace: true });
+  }
+
   const isFirstStep = step === "institution";
   const isLastStep = step === "final";
 
@@ -1326,12 +1390,14 @@ function Onboarding() {
 
           <div className="mt-10 flex items-center justify-between gap-4">
             {isFirstStep ? (
-              <Link
-                to="/app/dashboard"
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#64748B] transition-colors hover:bg-[#F8FAFC] hover:text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={isLoading}
+                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#64748B] transition-colors hover:bg-[#F8FAFC] hover:text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Pular por agora
-              </Link>
+                {isLoading ? "Abrindo..." : "Pular por agora"}
+              </button>
             ) : (
               <button
                 type="button"
