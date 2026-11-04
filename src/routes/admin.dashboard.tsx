@@ -109,6 +109,8 @@ function AdminDashboard() {
     } finally { setAcademicBusy(false); }
   }
 
+  // Run once per admin-dashboard mount; the audit itself skips unchanged materials.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (academicStarted.current) return;
     academicStarted.current = true;
