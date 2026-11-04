@@ -37,6 +37,10 @@ function AdminDashboard() {
   const [auditBusy, setAuditBusy] = useState(false);
   const [auditResult, setAuditResult] = useState<Record<string, unknown> | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [academicBusy, setAcademicBusy] = useState(false);
+  const [academicProgress, setAcademicProgress] = useState({ batches: 0, processed: 0, published: 0, blocked: 0 });
+  const [academicResult, setAcademicResult] = useState<Record<string, unknown> | null>(null);
+  const [academicError, setAcademicError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -70,6 +74,35 @@ function AdminDashboard() {
     } finally {
       setAuditBusy(false);
     }
+  }
+
+  async function runAcademicValidation() {
+    if (academicBusy) return;
+    setAcademicBusy(true);
+    setAcademicError(null);
+    setAcademicResult(null);
+    let processed = 0, published = 0, blocked = 0, batches = 0, remaining: number | null = null;
+    try {
+      for (; batches < 100; batches += 1) {
+        const { data, error: invokeError } = await supabase.functions.invoke("academic-evidence-audit", { body: { limit: 5 } });
+        if (invokeError) throw new Error(typeof data?.error === "string" ? data.error : invokeError.message);
+        if (!data || typeof data !== "object") throw new Error("Resposta inválida do verificador.");
+        const items = Array.isArray(data.processed) ? data.processed : [];
+        processed += items.length;
+        published += items.filter((item: any) => item?.published === true).length;
+        blocked += items.filter((item: any) => Number(item?.blocked ?? 0) > 0 || item?.status === "blocked").length;
+        remaining = Number.isFinite(Number(data.remaining_draft_materials)) ? Number(data.remaining_draft_materials) : remaining;
+        setAcademicProgress({ batches: batches + 1, processed, published, blocked });
+        if (data.error) throw new Error(String(data.error));
+        if (data.has_more !== true) { batches += 1; break; }
+      }
+      if (batches >= 100) throw new Error("Limite de 100 lotes atingido; execute novamente para continuar.");
+      setAcademicResult({ batches, processed, published, blocked, remaining });
+      const { data: refreshed } = await supabase.rpc("get_admin_dashboard_stats");
+      if (refreshed) setStats(refreshed as unknown as AdminStats);
+    } catch (error) {
+      setAcademicError(error instanceof Error ? error.message : "Falha na validação acadêmica.");
+    } finally { setAcademicBusy(false); }
   }
 
   return (
@@ -123,6 +156,18 @@ function AdminDashboard() {
           ))}
         </div>
       )}
+
+      <section className="mt-10 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-7" aria-labelledby="academic-evidence-title">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0242D7]">Validação documental</p>
+        <h2 id="academic-evidence-title" className="mt-2 text-2xl font-bold text-[#0F172A]">Fontes, citações e publicação</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[#64748B]">Analisa os materiais em rascunho em lotes. Confere DOI, título, autoria e editora no Crossref; exige documento recuperado, direitos registrados, trecho literal localizado e localizador compatível. Só publica quando todas as citações e a estrutura passam. O que não tiver prova suficiente permanece bloqueado.</p>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button type="button" disabled={academicBusy} onClick={() => void runAcademicValidation()} className="min-h-11 rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{academicBusy ? "Validando materiais..." : "Executar validação completa"}</button>
+          {academicBusy && <span className="text-sm text-[#64748B]" role="status">Lote {academicProgress.batches} · {academicProgress.processed} materiais · {academicProgress.published} publicados · {academicProgress.blocked} bloqueados</span>}
+        </div>
+        {academicError && <div role="alert" className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]">{academicError}</div>}
+        {academicResult && <p className="mt-4 text-sm leading-6 text-[#475569]">Concluído: {String(academicResult.processed)} materiais em {String(academicResult.batches)} lotes; {String(academicResult.published)} publicados; {String(academicResult.blocked)} bloqueados. Rascunhos restantes: {String(academicResult.remaining)}. Nenhum conteúdo didático foi gerado por esta rotina.</p>}
+      </section>
 
       <section className="mt-10 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-7" aria-labelledby="professor-audit-title">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0242D7]">Auditoria acadêmica</p>
