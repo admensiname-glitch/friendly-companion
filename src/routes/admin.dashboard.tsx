@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,6 +41,7 @@ function AdminDashboard() {
   const [academicProgress, setAcademicProgress] = useState({ batches: 0, processed: 0, published: 0, blocked: 0 });
   const [academicResult, setAcademicResult] = useState<Record<string, unknown> | null>(null);
   const [academicError, setAcademicError] = useState<string | null>(null);
+  const academicStarted = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -107,6 +108,12 @@ function AdminDashboard() {
       setAcademicError(error instanceof Error ? error.message : "Falha na validação acadêmica.");
     } finally { setAcademicBusy(false); }
   }
+
+  useEffect(() => {
+    if (academicStarted.current) return;
+    academicStarted.current = true;
+    void runAcademicValidation();
+  }, []);
 
   return (
     <section aria-labelledby="admin-dashboard-title">
