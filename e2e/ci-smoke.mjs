@@ -73,7 +73,7 @@ try {
 
   for (const [path, expectedTitle, expectedDescription] of [
     ["/termos", "Termos de uso | Ensina-me", "Consulte os termos de uso da plataforma educacional Ensina-me."],
-    ["/privacidade", "Política de privacidade | Ensina-me", "Consulte como o Ensina-me trata dados de cadastro, perfil acadêmico e progresso de aprendizagem."],
+    ["/privacidade", "Política de Privacidade e Proteção de Dados | Ensina-me", "Como o Ensina-me trata dados pessoais e atende aos direitos previstos na Lei Geral de Proteção de Dados (LGPD)."],
   ]) {
     const legalResponse = await page.goto(baseURL + path, { waitUntil: "domcontentloaded", timeout: 30000 });
     if (!legalResponse || !legalResponse.ok()) throw new Error(`${path} returned HTTP ${legalResponse?.status() ?? "unknown"}`);
