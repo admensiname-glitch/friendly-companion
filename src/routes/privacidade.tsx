@@ -6,7 +6,9 @@ export const Route = createFileRoute("/privacidade")({
       { title: "Política de Privacidade e Proteção de Dados | Ensina-me" },
       { name: "description", content: "Como o Ensina-me trata dados pessoais e atende aos direitos previstos na Lei Geral de Proteção de Dados (LGPD)." },
       { property: "og:title", content: "Política de Privacidade e Proteção de Dados | Ensina-me" },
-      { property: "og:description", content: "Transparência sobre dados pessoais, finalidades, segurança e direitos dos titulares." },
+      { property: "og:description", content: "Como o Ensina-me trata dados pessoais e atende aos direitos previstos na Lei Geral de Proteção de Dados (LGPD)." },
+      { name: "twitter:title", content: "Política de Privacidade e Proteção de Dados | Ensina-me" },
+      { name: "twitter:description", content: "Como o Ensina-me trata dados pessoais e atende aos direitos previstos na Lei Geral de Proteção de Dados (LGPD)." },
       { name: "robots", content: "index,follow" }
     ]
   }),
