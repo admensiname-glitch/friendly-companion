@@ -82,6 +82,7 @@ function AdminDashboard() {
     setAcademicError(null);
     setAcademicResult(null);
     let processed = 0, published = 0, blocked = 0, batches = 0, remaining: number | null = null;
+    let finished = false;
     try {
       for (; batches < 100; batches += 1) {
         const { data, error: invokeError } = await supabase.functions.invoke("academic-evidence-audit", { body: { limit: 5 } });
@@ -96,9 +97,9 @@ function AdminDashboard() {
         remaining = Number.isFinite(Number(data.remaining_draft_materials)) ? Number(data.remaining_draft_materials) : remaining;
         setAcademicProgress({ batches: batches + 1, processed, published, blocked });
         if (data.error) throw new Error(String(data.error));
-        if (data.has_more !== true) { batches += 1; break; }
+        if (data.has_more !== true) { batches += 1; finished = true; break; }
       }
-      if (batches >= 100) throw new Error("Limite de 100 lotes atingido; execute novamente para continuar.");
+      if (!finished) throw new Error("Limite de 100 lotes atingido; execute novamente para continuar.");
       setAcademicResult({ batches, processed, published, blocked, remaining });
       const { data: refreshed } = await supabase.rpc("get_admin_dashboard_stats");
       if (refreshed) setStats(refreshed as unknown as AdminStats);
@@ -168,7 +169,7 @@ function AdminDashboard() {
           {academicBusy && <span className="text-sm text-[#64748B]" role="status">Lote {academicProgress.batches} · {academicProgress.processed} materiais · {academicProgress.published} publicados · {academicProgress.blocked} bloqueados</span>}
         </div>
         {academicError && <div role="alert" className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]">{academicError}</div>}
-        {academicResult && <p className="mt-4 text-sm leading-6 text-[#475569]">Concluído: {String(academicResult.processed)} materiais em {String(academicResult.batches)} lotes; {String(academicResult.published)} publicados; {String(academicResult.blocked)} bloqueados. Rascunhos restantes: {String(academicResult.remaining)}. Nenhum conteúdo didático foi gerado por esta rotina.</p>}
+        {academicResult && <p className="mt-4 text-sm leading-6 text-[#475569]">Concluído: {String(academicResult.processed)} materiais em {String(academicResult.batches)} lotes; {String(academicResult.published)} publicados; {String(Number(academicResult.processed) - Number(academicResult.published))} não publicados, dos quais {String(academicResult.blocked)} têm evidência insuficiente. Rascunhos restantes: {String(academicResult.remaining)}. Nenhum conteúdo didático foi gerado por esta rotina.</p>}
       </section>
 
       <section className="mt-10 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-7" aria-labelledby="professor-audit-title">
