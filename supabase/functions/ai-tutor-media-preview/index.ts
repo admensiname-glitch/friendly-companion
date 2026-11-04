@@ -183,7 +183,7 @@ async function researchImageOnWeb(imageDescription: string, studentQuestion: str
   const payload = await response.json();
   const choice = payload?.choices?.[0]?.message;
   const result = typeof choice?.content === "string" ? choice.content.trim() : "";
-  const citations = Array.isArray(choice?.annotations) ? choice.annotations.flatMap((item: any) => {
+  const citations = Array.isArray(choice?.annotations) ? choice.annotations.flatMap((item: { url_citation?: { url?: string; title?: string } }) => {
     const citation = item?.url_citation;
     return citation?.url ? [`- ${citation.title || "Fonte consultada"}: ${citation.url}`] : [];
   }) : [];
