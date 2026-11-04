@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -98,6 +99,7 @@ Deno.serve(async(req)=>{
   });
   const sourceMap=new Map(sourceChecks.map((x:any)=>[x.source_id,x]));
   let approved=0,blocked=0;
+  const approvedSectionIds=new Set<string>();
   for(const citation of citations){
    const sourceCheck:any=sourceMap.get(citation.source_id);
    const sourceDocs=(docs??[]).filter((d:any)=>d.source_id===citation.source_id&&d.retrieval_status==="retrieved"&&d.content_sha256);
@@ -116,7 +118,7 @@ Deno.serve(async(req)=>{
     updateError=u.error;
    }
    const finalEligible=eligible&&!updateError;
-   if(finalEligible)approved++;else blocked++;
+   if(finalEligible){approved++;if(citation.section_id)approvedSectionIds.add(citation.section_id);}else blocked++;
    const auditInsert=await admin.from("academic_evidence_audits").insert({
     run_id:runId,material_id:material.id,citation_id:citation.id,source_id:citation.source_id,actor_id:user.id,
     source_identity_status:sourceCheck?.status==="verified"?"verified":sourceCheck?.status==="failed"?"failed":"not_checked",
@@ -135,14 +137,14 @@ Deno.serve(async(req)=>{
   const allApproved=approved===citations.length && blocked===0;
   const hierarchy=!!topic?.published&&!!discipline?.published&&!!course?.published;
   let published=false,publishError=null;
-  if(allApproved&&sectionQuality&&hierarchy){
+  if(allApproved&&sectionQuality&&sectionCoverage&&hierarchy){
    const {error}=await userDb.from("materials").update({status:"published",updated_at:new Date().toISOString()}).eq("id",material.id);
    publishError=error?.message??null;published=!error;
   }
   const finalStatus=published?"published":blocked>0?"blocked":"validated_not_published";
-  const runInsert=await admin.from("academic_evidence_material_runs").insert({run_id:runId,material_id:material.id,material_updated_at:material.updated_at,actor_id:user.id,status:finalStatus,citation_count:citations.length,eligible_count:approved,blocked_count:blocked,published,details:{section_count:sections?.length??0,section_quality:sectionQuality,hierarchy_published:hierarchy,publication_error:publishError}});
+  const runInsert=await admin.from("academic_evidence_material_runs").insert({run_id:runId,material_id:material.id,material_updated_at:material.updated_at,actor_id:user.id,status:finalStatus,citation_count:citations.length,eligible_count:approved,blocked_count:blocked,published,details:{section_count:sections?.length??0,section_quality:sectionQuality,section_coverage:sectionCoverage,hierarchy_published:hierarchy,publication_error:publishError}});
   if(runInsert.error)return reply(500,{error:"Falha ao registrar resultado do material.",detail:runInsert.error.message,material_id:material.id});
-  summaries.push({material_id:material.id,title:material.title,citations:citations.length,eligible:approved,blocked,sections:sections?.length??0,section_quality:sectionQuality,hierarchy_published:hierarchy,published,publication_error:publishError,status:finalStatus});
+  summaries.push({material_id:material.id,title:material.title,citations:citations.length,eligible:approved,blocked,sections:sections?.length??0,section_quality:sectionQuality,section_coverage:sectionCoverage,hierarchy_published:hierarchy,published,publication_error:publishError,status:finalStatus});
  }
  const {count:remaining}=await admin.from("materials").select("id",{count:"exact",head:true}).eq("status","draft");
  return reply(200,{run_id:runId,actor_id:user.id,processed:summaries,remaining_draft_materials:remaining??null,has_more:hasMore,policy:"Only DOI/title/author cross-check + retrieved document + recorded usage rights + exact excerpt + matching locator can pass. No AI-only approvals."});
