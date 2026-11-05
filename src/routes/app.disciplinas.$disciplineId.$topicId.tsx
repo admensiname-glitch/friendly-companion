@@ -1942,9 +1942,6 @@ function ExerciseSection({
   }
 
   const roundNumber = round + 1;
-  const roundProgress = visibleQuestions.length
-    ? Math.round((answeredThisRound / visibleQuestions.length) * 100)
-    : 0;
 
   const currentQuestion = visibleQuestions[questionIndex];
   const currentQuestionAnswered = currentQuestion ? revealedQuestions.has(currentQuestion.id) : false;
