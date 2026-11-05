@@ -1666,13 +1666,13 @@ function ExerciseOptionItem({
     "w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors cursor-pointer";
 
   if (isSelected && !isRevealed) {
-    optionClass += " border-[#0242D7] bg-[#EFF6FF] text-[#0242D7]";
+    optionClass += " border-[#0242D7] bg-[#EAF1FC] text-[#123B82] dark:border-[#7DA5F5] dark:bg-[#1D3152] dark:text-[#E5EEFF]";
   } else if (isRevealed && option.is_correct) {
-    optionClass += " border-[#16A34A] bg-[#F0FDF4] text-[#15803D]";
+    optionClass += " border-[#16A34A] bg-[#F0FDF4] text-[#15803D] dark:border-[#2F8B5B] dark:bg-[#153426] dark:text-[#A6E4BF]";
   } else if (isRevealed && isSelected && !option.is_correct) {
-    optionClass += " border-[#DC2626] bg-[#FEF2F2] text-[#991B1B]";
+    optionClass += " border-[#DC2626] bg-[#FEF2F2] text-[#991B1B] dark:border-[#A84A4A] dark:bg-[#3A2024] dark:text-[#FFC1C1]";
   } else {
-    optionClass += " border-[#E2E8F0] bg-white text-[#334155] hover:border-[#CBD5E1]";
+    optionClass += " border-[#DCE4EF] bg-white text-[#334155] hover:border-[#9EB4D2] hover:bg-[#F7F9FC] dark:border-[#39485D] dark:bg-[#1B2635] dark:text-[#DCE5F1] dark:hover:border-[#6E86A8] dark:hover:bg-[#202E40]";
   }
 
   return (
@@ -1759,8 +1759,8 @@ function ExerciseQuestionItem({
         <div
           className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
             selectedOption.is_correct
-              ? "border-[#16A34A] bg-[#F0FDF4] text-[#15803D]"
-              : "border-[#DC2626] bg-[#FEF2F2] text-[#991B1B]"
+              ? "border-[#16A34A] bg-[#F0FDF4] text-[#15803D] dark:border-[#2F8B5B] dark:bg-[#153426] dark:text-[#A6E4BF]"
+              : "border-[#DC2626] bg-[#FEF2F2] text-[#991B1B] dark:border-[#A84A4A] dark:bg-[#3A2024] dark:text-[#FFC1C1]"
           }`}
           role="status"
         >
@@ -3413,17 +3413,6 @@ function TopicDetailPage() {
 
               {exercises.length > 0 ? (
                 <>
-                  <div className="mb-5 flex items-center justify-between gap-3 text-xs text-[#7A8796] dark:text-[#8797AA]">
-                    <span>
-                      {applicationProgress.answered} de {applicationProgress.total} questões respondidas
-                    </span>
-                    <span>
-                      {applicationProgress.total > 0
-                        ? Math.round((applicationProgress.answered / applicationProgress.total) * 100)
-                        : 0}% da prática registrada
-                    </span>
-                  </div>
-
                   <ExerciseSection
                     exercises={exercises}
                     onAnswerRevealed={handleAnswerRevealed}
