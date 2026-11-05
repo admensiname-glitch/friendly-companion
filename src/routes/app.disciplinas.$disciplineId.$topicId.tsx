@@ -1711,7 +1711,7 @@ function ExerciseQuestionItem({
 
   return (
     <div className="mt-6">
-      <p className="text-[15px] font-medium leading-7 text-[#0F172A] sm:text-base">
+      <p className="text-base font-semibold leading-7 tracking-[-0.01em] text-[#172334] sm:text-[17px] dark:text-[#F0F3F8]">
         {question.question_text}
       </p>
 
@@ -1749,7 +1749,7 @@ function ExerciseQuestionItem({
         <button
           type="button"
           onClick={onRevealAnswer}
-          className="mt-5 min-h-11 w-full rounded-xl bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2"
+          className="mt-4 min-h-10 rounded-lg bg-[#0242D7] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0038B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 dark:bg-[#315FB8] dark:hover:bg-[#3E70CE]"
         >
           Ver resposta
         </button>
@@ -1799,6 +1799,7 @@ function ExerciseSection({
   const [shuffledOptionOrders, setShuffledOptionOrders] = useState<Record<string, string[]>>({});
   const [questionOrder, setQuestionOrder] = useState<string[]>([]);
   const [round, setRound] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(0);
 
   useEffect(() => {
     if (allQuestions.length === 0) {
@@ -1816,6 +1817,7 @@ function ExerciseSection({
 
     setQuestionOrder(shuffled);
     setRound(0);
+    setQuestionIndex(0);
     setSelectedOptions({});
     setRevealedQuestions(new Set());
     setShuffledOptionOrders({});
@@ -1899,6 +1901,15 @@ function ExerciseSection({
   function goToNextRound() {
     if (!hasMoreRounds) return;
     setRound((value) => value + 1);
+    setQuestionIndex(0);
+  }
+
+  function goToNextQuestion() {
+    if (questionIndex < visibleQuestions.length - 1) setQuestionIndex((value) => value + 1);
+  }
+
+  function goToPreviousQuestion() {
+    if (questionIndex > 0) setQuestionIndex((value) => value - 1);
   }
 
   function restartPractice() {
@@ -1912,6 +1923,7 @@ function ExerciseSection({
 
     setQuestionOrder(shuffled);
     setRound(0);
+    setQuestionIndex(0);
     setSelectedOptions({});
     setRevealedQuestions(new Set());
 
@@ -1934,66 +1946,63 @@ function ExerciseSection({
     ? Math.round((answeredThisRound / visibleQuestions.length) * 100)
     : 0;
 
+  const currentQuestion = visibleQuestions[questionIndex];
+  const currentQuestionAnswered = currentQuestion ? revealedQuestions.has(currentQuestion.id) : false;
+  const overallQuestionNumber = round * QUESTIONS_PER_ROUND + questionIndex + 1;
+  const compactProgress = questionOrder.length ? Math.round((revealedQuestions.size / questionOrder.length) * 100) : 0;
+
   return (
-    <section aria-labelledby="exercises-heading" className="mt-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-labelledby="exercises-heading" className="mt-8">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 id="exercises-heading" className="text-lg font-semibold text-[#0F172A]">
-            Prática guiada
+          <h2 id="exercises-heading" className="text-xl font-semibold tracking-tight text-[#172334] dark:text-[#F2F2F2]">
+            Prática
           </h2>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#64748B]">
-            Pratique 5 questões por rodada. Você recebe o feedback após cada resposta e pode
-            continuar sem enfrentar todo o banco de uma vez.
+          <p className="mt-1 text-sm text-[#64748B] dark:text-[#A8B6C7]">
+            Uma questão por vez. Responda e avance no seu ritmo.
           </p>
         </div>
-
-        <div className="text-right text-xs text-[#64748B]">
-          <p className="font-semibold text-[#0F172A]">
-            Rodada {roundNumber} de {Math.max(1, Math.ceil(questionOrder.length / QUESTIONS_PER_ROUND))}
-          </p>
-          <p className="mt-0.5">{allQuestions.length} questões disponíveis neste tópico</p>
-        </div>
+        <span className="shrink-0 text-xs font-semibold tabular-nums text-[#64748B] dark:text-[#A8B6C7]">
+          {overallQuestionNumber} / {questionOrder.length}
+        </span>
       </div>
 
-      <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className="font-semibold text-[#0F172A]">
-            Progresso da rodada
-          </span>
-          <span className="text-[#64748B]">
-            {answeredThisRound} de {visibleQuestions.length} respondidas
-          </span>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
-          <div
-            className="h-full rounded-full bg-[#0242D7] transition-all"
-            style={{ width: `${roundProgress}%` }}
+      <div className="mb-4 h-1 overflow-hidden rounded-full bg-[#E8EDF4] dark:bg-[#283446]">
+        <div className="h-full rounded-full bg-[#0242D7] transition-all dark:bg-[#8EAFFF]" style={{ width: `${compactProgress}%` }} />
+      </div>
+
+      {currentQuestion && (
+        <div key={currentQuestion.id} className="rounded-xl border border-[#DCE4EF] bg-[#F8FAFC] p-4 sm:p-6 dark:border-[#344258] dark:bg-[#151D2A]">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#526783] dark:text-[#A9BDD9]">
+              Questão {overallQuestionNumber}
+            </span>
+            <span className="text-xs text-[#748399] dark:text-[#93A3B8]">Rodada {roundNumber}</span>
+          </div>
+          <ExerciseQuestionItem
+            question={{ ...currentQuestion, options: getOrderedOptions(currentQuestion) }}
+            selectedOptionId={selectedOptions[currentQuestion.id] ?? null}
+            revealedOptionId={revealedQuestions.has(currentQuestion.id) ? selectedOptions[currentQuestion.id] ?? null : null}
+            openText=""
+            onSelectOption={(optionId) => handleSelectOption(currentQuestion.id, optionId)}
+            onRevealAnswer={() => handleReveal(currentQuestion.id)}
           />
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#DCE4EF] pt-4 dark:border-[#344258]">
+            <button type="button" onClick={goToPreviousQuestion} disabled={questionIndex === 0}
+              className="min-h-10 rounded-lg px-3 text-sm font-medium text-[#526783] hover:bg-[#EAF0F7] disabled:opacity-30 dark:text-[#B2C0D2] dark:hover:bg-[#202B3B]">
+              ← Anterior
+            </button>
+            <span className="text-xs tabular-nums text-[#748399] dark:text-[#93A3B8]">
+              {questionIndex + 1} de {visibleQuestions.length} nesta rodada
+            </span>
+            <button type="button" onClick={goToNextQuestion}
+              disabled={!currentQuestionAnswered || questionIndex >= visibleQuestions.length - 1}
+              className="min-h-10 rounded-lg bg-[#0242D7] px-4 text-sm font-semibold text-white hover:bg-[#0038B8] disabled:cursor-not-allowed disabled:opacity-35 dark:bg-[#315FB8] dark:hover:bg-[#3E70CE]">
+              Próxima →
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="mt-6 space-y-6">
-        {visibleQuestions.map((question) => {
-          const orderedQuestion = { ...question, options: getOrderedOptions(question) };
-
-          return (
-            <div key={question.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-              <ExerciseQuestionItem
-                question={orderedQuestion}
-                selectedOptionId={selectedOptions[question.id] ?? null}
-                revealedOptionId={
-                  revealedQuestions.has(question.id)
-                    ? selectedOptions[question.id] ?? null
-                    : null
-                }
-                openText=""
-                onSelectOption={(optionId) => handleSelectOption(question.id, optionId)}
-                onRevealAnswer={() => handleReveal(question.id)}
-              />
-            </div>
-          );
-        })}
-      </div>
+      )}
 
       {roundComplete && (
         <div className="mt-6 rounded-xl border border-[#BFDBFE] bg-[#F8FBFF] p-5">
