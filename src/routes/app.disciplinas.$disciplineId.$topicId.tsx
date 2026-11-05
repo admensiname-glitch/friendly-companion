@@ -3456,7 +3456,6 @@ function TopicDetailPage() {
         <div className="mt-8">
           {material ? (
             <section id="conteudo" aria-label="Matérias do tópico">
-              <TopicVideoSection videos={videos} />
               <div className="mt-2 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-start sm:mt-3">
                 <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
                   <div className="flex min-w-max gap-5 border-b border-[#DCE5EE] pb-3 dark:border-[#333333] lg:block lg:min-w-0 lg:border-0 lg:pb-0">
@@ -3488,13 +3487,13 @@ function TopicDetailPage() {
                             {isCompleted ? "✓" : sectionIndex + 1}
                           </span>
                           <span className="min-w-0">
-                            <span className={`block text-sm font-semibold leading-5 ${
+                            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-[#8793A0] dark:text-[#888888]">
+                              Matéria {sectionIndex + 1}
+                            </span>
+                            <span className={`mt-0.5 block text-sm font-semibold leading-5 ${
                               isActive ? "text-[#172334] dark:text-[#E7EDF5]" : ""
                             }`}>
                               {section.title}
-                            </span>
-                            <span className="mt-0.5 block text-[11px] leading-4 text-[#8793A0] dark:text-[#7F90A3]">
-                              {isCompleted ? "Estudada" : isActive ? "Agora" : "Próxima parte"}
                             </span>
                           </span>
                         </button>
@@ -3516,41 +3515,10 @@ function TopicDetailPage() {
                     />
                   )}
 
-                  <div className="mt-5 flex flex-col gap-4 px-1">
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#8793A0] dark:text-[#7F90A3]">
-                      <span>
-                        {contentProgress.completed === contentProgress.total
-                          ? "Compreensão concluída."
-                          : `${Math.round(
-                              (contentProgress.completed / Math.max(1, contentProgress.total)) * 100,
-                            )}% do conteúdo estudado`}
-                      </span>
-                      {contentProgress.completed !== contentProgress.total && (
-                        <span>
-                          Volte à parte atual quando quiser continuar.
-                        </span>
-                      )}
-                    </div>
-
-                    {contentProgress.total > 0 &&
-                      contentProgress.completed === contentProgress.total && (
-                        <div className="rounded-2xl border border-[#D5E1F2] bg-[#EFF5FF] px-5 py-4 dark:border-[#2E4563] dark:bg-[#142238]">
-                          <p className="text-sm font-bold text-[#172334] dark:text-[#E7EDF5]">
-                            Você terminou a compreensão deste tópico.
-                          </p>
-                          <p className="mt-1 text-sm leading-6 text-[#5F7187] dark:text-[#B3C0CF]">
-                            Agora tente recuperar e aplicar as ideias sem voltar imediatamente ao texto.
-                          </p>
-                          <a
-                            href="#pratica"
-                            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]"
-                          >
-                            Começar prática →
-                          </a>
-                        </div>
-                      )}
-                  </div>
                 </div>
+              </div>
+              <div className="mt-8">
+                <TopicVideoSection videos={videos} />
               </div>
             </section>
           ) : (
