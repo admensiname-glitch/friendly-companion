@@ -1695,20 +1695,15 @@ function StudySessionCard({ topicId }: { topicId: string }) {
 
   useEffect(() => {
     if (!startedAt) return;
-    const update = () => {
-      setSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
-    };
+    const update = () => setSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
     update();
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
   }, [startedAt]);
 
-  // A session belongs to this study page. Leaving the topic should stop the clock
-  // so the daily study metric does not keep counting in the background.
   useEffect(() => {
     return () => {
-      if (!sessionId) return;
-      void supabase.rpc("finish_study_session", { _session_id: sessionId });
+      if (sessionId) void supabase.rpc("finish_study_session", { _session_id: sessionId });
     };
   }, [sessionId]);
 
@@ -1717,71 +1712,62 @@ function StudySessionCard({ topicId }: { topicId: string }) {
       .map((part) => String(part).padStart(2, "0"))
       .join(":");
 
-  async function start() {
+  async function toggleSession() {
+    if (loading) return;
     setLoading(true);
+    if (sessionId) {
+      const { data, error } = await supabase.rpc("finish_study_session", {
+        _session_id: sessionId,
+      });
+      if (error || !data) {
+        console.error("[Ensina-me] Erro ao finalizar sessão:", error);
+        setLoading(false);
+        return;
+      }
+      setSessionId(null);
+      setStartedAt(null);
+      setSeconds(Number((data as { duration_seconds?: number }).duration_seconds ?? seconds));
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.rpc("start_study_session", {
       _topic_id: topicId,
     });
-    setLoading(false);
     if (error || !data) {
       console.error("[Ensina-me] Erro ao iniciar sessão:", error);
+      setLoading(false);
       return;
     }
     const payload = data as { session_id?: string; started_at?: string };
-    if (!payload.session_id || !payload.started_at) return;
-    setSessionId(payload.session_id);
-    setStartedAt(new Date(payload.started_at).getTime());
-  }
-
-  async function finish() {
-    if (!sessionId) return;
-    setLoading(true);
-    const { data, error } = await supabase.rpc("finish_study_session", {
-      _session_id: sessionId,
-    });
-    setLoading(false);
-    if (error || !data) {
-      console.error("[Ensina-me] Erro ao finalizar sessão:", error);
-      return;
+    if (payload.session_id && payload.started_at) {
+      setSessionId(payload.session_id);
+      setStartedAt(new Date(payload.started_at).getTime());
     }
-    setSessionId(null);
-    setStartedAt(null);
-    setSeconds(Number((data as { duration_seconds?: number }).duration_seconds ?? seconds));
+    setLoading(false);
   }
 
   return (
-    <section aria-label="Sessão de estudo" className="mt-6 rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:mt-8 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-[#0F172A]">Sessão de estudo</p>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Estude com foco e registre seu tempo neste tópico. Ao sair desta página, a sessão é encerrada automaticamente.
-          </p>
-        </div>
-        {sessionId ? (
-          <button
-            type="button"
-            onClick={finish}
-            disabled={loading}
-            className="rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2 text-sm font-semibold text-[#0242D7]"
-          >
-            {loading ? "Salvando..." : "Encerrar sessão"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={start}
-            disabled={loading}
-            className="rounded-md bg-[#0242D7] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0038B8]"
-          >
-            {loading ? "Iniciando..." : "Começar sessão"}
-          </button>
-        )}
-      </div>
-      <div className="mt-4 text-3xl font-bold tracking-tight text-[#0F172A]">
-        {format(seconds)}
-      </div>
-    </section>
+    <div className="inline-flex items-center gap-2">
+      {sessionId && (
+        <span className="font-mono text-[11px] tabular-nums text-[#7B8794] dark:text-[#A0A0A0]" aria-live="off">
+          {format(seconds)}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={toggleSession}
+        disabled={loading}
+        aria-label={sessionId ? "Encerrar cronômetro de estudo" : "Iniciar cronômetro de estudo"}
+        title={sessionId ? "Encerrar sessão de estudo" : "Iniciar sessão de estudo"}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#7B8794] transition-colors hover:bg-[#F1F3F5] hover:text-[#0242D7] disabled:opacity-50 dark:text-[#A0A0A0] dark:hover:bg-[#242424] dark:hover:text-white"
+      >
+        <svg viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" />
+          <path d="M12 9v4l2.5 1.5M9 2h6M12 5V2" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -2266,51 +2252,6 @@ function shuffle<T>(items: T[]): T[] {
   return next;
 }
 
-function MobileLearningFlow({
-  contentDone,
-  practiceDone,
-  reviewNeeded,
-  evaluationCompleted,
-}: {
-  contentDone: boolean;
-  practiceDone: boolean;
-  reviewNeeded: boolean;
-  evaluationCompleted: boolean;
-}) {
-  const steps = [
-    { label: "Estudar", done: contentDone },
-    { label: "Praticar", done: practiceDone },
-    { label: "Revisar", done: !reviewNeeded },
-    { label: "Avaliação", done: evaluationCompleted },
-  ];
-  const completedCount = steps.filter((step) => step.done).length;
-
-  return (
-    <div className="rounded-[20px] border border-[#DCE7F8] bg-white p-4 shadow-sm dark:border-[#263A55] dark:bg-[#142238]" aria-label="Progresso neste tópico">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#0242D7] dark:text-[#78A9FF]">Seu percurso</p>
-        <span className="text-[11px] font-extrabold text-[#718096] dark:text-[#9EADBD]">{completedCount} de {steps.length}</span>
-      </div>
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        {steps.map((step) => (
-          <div key={step.label} className="flex flex-col items-center gap-1.5">
-            <span
-              className={
-                step.done
-                  ? "flex h-8 w-8 items-center justify-center rounded-full bg-[#0242D7] text-white dark:bg-[#0B3FA8]"
-                  : "flex h-8 w-8 items-center justify-center rounded-full border border-[#DCE7F8] text-[#9AA7B8] dark:border-[#31445F] dark:text-[#6B7A8F]"
-              }
-              aria-hidden="true"
-            >
-              {step.done ? "✓" : "•"}
-            </span>
-            <span className="text-[10px] font-bold text-[#536174] dark:text-[#9EADBD]">{step.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function prepareQuestionPresentation(
   sourceQuestions: FormalEvaluationQuestion[],
@@ -3480,7 +3421,7 @@ function TopicDetailPage() {
           ← {disciplineName ?? "Voltar para a disciplina"}
         </Link>
 
-        <div className="mt-6 max-w-4xl">
+        <div className="mt-6 flex max-w-5xl flex-wrap items-start justify-between gap-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0242D7] dark:text-[#7DB0FF]">
             Tópico de estudo
           </p>
@@ -3496,7 +3437,9 @@ function TopicDetailPage() {
             </p>
           )}
         </div>
-
+        <div className="pt-1">
+          <StudySessionCard topicId={topicId} />
+        </div>
       </div>
 
       {/* ── Loading ── */}
@@ -3512,37 +3455,9 @@ function TopicDetailPage() {
       {!loading && !error && !notFound && (
         <div className="mt-8">
           {material ? (
-            <section id="conteudo" aria-labelledby="guided-study-heading">
-              <div className="max-w-4xl">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
-                  1 · Compreender
-                </p>
-                <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h2
-                      id="guided-study-heading"
-                      className="text-2xl font-semibold tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[30px]"
-                    >
-                      Estudo guiado
-                    </h2>
-                    {material.introduction && (
-                      <div className="mt-5 max-w-3xl space-y-5 text-base leading-8 text-[#526174] dark:text-[#B3C0CF]">
-                        {renderParagraphs(material.introduction)}
-                      </div>
-                    )}
-                  </div>
-                  <a
-                    href="#pratica"
-                    className="text-sm font-bold text-[#0242D7] hover:underline dark:text-[#7DB0FF]"
-                  >
-                    Ir para a prática ↓
-                  </a>
-                </div>
-              </div>
-
+            <section id="conteudo" aria-label="Matérias do tópico">
               <TopicVideoSection videos={videos} />
-
-              <div className="mt-7 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-start sm:mt-8">
+              <div className="mt-2 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-start sm:mt-3">
                 <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
                   <div className="flex min-w-max gap-5 border-b border-[#DCE5EE] pb-3 dark:border-[#333333] lg:block lg:min-w-0 lg:border-0 lg:pb-0">
                     {sections.map((section, sectionIndex) => {
@@ -3641,10 +3556,6 @@ function TopicDetailPage() {
           ) : (
             <ContentPlaceholder />
           )}
-
-          <div className="mt-12">
-            <StudySessionCard topicId={topicId} />
-          </div>
 
           <section id="pratica" aria-labelledby="practice-heading" className="mt-14">
             <div className="border-t border-[#E2E8F0] pt-10 dark:border-[#2B3A4F]">
