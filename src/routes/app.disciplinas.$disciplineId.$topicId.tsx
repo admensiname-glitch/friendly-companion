@@ -1687,90 +1687,6 @@ function ExerciseOptionItem({
   );
 }
 
-function StudySessionCard({ topicId }: { topicId: string }) {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [seconds, setSeconds] = useState(0);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!startedAt) return;
-    const update = () => setSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
-
-  useEffect(() => {
-    return () => {
-      if (sessionId) void supabase.rpc("finish_study_session", { _session_id: sessionId });
-    };
-  }, [sessionId]);
-
-  const format = (value: number) =>
-    [Math.floor(value / 3600), Math.floor((value % 3600) / 60), value % 60]
-      .map((part) => String(part).padStart(2, "0"))
-      .join(":");
-
-  async function toggleSession() {
-    if (loading) return;
-    setLoading(true);
-    if (sessionId) {
-      const { data, error } = await supabase.rpc("finish_study_session", {
-        _session_id: sessionId,
-      });
-      if (error || !data) {
-        console.error("[Ensina-me] Erro ao finalizar sessão:", error);
-        setLoading(false);
-        return;
-      }
-      setSessionId(null);
-      setStartedAt(null);
-      setSeconds(Number((data as { duration_seconds?: number }).duration_seconds ?? seconds));
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase.rpc("start_study_session", {
-      _topic_id: topicId,
-    });
-    if (error || !data) {
-      console.error("[Ensina-me] Erro ao iniciar sessão:", error);
-      setLoading(false);
-      return;
-    }
-    const payload = data as { session_id?: string; started_at?: string };
-    if (payload.session_id && payload.started_at) {
-      setSessionId(payload.session_id);
-      setStartedAt(new Date(payload.started_at).getTime());
-    }
-    setLoading(false);
-  }
-
-  return (
-    <div className="inline-flex items-center gap-2">
-      {sessionId && (
-        <span className="font-mono text-[11px] tabular-nums text-[#7B8794] dark:text-[#A0A0A0]" aria-live="off">
-          {format(seconds)}
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={toggleSession}
-        disabled={loading}
-        aria-label={sessionId ? "Encerrar cronômetro de estudo" : "Iniciar cronômetro de estudo"}
-        title={sessionId ? "Encerrar sessão de estudo" : "Iniciar sessão de estudo"}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#7B8794] transition-colors hover:bg-[#F1F3F5] hover:text-[#0242D7] disabled:opacity-50 dark:text-[#A0A0A0] dark:hover:bg-[#242424] dark:hover:text-white"
-      >
-        <svg viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="13" r="8" />
-          <path d="M12 9v4l2.5 1.5M9 2h6M12 5V2" />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
 // ─── Exercise question ────────────────────────────────────────────────────────
 
 function ExerciseQuestionItem({
@@ -3421,24 +3337,21 @@ function TopicDetailPage() {
           ← {disciplineName ?? "Voltar para a disciplina"}
         </Link>
 
-        <div className="mt-6 flex max-w-5xl flex-wrap items-start justify-between gap-4">
+        <div className="mt-6 max-w-4xl">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0242D7] dark:text-[#7DB0FF]">
             Tópico de estudo
           </p>
           <h1
             id="topic-title"
-            className="mt-2 text-[30px] font-semibold leading-[1.12] tracking-[-0.035em] text-[#172334] dark:text-[#F2F2F2] sm:text-[40px]"
+            className="mt-2 text-left text-[30px] font-semibold leading-[1.12] tracking-[-0.035em] text-[#172334] dark:text-[#F2F2F2] sm:text-[40px]"
           >
             {topic?.name ?? "Carregando..."}
           </h1>
           {topic?.description && (
-            <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#617083] dark:text-[#C5C5C5]">
+            <p className="mt-3 max-w-3xl text-left text-[15px] leading-7 text-[#617083] dark:text-[#C5C5C5]">
               {topic.description}
             </p>
           )}
-        </div>
-        <div className="pt-1">
-          <StudySessionCard topicId={topicId} />
         </div>
       </div>
 
@@ -3456,53 +3369,8 @@ function TopicDetailPage() {
         <div className="mt-8">
           {material ? (
             <section id="conteudo" aria-label="Matérias do tópico">
-              <div className="mt-2 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-start sm:mt-3">
-                <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
-                  <div className="flex min-w-max gap-5 border-b border-[#DCE5EE] pb-3 dark:border-[#333333] lg:block lg:min-w-0 lg:border-0 lg:pb-0">
-                    {sections.map((section, sectionIndex) => {
-                      const isActive = sectionIndex === activeSectionIndex;
-                      const isCompleted = completedSectionIds.includes(section.id);
-
-                      return (
-                        <button
-                          key={section.id}
-                          type="button"
-                          onClick={() => goToSection(sectionIndex)}
-                          aria-current={isActive ? "step" : undefined}
-                          className={`flex min-w-[170px] items-start gap-3 border-b-2 px-1 py-3 text-left transition-colors lg:w-full lg:min-w-0 lg:border-b-0 ${
-                            isActive
-                              ? "border-[#0242D7] text-[#172334] dark:border-[#F2F2F2] dark:text-[#F2F2F2]"
-                              : "border-transparent text-[#667487] hover:text-[#172334] dark:border-transparent dark:text-[#A5A5A5] dark:hover:text-white"
-                          }`}
-                        >
-                          <span
-                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[11px] font-semibold ${
-                              isCompleted
-                                ? "bg-[#E8F7EE] text-[#166534] dark:bg-[#123025] dark:text-[#8CD7B0]"
-                                : isActive
-                                  ? "bg-transparent text-[#0242D7] dark:bg-transparent dark:text-white"
-                                  : "bg-transparent text-[#718093] dark:bg-transparent dark:text-[#888888]"
-                            }`}
-                          >
-                            {isCompleted ? "✓" : sectionIndex + 1}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-[#8793A0] dark:text-[#888888]">
-                              Matéria {sectionIndex + 1}
-                            </span>
-                            <span className={`mt-0.5 block text-sm font-semibold leading-5 ${
-                              isActive ? "text-[#172334] dark:text-[#E7EDF5]" : ""
-                            }`}>
-                              {section.title}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </nav>
-
-                <div id="estudo-guiado">
+              <div className="mt-2 sm:mt-3">
+                <div id="estudo-guiado" className="mx-auto w-full max-w-4xl">
                   {sections[activeSectionIndex] && (
                     <MaterialSectionItem
                       section={sections[activeSectionIndex]}
