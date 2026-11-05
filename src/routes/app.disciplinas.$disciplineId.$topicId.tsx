@@ -361,7 +361,7 @@ function MaterialSectionItem({
   return (
     <article
       aria-labelledby={`section-${section.id}`}
-      className="rounded-[22px] border border-[#DCE5EE] bg-[#F8FAFC] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-7 dark:border-[#2B3A4F] dark:bg-[#111C2A]"
+      className="rounded-none border-0 bg-transparent p-0 shadow-none dark:bg-transparent"
     >
       <div className="flex items-start gap-4">
         <div
@@ -3480,102 +3480,23 @@ function TopicDetailPage() {
           ← {disciplineName ?? "Voltar para a disciplina"}
         </Link>
 
-        <div className="mt-7 max-w-4xl">
+        <div className="mt-6 max-w-4xl">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0242D7] dark:text-[#7DB0FF]">
             Tópico de estudo
           </p>
           <h1
             id="topic-title"
-            className="mt-3 text-[32px] font-bold leading-[1.05] tracking-[-0.045em] text-[#172334] dark:text-[#E7EDF5] sm:text-[46px]"
+            className="mt-2 text-[30px] font-semibold leading-[1.12] tracking-[-0.035em] text-[#172334] dark:text-[#F2F2F2] sm:text-[40px]"
           >
             {topic?.name ?? "Carregando..."}
           </h1>
           {topic?.description && (
-            <p className="mt-4 max-w-3xl text-[15px] leading-7 text-[#617083] dark:text-[#A7B5C5]">
+            <p className="mt-3 max-w-3xl text-[15px] leading-7 text-[#617083] dark:text-[#C5C5C5]">
               {topic.description}
             </p>
           )}
         </div>
 
-        {!loading && !error && !notFound && (
-          <div className="mt-7 max-w-4xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-              <p className="font-bold uppercase tracking-[0.14em] text-[#8A95A3] dark:text-[#7F90A3]">
-                Seu percurso
-              </p>
-              {contentProgress.total > 0 && (
-                <p className="font-semibold text-[#64748B] dark:text-[#9AA9BA]">
-                  {contentProgress.completed} de {contentProgress.total} partes estudadas
-                </p>
-              )}
-            </div>
-
-            <div className="mt-3 grid gap-0 sm:grid-cols-4">
-              {(() => {
-                const contentDone =
-                  contentProgress.total > 0 &&
-                  contentProgress.completed >= contentProgress.total;
-                const practiceDone =
-                  (applicationProgress.total > 0 &&
-                    applicationProgress.answered >= applicationProgress.total) ||
-                  tutorPracticeDone;
-                const reviewNeeded = difficulties.length > 0;
-                const activeStep = !contentDone
-                  ? 0
-                  : !practiceDone
-                    ? 1
-                    : reviewNeeded
-                      ? 2
-                      : !evaluationCompleted
-                        ? 3
-                        : 3;
-                const steps = [
-                  { number: "1", label: "Compreender", done: contentDone, href: "#conteudo" },
-                  { number: "2", label: "Praticar", done: practiceDone, href: "#pratica" },
-                  { number: "3", label: "Revisar", done: practiceDone && !reviewNeeded, href: "#revisao" },
-                  { number: "4", label: "Verificar", done: evaluationCompleted, href: "#avaliacao" },
-                ];
-
-                return steps.map((step, index) => {
-                  const current = index === activeStep;
-                  return (
-                    <a
-                      key={step.number}
-                      href={step.href}
-                      className={`relative flex items-center gap-3 border-t py-3 transition-colors hover:border-[#0242D7] sm:block sm:border-t-2 sm:pb-0 ${
-                        current
-                          ? "border-[#0242D7] dark:border-[#6EA6FF]"
-                          : "border-[#DCE5EE] dark:border-[#2B3A4F]"
-                      }`}
-                    >
-                      <span
-                        className={`text-xs font-bold ${
-                          current || step.done
-                            ? "text-[#0242D7] dark:text-[#7DB0FF]"
-                            : "text-[#8A95A3] dark:text-[#7F90A3]"
-                        }`}
-                      >
-                        {step.done && !current ? "✓" : step.number}
-                      </span>
-                      <span className={`text-sm font-semibold ${
-                        current
-                          ? "text-[#172334] dark:text-[#E7EDF5]"
-                          : "text-[#334155] dark:text-[#C4CFDC]"
-                      }`}>
-                        {step.label}
-                      </span>
-                      {index < 3 && (
-                        <span className="hidden sm:block sm:absolute sm:right-4 sm:top-2.5 text-[10px] font-semibold text-[#A0AAB7] dark:text-[#67788E]">
-                          →
-                        </span>
-                      )}
-                    </a>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Loading ── */}
@@ -3590,17 +3511,6 @@ function TopicDetailPage() {
       {/* ── Topic learning content ── */}
       {!loading && !error && !notFound && (
         <div className="mt-8">
-          {!loading && !error && !notFound && (
-            <MobileLearningFlow
-              contentDone={contentProgress.total > 0 && contentProgress.completed >= contentProgress.total}
-              practiceDone={
-                (applicationProgress.total > 0 && applicationProgress.answered >= applicationProgress.total) ||
-                tutorPracticeDone
-              }
-              reviewNeeded={difficulties.length > 0}
-              evaluationCompleted={evaluationCompleted}
-            />
-          )}
           {material ? (
             <section id="conteudo" aria-labelledby="guided-study-heading">
               <div className="max-w-4xl">
@@ -3632,9 +3542,9 @@ function TopicDetailPage() {
 
               <TopicVideoSection videos={videos} />
 
-              <div className="mt-6 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start sm:mt-7">
+              <div className="mt-7 grid gap-5 lg:grid-cols-[190px_minmax(0,1fr)] lg:items-start sm:mt-8">
                 <nav aria-label="Partes do estudo" className="overflow-x-auto lg:sticky lg:top-6 lg:overflow-visible">
-                  <div className="flex min-w-max gap-2 rounded-2xl border border-[#DCE5EE] bg-[#F3F6FA] p-2 dark:border-[#2B3A4F] dark:bg-[#151F2D] lg:block lg:min-w-0">
+                  <div className="flex min-w-max gap-5 border-b border-[#DCE5EE] pb-3 dark:border-[#333333] lg:block lg:min-w-0 lg:border-0 lg:pb-0">
                     {sections.map((section, sectionIndex) => {
                       const isActive = sectionIndex === activeSectionIndex;
                       const isCompleted = completedSectionIds.includes(section.id);
@@ -3645,19 +3555,19 @@ function TopicDetailPage() {
                           type="button"
                           onClick={() => goToSection(sectionIndex)}
                           aria-current={isActive ? "step" : undefined}
-                          className={`flex min-w-[190px] items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors lg:w-full lg:min-w-0 ${
+                          className={`flex min-w-[170px] items-start gap-3 border-b-2 px-1 py-3 text-left transition-colors lg:w-full lg:min-w-0 lg:border-b-0 ${
                             isActive
-                              ? "bg-white text-[#172334] shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:bg-[#1B2638] dark:text-[#E7EDF5]"
-                              : "text-[#667487] hover:bg-white/80 dark:text-[#9EAEBD] dark:hover:bg-[#1B2638]"
+                              ? "border-[#0242D7] text-[#172334] dark:border-[#F2F2F2] dark:text-[#F2F2F2]"
+                              : "border-transparent text-[#667487] hover:text-[#172334] dark:border-transparent dark:text-[#A5A5A5] dark:hover:text-white"
                           }`}
                         >
                           <span
-                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[11px] font-semibold ${
                               isCompleted
                                 ? "bg-[#E8F7EE] text-[#166534] dark:bg-[#123025] dark:text-[#8CD7B0]"
                                 : isActive
-                                  ? "bg-[#EAF1FC] text-[#0242D7] dark:bg-[#172B48] dark:text-[#7DB0FF]"
-                                  : "bg-[#E5EAF0] text-[#718093] dark:bg-[#263449] dark:text-[#92A2B4]"
+                                  ? "bg-transparent text-[#0242D7] dark:bg-transparent dark:text-white"
+                                  : "bg-transparent text-[#718093] dark:bg-transparent dark:text-[#888888]"
                             }`}
                           >
                             {isCompleted ? "✓" : sectionIndex + 1}
