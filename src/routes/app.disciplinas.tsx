@@ -67,7 +67,7 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
         backgroundImage: course.name.trim().toLocaleLowerCase("pt-BR").startsWith("letras")
           ? 'linear-gradient(105deg, rgba(2, 66, 215, 0.48), rgba(2, 66, 215, 0.68)), url("https://images.unsplash.com/photo-1741699428220-65f37f3fbbcb?auto=format&fit=crop&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200")'
           : course.name.trim().toLocaleLowerCase("pt-BR").startsWith("pedagogia")
-            ? 'linear-gradient(105deg, rgba(2, 66, 215, 0.48), rgba(2, 66, 215, 0.68)), url("https://images.unsplash.com/photo-1758270705696-ec9caffc73dd?auto=format&fit=crop&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200")'
+            ? 'linear-gradient(105deg, rgba(2, 66, 215, 0.48), rgba(2, 66, 215, 0.68)), url("https://images.pexels.com/photos/8364638/pexels-photo-8364638.jpeg?auto=compress&cs=tinysrgb&w=1200")'
             : undefined,
       }}
     >
