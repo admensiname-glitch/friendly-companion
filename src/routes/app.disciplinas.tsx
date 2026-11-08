@@ -62,23 +62,22 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
     <button
       type="button"
       onClick={onSelect}
-      className="group grid w-full gap-4 border-b border-[#E4EAF1] py-6 text-left last:border-b-0 dark:border-[#2B3A4F] sm:grid-cols-[52px_minmax(0,1fr)_auto] sm:items-center"
+      className="group relative flex min-h-[220px] w-full flex-col overflow-hidden rounded-2xl border border-[#0242D7] bg-[#0242D7] p-6 text-left text-white shadow-[0_8px_24px_rgba(2,66,215,0.16)] transition duration-200 hover:-translate-y-1 hover:bg-[#033BC0] hover:shadow-[0_14px_30px_rgba(2,66,215,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0242D7]/25 active:translate-y-0 sm:min-h-[236px] sm:p-7"
     >
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1B2638] dark:text-[#7DB0FF]">
-        <Icon name="book" className="h-5 w-5" />
+      <span aria-hidden="true" className="absolute -right-9 -top-10 h-36 w-36 rounded-full border border-white/10 bg-white/[0.06] transition-transform duration-300 group-hover:scale-110" />
+      <span aria-hidden="true" className="absolute -bottom-16 right-16 h-36 w-36 rounded-full border border-white/[0.08]" />
+      <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-inner">
+        <Icon name="book" className="h-6 w-6" />
       </span>
-      <div className="min-w-0">
-        <h2 className="text-[18px] font-bold text-[#273547] dark:text-[#E0E8F1]">{course.name}</h2>
-        <p className="mt-1 text-sm text-[#718093] dark:text-[#95A6B8]">
+      <span className="relative mt-6 block min-w-0 flex-1">
+        <span className="block text-xl font-bold leading-tight tracking-[-0.02em] text-white sm:text-[22px]">{course.name}</span>
+        <span className="mt-2 block text-sm leading-6 text-white/80">
           {course.description ?? "Explore o curso e encontre as disciplinas disponíveis."}
-        </p>
-      </div>
-      <span className="inline-flex flex-col items-end gap-1 text-right">
-        <span className="inline-flex items-center gap-2 text-sm font-bold text-[#0242D7] transition-transform group-hover:translate-x-0.5 dark:text-[#7DB0FF]">
-          Ver disciplinas
-          <Icon name="arrow" className="h-4 w-4" />
         </span>
-        <span className="text-xs font-semibold text-[#64748B]">Curso no seu perfil</span>
+      </span>
+      <span className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-white">
+        Ver disciplinas
+        <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </span>
     </button>
   );
