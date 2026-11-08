@@ -65,7 +65,7 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
       className="group flex min-h-[168px] w-full flex-col rounded-xl bg-[#0242D7] p-5 text-left text-white transition-colors duration-150 hover:bg-[#033BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 active:bg-[#0336AE] sm:min-h-[180px] sm:p-6"
     >
       <span className="block text-lg font-semibold leading-snug tracking-[-0.02em] text-white sm:text-xl">{course.name}</span>
-      <span className="mt-2 line-clamp-2 text-sm leading-5 text-white/85">
+      <span className="mt-2 text-sm leading-5 text-white/85">
         {course.description ?? "Explore as disciplinas disponíveis neste curso."}
       </span>
       <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-white">
@@ -125,15 +125,17 @@ function DisciplinesPage() {
 
       if (cancelled) return;
       if (courseError) setError("Não foi possível carregar seus cursos.");
-      else setCourses(((data as Course[]) ?? []).map((course) => ({
-        ...course,
-        description:
-          course.name.trim().toLocaleLowerCase("pt-BR") === "letras"
-            ? "Aprofunde seus conhecimentos sobre língua, literatura, leitura e produção de textos, explorando os fundamentos da linguagem e suas práticas."
-            : course.name.trim().toLocaleLowerCase("pt-BR") === "pedagogia"
-              ? "Estude os fundamentos da educação, os processos de aprendizagem e as práticas pedagógicas que orientam a formação e o trabalho docente."
+      else setCourses(((data as Course[]) ?? []).map((course) => {
+        const courseName = course.name.trim().toLocaleLowerCase("pt-BR");
+        return {
+          ...course,
+          description: courseName.startsWith("letras")
+            ? "Estude língua portuguesa, literatura e produção textual."
+            : courseName.startsWith("pedagogia")
+              ? "Explore educação, aprendizagem e práticas pedagógicas."
               : course.description,
-      })));
+        };
+      }));
       setLoading(false);
     })();
     return () => { cancelled = true; };
