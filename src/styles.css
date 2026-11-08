@@ -159,13 +159,22 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Identidade tipográfica única: Nunito também prevalece sobre utilitários
-     como font-sans/font-serif presentes em componentes e cards. */
+  /* Identidade tipográfica única em toda a aplicação.
+     Os elementos herdam a Nunito do documento, inclusive textos renderizados
+     por componentes, cards, listas de tópicos, botões, formulários e estados. */
+  html,
   body,
-  body *,
-  body [class*="font-"],
-  body [style*="font-family"] {
+  #root {
     font-family: "Nunito", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  }
+
+  body *,
+  body *::before,
+  body *::after,
+  #root *,
+  #root *::before,
+  #root *::after {
+    font-family: inherit !important;
   }
 
   /* Preserva a leitura monoespaçada de trechos e blocos de código. */
@@ -175,8 +184,10 @@
   samp,
   code *,
   pre *,
-  code [class*="font-"],
-  pre [class*="font-"] {
+  code *::before,
+  code *::after,
+  pre *::before,
+  pre *::after {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
   }
 
