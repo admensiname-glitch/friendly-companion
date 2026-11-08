@@ -62,7 +62,14 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
     <button
       type="button"
       onClick={onSelect}
-      className="group flex min-h-[168px] w-full flex-col rounded-xl bg-[#0242D7] p-5 text-left text-white transition-colors duration-150 hover:bg-[#033BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 active:bg-[#0336AE] sm:min-h-[180px] sm:p-6"
+      className="group relative isolate flex min-h-[168px] w-full flex-col overflow-hidden rounded-xl bg-[#0242D7] bg-cover bg-center p-5 text-left text-white transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 active:brightness-95 sm:min-h-[180px] sm:p-6"
+      style={{
+        backgroundImage: course.name.trim().toLocaleLowerCase("pt-BR").startsWith("letras")
+          ? 'linear-gradient(105deg, rgba(2, 66, 215, 0.48), rgba(2, 66, 215, 0.68)), url("https://images.unsplash.com/photo-1741699428220-65f37f3fbbcb?auto=format&fit=crop&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200")'
+          : course.name.trim().toLocaleLowerCase("pt-BR").startsWith("pedagogia")
+            ? 'linear-gradient(105deg, rgba(2, 66, 215, 0.48), rgba(2, 66, 215, 0.68)), url("https://images.unsplash.com/photo-1758270705696-ec9caffc73dd?auto=format&fit=crop&fm=jpg&ixlib=rb-4.1.0&q=85&w=1200")'
+            : undefined,
+      }}
     >
       <span className="block text-lg font-semibold leading-snug tracking-[-0.02em] text-white sm:text-xl">{course.name}</span>
       <span className="mt-2 text-sm leading-5 text-white/85">
