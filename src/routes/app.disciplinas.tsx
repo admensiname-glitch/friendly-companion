@@ -62,25 +62,19 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
     <button
       type="button"
       onClick={onSelect}
-      className="group relative flex min-h-[220px] w-full flex-col overflow-hidden rounded-2xl border border-[#0242D7] bg-[#0242D7] p-6 text-left text-white shadow-[0_8px_24px_rgba(2,66,215,0.16)] transition duration-200 hover:-translate-y-1 hover:bg-[#033BC0] hover:shadow-[0_14px_30px_rgba(2,66,215,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0242D7]/25 active:translate-y-0 sm:min-h-[236px] sm:p-7"
+      className="group flex min-h-[168px] w-full flex-col rounded-xl bg-[#0242D7] p-5 text-left text-white transition-colors duration-150 hover:bg-[#033BC0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0242D7] focus-visible:ring-offset-2 active:bg-[#0336AE] sm:min-h-[180px] sm:p-6"
     >
-      <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-inner">
-        <Icon name="book" className="h-6 w-6" />
+      <span className="block text-lg font-semibold leading-snug tracking-[-0.02em] text-white sm:text-xl">{course.name}</span>
+      <span className="mt-2 line-clamp-2 text-sm leading-5 text-white/85">
+        {course.description ?? "Explore as disciplinas disponíveis neste curso."}
       </span>
-      <span className="relative mt-6 block min-w-0 flex-1">
-        <span className="block text-xl font-bold leading-tight tracking-[-0.02em] text-white sm:text-[22px]">{course.name}</span>
-        <span className="mt-2 block text-sm leading-6 text-white/80">
-          {course.description ?? "Explore o curso e encontre as disciplinas disponíveis."}
-        </span>
-      </span>
-      <span className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-white">
+      <span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-semibold text-white">
         Ver disciplinas
         <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </span>
     </button>
   );
 }
-
 function DisciplinesPage() {
   const matchRoute = useMatchRoute();
   const hasChildRoute = Boolean(matchRoute({ to: "/app/disciplinas/$disciplineId", fuzzy: true }));
