@@ -64,8 +64,6 @@ function CourseRow({ course, onSelect }: { course: Course; onSelect: () => void 
       onClick={onSelect}
       className="group relative flex min-h-[220px] w-full flex-col overflow-hidden rounded-2xl border border-[#0242D7] bg-[#0242D7] p-6 text-left text-white shadow-[0_8px_24px_rgba(2,66,215,0.16)] transition duration-200 hover:-translate-y-1 hover:bg-[#033BC0] hover:shadow-[0_14px_30px_rgba(2,66,215,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0242D7]/25 active:translate-y-0 sm:min-h-[236px] sm:p-7"
     >
-      <span aria-hidden="true" className="absolute -right-9 -top-10 h-36 w-36 rounded-full border border-white/10 bg-white/[0.06] transition-transform duration-300 group-hover:scale-110" />
-      <span aria-hidden="true" className="absolute -bottom-16 right-16 h-36 w-36 rounded-full border border-white/[0.08]" />
       <span className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-inner">
         <Icon name="book" className="h-6 w-6" />
       </span>
