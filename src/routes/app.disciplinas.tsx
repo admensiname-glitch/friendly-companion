@@ -125,7 +125,15 @@ function DisciplinesPage() {
 
       if (cancelled) return;
       if (courseError) setError("Não foi possível carregar seus cursos.");
-      else setCourses((data as Course[]) ?? []);
+      else setCourses(((data as Course[]) ?? []).map((course) => ({
+        ...course,
+        description:
+          course.name.trim().toLocaleLowerCase("pt-BR") === "letras"
+            ? "Aprofunde seus conhecimentos sobre língua, literatura, leitura e produção de textos, explorando os fundamentos da linguagem e suas práticas."
+            : course.name.trim().toLocaleLowerCase("pt-BR") === "pedagogia"
+              ? "Estude os fundamentos da educação, os processos de aprendizagem e as práticas pedagógicas que orientam a formação e o trabalho docente."
+              : course.description,
+      })));
       setLoading(false);
     })();
     return () => { cancelled = true; };
