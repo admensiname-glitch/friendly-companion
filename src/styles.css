@@ -159,9 +159,12 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Identidade tipográfica única: Nunito em toda a interface. */
+  /* Identidade tipográfica única: Nunito também prevalece sobre utilitários
+     como font-sans/font-serif presentes em componentes e cards. */
   body,
-  body * {
+  body *,
+  body [class*="font-"],
+  body [style*="font-family"] {
     font-family: "Nunito", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   }
 
@@ -171,7 +174,9 @@
   kbd,
   samp,
   code *,
-  pre * {
+  pre *,
+  code [class*="font-"],
+  pre [class*="font-"] {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace !important;
   }
 
