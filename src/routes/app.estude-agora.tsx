@@ -23,7 +23,7 @@ interface Recommendation {
   discipline_id?: string | null;
   topic_name?: string | null;
   discipline_name?: string | null;
-  reason?: "assessment" | "performance" | "difficulty" | "review" | "continue" | "start" | "none";
+  reason?: "assessment" | "performance" | "difficulty" | "continue" | "start" | "none";
   message?: string | null;
   exam_date?: string | null;
   exam_type?: string | null;
@@ -52,14 +52,13 @@ function reasonLabel(reason: Recommendation["reason"]) {
   if (reason === "assessment") return "Prioridade: avaliação próxima";
   if (reason === "performance") return "Prioridade: fortalecer seu desempenho";
   if (reason === "difficulty") return "Prioridade: superar uma dificuldade";
-  if (reason === "review") return "Momento de revisar";
   if (reason === "continue") return "Continue de onde parou";
   if (reason === "start") return "Próximo tópico do seu percurso";
   return "Seu plano de aprendizagem";
 }
 
 function primaryActionLabel(reason: Recommendation["reason"]) {
-  if (reason === "review" || reason === "difficulty" || reason === "performance") return "Retomar este tópico";
+  if (reason === "difficulty" || reason === "performance") return "Retomar este tópico";
   if (reason === "continue") return "Continuar estudo";
   if (reason === "start") return "Começar tópico";
   return "Estudar este tópico";
@@ -213,7 +212,7 @@ function StudyNowPage() {
           <div className="p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.13em] text-[#0242D7] dark:text-[#7DB0FF]">
-                <Icon name={recommendation?.reason === "review" ? "review" : "spark"} className="h-4 w-4" />
+                <Icon name="spark" className="h-4 w-4" />
                 {reasonLabel(recommendation?.reason)}
               </div>
               <span className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-bold text-[#53657B] dark:bg-[#1B2D45] dark:text-[#C5D0DE]">
@@ -227,7 +226,6 @@ function StudyNowPage() {
               <Link to="/app/disciplinas/$disciplineId/$topicId" params={{ disciplineId: recommendation!.discipline_id!, topicId: recommendation!.topic_id! }} className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-5 py-3 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] hover:bg-[#0038B8]">
                 {primaryActionLabel(recommendation?.reason)} <Icon name="arrow" className="h-4 w-4" />
               </Link>
-              <Link to="/app/revisao" className="inline-flex items-center rounded-xl border border-[#D5E1F2] bg-white px-4 py-3 text-sm font-bold text-[#556273] hover:text-[#0242D7] dark:border-[#3B506D] dark:bg-[#17253A] dark:text-[#C5D0DE]">Central de revisão</Link>
             </div>
           </div>
 
@@ -251,7 +249,7 @@ function StudyNowPage() {
             <ol className="mt-5 space-y-3">
               {plan.map((step, index) => {
                 const topicPath = `/app/disciplinas/${recommendation!.discipline_id}/${recommendation!.topic_id}`;
-                const stepHref = step.step === "review" ? "/app/revisao" : step.step === "practice" || step.step === "feedback" ? `${topicPath}#pratica` : topicPath;
+                const stepHref = step.step === "practice" || step.step === "feedback" ? `${topicPath}#pratica` : topicPath;
                 return (
                   <li key={step.step}>
                     <a href={stepHref} className="flex gap-3 rounded-xl border border-[#DCE5F0] bg-white p-4 transition-colors hover:border-[#AFC7EF] hover:bg-[#F8FAFF] dark:border-[#2B3A4F] dark:bg-[#172033] dark:hover:border-[#3D5C88] dark:hover:bg-[#1B2A40]">
@@ -276,7 +274,7 @@ function StudyNowPage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF4FF] text-[#0242D7] dark:bg-[#1B2A40] dark:text-[#7DB0FF]"><Icon name="spark" className="h-5 w-5" /></div>
           <h2 className="mt-5 text-xl font-bold tracking-[-0.03em] text-[#172334] dark:text-[#E7EDF5]">Vamos montar seu próximo passo.</h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">
-            Adicione uma ou mais disciplinas prioritárias acima. O Ensina-me usará seu progresso, suas avaliações, as dificuldades registradas e as revisões pendentes para indicar o que estudar.
+            Adicione uma ou mais disciplinas prioritárias acima. O Ensina-me usará seu progresso, suas avaliações, as dificuldades registradas para indicar o que estudar em seguida.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/app/disciplinas" className="inline-flex items-center gap-2 rounded-xl bg-[#0242D7] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038B8]">Ver disciplinas <Icon name="arrow" className="h-4 w-4" /></Link>
