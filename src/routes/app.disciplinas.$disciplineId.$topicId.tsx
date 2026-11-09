@@ -361,48 +361,48 @@ function MaterialSectionItem({
   return (
     <article
       aria-labelledby={`section-${section.id}`}
-      className="rounded-2xl border border-[#DCE5EE] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.045)] dark:border-[#2B3A4F] dark:bg-[#111C2A] dark:shadow-none sm:p-7"
+      className="rounded-2xl border border-[#0242D7] bg-[#0242D7] p-5 shadow-[0_12px_32px_rgba(2,66,215,0.18)] sm:p-8"
     >
       <div className="flex items-start gap-4">
         <div
           aria-hidden="true"
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
             completed
-              ? "bg-[#E8F7EE] text-[#166534] dark:bg-[#123025] dark:text-[#8CD7B0]"
-              : "bg-[#EAF1FC] text-[#0242D7] dark:bg-[#172B48] dark:text-[#7DB0FF]"
+              ? "bg-white text-[#0242D7]"
+              : "bg-white/15 text-white"
           }`}
         >
           {completed ? "✓" : index + 1}
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0242D7] dark:text-[#7DB0FF]">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#DCE9FF]">
             {labels[section.section_type]}
           </p>
           <h3
             id={`section-${section.id}`}
-            className="mt-3 text-[22px] font-bold leading-snug tracking-[-0.025em] text-[#172334] dark:text-[#E7EDF5] sm:text-[26px]"
+            className="mt-3 text-[26px] font-extrabold leading-tight tracking-[-0.025em] text-white sm:text-[30px]"
           >
             {section.title}
           </h3>
-          <p className="mt-2 text-xs font-semibold text-[#7A8796] dark:text-[#8797AA]">
+          <p className="mt-3 text-sm font-bold text-[#DCE9FF]">
             Parte {index + 1} de {total}
             {completed ? " · já estudada" : ""}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 max-w-3xl rounded-xl bg-[#F7F9FC] p-5 text-[15px] leading-8 text-[#465468] dark:bg-[#172437] dark:text-[#C1CCDA] sm:p-6 [&>p+p]:mt-5">
+      <div className="mt-7 max-w-3xl rounded-xl border border-white/20 bg-[#1554DF] p-5 text-[18px] font-semibold leading-[1.85] text-white sm:p-7 sm:text-[19px] [&>p+p]:mt-6">
         {renderParagraphs(section.content)}
       </div>
 
-      <div className="mt-6 border-t border-[#E2E8F0] pt-4 sm:pt-5 dark:border-[#2B3A4F]">
+      <div className="mt-7 border-t border-white/25 pt-5">
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
           <button
             type="button"
             onClick={onPrevious}
             disabled={index === 0}
-            className="min-h-11 rounded-lg px-3 py-2 text-sm font-semibold text-[#64748B] hover:bg-[#EDF2F7] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#A8B6C7] dark:hover:bg-[#1B2638]"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-bold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
           >
             ← Anterior
           </button>
@@ -414,8 +414,8 @@ function MaterialSectionItem({
             aria-pressed={completed}
             className={
               completed
-                ? "min-h-11 rounded-lg border border-[#BBE4CA] bg-[#EEF9F1] px-4 py-2 text-sm font-bold text-[#166534] dark:border-[#2D6750] dark:bg-[#122B21] dark:text-[#8CD7B0]"
-                : "min-h-11 rounded-lg bg-[#0242D7] px-4 py-2 text-sm font-bold text-white shadow-[0_6px_18px_rgba(2,66,215,0.16)] transition-colors hover:bg-[#0038B8]"
+                ? "min-h-11 rounded-lg border border-white bg-white px-4 py-2 text-sm font-extrabold text-[#0242D7]"
+                : "min-h-11 rounded-lg bg-white px-4 py-2 text-sm font-extrabold text-[#0242D7] transition-colors hover:bg-[#EAF1FF]"
             }
           >
             {completed ? "Parte estudada ✓" : "Marcar como estudada"}
@@ -425,14 +425,14 @@ function MaterialSectionItem({
             type="button"
             onClick={onNext}
             disabled={index === total - 1}
-            className="min-h-11 rounded-lg px-3 py-2 text-sm font-semibold text-[#0242D7] hover:bg-[#EAF1FC] disabled:cursor-not-allowed disabled:opacity-35 dark:text-[#7DB0FF] dark:hover:bg-[#172B48]"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-bold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
           >
             Próxima →
           </button>
         </div>
 
         {index === total - 1 && (
-          <p className="mt-4 text-center text-xs leading-5 text-[#7A8796] dark:text-[#8797AA]">
+          <p className="mt-4 text-center text-sm font-semibold leading-6 text-[#DCE9FF]">
             Ao terminar esta parte, avance para a prática para testar o que você entendeu.
           </p>
         )}
