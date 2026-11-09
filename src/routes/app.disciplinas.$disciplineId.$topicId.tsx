@@ -361,7 +361,7 @@ function MaterialSectionItem({
   return (
     <article
       aria-labelledby={`section-${section.id}`}
-      className="rounded-none border-0 bg-transparent p-0 shadow-none dark:bg-transparent"
+      className="rounded-2xl border border-[#DCE5EE] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.045)] dark:border-[#2B3A4F] dark:bg-[#111C2A] dark:shadow-none sm:p-7"
     >
       <div className="flex items-start gap-4">
         <div
@@ -392,7 +392,7 @@ function MaterialSectionItem({
         </div>
       </div>
 
-      <div className="mt-7 max-w-3xl space-y-6 text-[16px] leading-8 text-[#465468] dark:text-[#C1CCDA]">
+      <div className="mt-6 max-w-3xl rounded-xl bg-[#F7F9FC] p-5 text-[15px] leading-8 text-[#465468] dark:bg-[#172437] dark:text-[#C1CCDA] sm:p-6 [&>p+p]:mt-5">
         {renderParagraphs(section.content)}
       </div>
 
