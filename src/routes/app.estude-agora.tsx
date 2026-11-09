@@ -249,18 +249,25 @@ function StudyNowPage() {
               <span className="text-xs font-semibold text-[#7A8796] dark:text-[#AAB7C7]">{plan.length} etapas</span>
             </div>
             <ol className="mt-5 space-y-3">
-              {plan.map((step, index) => (
-                <li key={step.step} className="flex gap-3 rounded-xl border border-[#DCE5F0] bg-white p-4 dark:border-[#2B3A4F] dark:bg-[#172033]">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAF1FC] text-sm font-bold text-[#0242D7] dark:bg-[#1B2D45] dark:text-[#9ABEFF]">{index + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-bold text-[#273547] dark:text-[#E0E8F1]">{step.title}</h4>
-                      {step.minutes != null && <span className="text-xs font-semibold text-[#7A8796] dark:text-[#AAB7C7]">{step.minutes} min</span>}
-                    </div>
-                    <p className="mt-1 text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">{step.description}</p>
-                  </div>
-                </li>
-              ))}
+              {plan.map((step, index) => {
+                const topicPath = `/app/disciplinas/${recommendation!.discipline_id}/${recommendation!.topic_id}`;
+                const stepHref = step.step === "review" ? "/app/revisao" : step.step === "practice" || step.step === "feedback" ? `${topicPath}#pratica` : topicPath;
+                return (
+                  <li key={step.step}>
+                    <a href={stepHref} className="flex gap-3 rounded-xl border border-[#DCE5F0] bg-white p-4 transition-colors hover:border-[#AFC7EF] hover:bg-[#F8FAFF] dark:border-[#2B3A4F] dark:bg-[#172033] dark:hover:border-[#3D5C88] dark:hover:bg-[#1B2A40]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAF1FC] text-sm font-bold text-[#0242D7] dark:bg-[#1B2D45] dark:text-[#9ABEFF]">{index + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-sm font-bold text-[#273547] dark:text-[#E0E8F1]">{step.title}</h4>
+                          {step.minutes != null && <span className="text-xs font-semibold text-[#7A8796] dark:text-[#AAB7C7]">{step.minutes} min</span>}
+                        </div>
+                        <p className="mt-1 text-sm leading-6 text-[#687688] dark:text-[#AAB7C7]">{step.description}</p>
+                        <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#0242D7] dark:text-[#9ABEFF]">Ir para esta etapa <Icon name="arrow" className="h-3 w-3" /></span>
+                      </div>
+                    </a>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         </section>
