@@ -1663,7 +1663,7 @@ function ExerciseOptionItem({
   onSelect: () => void;
 }) {
   let optionClass =
-    "w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors cursor-pointer";
+    "w-full min-h-[60px] text-left px-5 py-4 rounded-xl border text-[16px] sm:text-[17px] font-semibold leading-7 transition-all cursor-pointer shadow-sm";
 
   if (isSelected && !isRevealed) {
     optionClass += " border-[#0242D7] bg-[#EAF1FC] text-[#123B82] dark:border-[#7DA5F5] dark:bg-[#1D3152] dark:text-[#E5EEFF]";
@@ -1711,7 +1711,7 @@ function ExerciseQuestionItem({
 
   return (
     <div className="mt-6">
-      <p className="text-base font-semibold leading-7 tracking-[-0.01em] text-[#172334] sm:text-[17px] dark:text-[#F0F3F8]">
+      <p className="rounded-xl border border-[#DCE5F2] bg-white px-5 py-5 text-[18px] font-bold leading-8 tracking-[-0.01em] text-[#172334] shadow-sm sm:text-[20px] dark:border-[#293B55] dark:bg-[#080D18] dark:text-[#F4F7FC]">
         {question.question_text}
       </p>
 
@@ -1969,7 +1969,7 @@ function ExerciseSection({
       </div>
 
       {currentQuestion && (
-        <div key={currentQuestion.id} className="rounded-xl border border-[#DCE4EF] bg-[#F8FAFC] p-4 sm:p-6 dark:border-[#344258] dark:bg-[#151D2A]">
+        <div key={currentQuestion.id} className="rounded-2xl border border-[#0242D7]/20 bg-[#EAF1FC] p-4 shadow-sm sm:p-6 dark:border-[#315FB8] dark:bg-[#101A2B]">
           <div className="flex items-center justify-between gap-3">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#526783] dark:text-[#A9BDD9]">
               Questão {overallQuestionNumber}
