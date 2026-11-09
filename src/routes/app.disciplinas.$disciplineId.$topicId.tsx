@@ -392,7 +392,7 @@ function MaterialSectionItem({
         </div>
       </div>
 
-      <div className="mt-7 max-w-3xl rounded-xl border border-white/20 bg-[#1554DF] p-5 text-[18px] font-semibold leading-[1.85] text-white sm:p-7 sm:text-[19px] [&>p+p]:mt-6">
+      <div className="mt-7 max-w-3xl rounded-xl border border-[#26364D] bg-[#080D18] p-5 text-[18px] font-semibold leading-[1.85] text-[#F4F7FC] shadow-inner sm:p-7 sm:text-[19px] [&>p+p]:mt-6">
         {renderParagraphs(section.content)}
       </div>
 
