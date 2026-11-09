@@ -370,21 +370,21 @@ function ExamPage() {
           <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-[#7A8796]"><span>Questão {current+1} de {questions.length} · {answeredCount} respondidas</span>{flagged.length > 0 && <span>{flagged.length} marcada(s)</span>}</div>
         </header>
 
-        <article className="mt-7 rounded-2xl border border-[#DCE5F0] bg-white p-5 sm:p-8">
+        <article className="mt-7 rounded-2xl border border-[#0242D7] bg-[#0242D7] p-4 shadow-[0_12px_32px_rgba(2,66,215,0.16)] sm:p-6 dark:border-[#315FB8] dark:bg-[#10264B]">
           <div className="flex items-start justify-between gap-4">
             <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8796]">Questão {current+1}</p><p className="mt-1 text-xs font-bold text-[#0242D7]">{question.question_type === "open_text" ? "Questão discursiva" : "Questão objetiva"}</p></div>
             <button type="button" onClick={() => setFlagged((old) => old.includes(question.id) ? old.filter(id=>id!==question.id) : [...old,question.id])} className="min-h-10 rounded-lg border border-[#DCE5F0] px-3 py-2 text-xs font-bold text-[#536174]">
               {flagged.includes(question.id) ? "✓ Marcada para revisar" : "Marcar para revisar"}
             </button>
           </div>
-          <h2 className="mt-4 text-lg font-semibold leading-7 text-[#172334] sm:text-xl">{question.question_text}</h2>
+          <h2 className="mt-4 rounded-xl border border-[#DCE5F0] bg-white px-5 py-5 text-[18px] font-extrabold leading-8 text-[#172334] shadow-sm sm:text-[21px] dark:border-[#293B55] dark:bg-[#080D18] dark:text-[#F4F7FC]">{question.question_text}</h2>
           {question.question_type === "multiple_choice" ? (
             <div className="mt-6 space-y-3">
               {question.options.map((option, index) => (
                 <button key={option.id} type="button" onClick={() => void selectAnswer(option.id)}
                   className={answers[question.id] === option.id
-                    ? "w-full rounded-xl border-2 border-[#0242D7] bg-[#EFF5FF] px-4 py-4 text-left text-sm font-medium text-[#0242D7]"
-                    : "w-full rounded-xl border border-[#DCE5F0] px-4 py-4 text-left text-sm font-medium text-[#344154] hover:border-[#9FB8DC]"}>
+                    ? "w-full min-h-[64px] rounded-xl border-2 border-white bg-white px-5 py-4 text-left text-[16px] font-bold leading-7 text-[#0242D7] shadow-md ring-2 ring-white/40 dark:border-[#8FB4FF] dark:bg-[#172B4A] dark:text-[#FFFFFF]"
+                    : "w-full min-h-[64px] rounded-xl border border-[#DCE5F0] bg-white px-5 py-4 text-left text-[16px] font-semibold leading-7 text-[#26364A] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#8FB0E8] hover:shadow-md dark:border-[#344A68] dark:bg-[#080D18] dark:text-[#F1F5FB] dark:hover:border-[#7298D8]"}>
                   <span className="mr-3 font-bold">{String.fromCharCode(65+index)}.</span>{option.content}
                 </button>
               ))}
