@@ -22,10 +22,19 @@ Deno.serve(async(req)=>{
   if(!attemptId)return json({error:"Prova não informada."},400);
 
   const admin=createClient(url,service);
-  const {data:attempt}=await admin.from("exam_attempts").select("id,user_id,status").eq("id",attemptId).eq("user_id",u.user.id).maybeSingle();
+  const {data:attempt,error:attemptError}=await admin.from("exam_attempts").select("id,user_id,status").eq("id",attemptId).eq("user_id",u.user.id).maybeSingle();
+  if(attemptError)return json({error:"Não foi possível validar a prova."},500);
   if(!attempt)return json({error:"Prova não encontrada."},404);
+  if(attempt.status!=="in_progress")return json({error:"Esta prova não está mais aberta para correção."},409);
 
-  const {data:rows}=await admin.from("exam_attempt_answers").select("id,attempt_question_id,response_text").eq("attempt_id",attemptId).not("response_text","is",null);
+  // Regrade only answers that have not already been graded. Editing an answer
+  // resets rubric_score, so legitimate retries remain possible after a change.
+  const {data:rows,error:rowsError}=await admin.from("exam_attempt_answers")
+   .select("id,attempt_question_id,response_text")
+   .eq("attempt_id",attemptId)
+   .not("response_text","is",null)
+   .is("rubric_score",null);
+  if(rowsError)return json({error:"Não foi possível carregar as respostas discursivas."},500);
   const answerRows=rows??[];
   if(!answerRows.length)return json({graded:0});
 
@@ -51,6 +60,7 @@ Deno.serve(async(req)=>{
    return {id:a.id,question_id:q?.id,question:q?.question_text,response:a.response_text,rubric:q?.feedback_hint??"",topic:topicMap.get(tid)?.name??"",minimum_lines:expectedLines(q?.question_text??"")};
   }).filter((x)=>x.question&&x.response);
 
+  if(!items.length)return json({graded:0});
   if(!key)return json({error:"A correção discursiva ainda não está configurada."},503);
 
   const prompt=`Você é o CORRETOR UNIVERSITÁRIO RIGOROSO do Modo Prova do Ensina-me. Sua função é verificar se o aluno demonstrou compreensão real do que a questão cobra. Não premie esforço, extensão, fluência ou linguagem acadêmica quando o conteúdo estiver incompleto ou conceitualmente errado.
@@ -101,20 +111,43 @@ ${items.map((x)=>"ID="+x.id+"\nTÓPICO="+x.topic+"\nQUESTÃO="+x.question+"\nRUB
   catch{return json({error:"A correção retornou um formato inválido."},503);}
 
   const grades=Array.isArray(parsed.grades)?parsed.grades:[];
-  if(grades.length<items.length)return json({error:"A IA não devolveu a correção de todas as respostas."},503);
+  if(grades.length!==items.length)return json({error:"A IA não devolveu exatamente a correção de todas as respostas."},503);
 
-  for(const g of grades){
-   const id=String(g.id??"");
-   const score=Math.max(0,Math.min(10,Math.round(Number(g.score))));
+  // Validate the entire model response before writing any scores.
+  const expectedIds=new Set(items.map((item)=>item.id));
+  const validatedGrades=new Map<string,{score:number;feedback:string}>();
+  for(const value of grades){
+   if(!value||typeof value!=="object"||Array.isArray(value))return json({error:"A correção retornou um formato inválido."},503);
+   const g=value as Record<string,unknown>;
+   const id=typeof g.id==="string"?g.id:"";
+   const score=g.score;
    const feedback=typeof g.feedback==="string"?g.feedback.trim():"";
-   const answer=items.find((x)=>x.id===id);
-   if(!answer||!Number.isFinite(score)||!feedback)continue;
-   await admin.from("exam_attempt_answers")
-    .update({rubric_score:score,is_correct:score===10,ai_feedback:feedback})
-    .eq("id",id).eq("attempt_id",attemptId);
+   if(!expectedIds.has(id)||validatedGrades.has(id)||typeof score!=="number"||!Number.isInteger(score)||score<0||score>10||!feedback){
+    return json({error:"A correção retornou notas ou feedbacks inválidos."},503);
+   }
+   validatedGrades.set(id,{score,feedback});
+  }
+  if(validatedGrades.size!==items.length)return json({error:"A correção não corresponde a todas as respostas."},503);
+
+  let graded=0;
+  for(const item of items){
+   const grade=validatedGrades.get(item.id);
+   if(!grade)return json({error:"Faltou a correção de uma resposta."},503);
+   const {data:updated,error:updateError}=await admin.from("exam_attempt_answers")
+    .update({rubric_score:grade.score,is_correct:grade.score===10,ai_feedback:grade.feedback})
+    .eq("id",item.id)
+    .eq("attempt_id",attemptId)
+    .is("rubric_score",null)
+    .select("id")
+    .maybeSingle();
+   if(updateError){
+    console.error("[grade-exam] Falha ao salvar correção:",updateError.code,updateError.message);
+    return json({error:"Não foi possível salvar a correção das respostas."},500);
+   }
+   if(updated)graded++;
   }
 
-  return json({graded:items.length,full_credit_threshold:10,partial_credit_range:[1,9]});
+  return json({graded,requested:items.length,full_credit_threshold:10,partial_credit_range:[1,9]});
  }catch(e){
   console.error("[grade-exam]",e);
   return json({error:"Não foi possível corrigir as discursivas agora.",retryable:true},500);
